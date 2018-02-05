@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1517856626880.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2381441117",
+    "id" : "49CD8D6B",
+    "lastKnownWriteTime" : 1517438333,
+    "last_content_update" : 1517438333,
+    "path" : "C:/Celine/GitHub/spadesCBM/spadesCBMinputs/spadesCBMinputs.Rmd",
+    "project_path" : "spadesCBMinputs/spadesCBMinputs.Rmd",
+    "properties" : {
+        "chunk_output_type" : "console",
+        "cursorPosition" : "30,52",
+        "scrollLine" : "8"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
