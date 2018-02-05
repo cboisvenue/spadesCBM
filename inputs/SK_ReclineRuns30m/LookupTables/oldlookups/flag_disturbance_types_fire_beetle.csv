@@ -1,0 +1,14 @@
+fire_flag,beetle_flag,severity,DisturbanceType
+0,1,l,Mountain pine beetle — Low impact
+0,1,m,Mountain pine beetle — Moderate impact
+0,1,s,Mountain pine beetle — Severe impact
+0,1,v,Mountain pine beetle — Very severe impact
+1,1,l,Wildfire
+1,1,m,Wildfire
+1,1,s,Wildfire
+1,1,v,Wildfire
+1,0,l,Wildfire
+1,0,m,Wildfire
+1,0,s,Wildfire
+1,0,v,Wildfire
+0,0,n,None

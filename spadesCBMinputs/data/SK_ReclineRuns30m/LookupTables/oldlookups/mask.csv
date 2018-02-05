@@ -1,0 +1,62 @@
+T1_Landuse,T2_Landuse,IsMasked
+NoData,NoData,True
+Abandoned Agriculture,Abandoned Agriculture,False
+Abandoned Agriculture,Cropland,True
+Abandoned Agriculture,Forest,False
+Abandoned Agriculture,Plantations,False
+Abandoned Agriculture,Settlement,True
+Abandoned Agriculture,Trees,False
+Abandoned Agriculture,Unimproved Pasture,True
+Abandoned Agriculture,Unknown,True
+Abandoned Agriculture,Water,True
+Cropland,Abandoned Agriculture,True
+Cropland,Cropland,True
+Cropland,Forest,False
+Cropland,Orchards,True
+Cropland,Settlement,True
+Cropland,Trees,False
+Cropland,Unimproved Pasture,True
+Forest,Abandoned Agriculture,False
+Forest,Trees,False
+Forest,Unimproved Pasture,False
+Orchards,Cropland,True
+Orchards,Orchards,True
+Orchards,Settlement,True
+Pits/Quarries,Abandoned Agriculture,True
+Pits/Quarries,Unimproved Pasture,True
+Settlement,Abandoned Agriculture,True
+Settlement,Orchards,True
+Settlement,Settlement,True
+Settlement,Trees,False
+Settlement,Unimproved Pasture,True
+Shrubs,Abandoned Agriculture,True
+Shrubs,Cropland,False
+Shrubs,Settlement,False
+Shrubs,Shrubs,False
+Shrubs,Trees,False
+Shrubs,Wetlands,True
+Trees,Abandoned Agriculture,False
+Trees,Cropland,False
+Trees,Forest,False
+Trees,Orchards,True
+Trees,Pits/Quarries,False
+Trees,Plantations,False
+Trees,Settlement,False
+Trees,Shrubs,False
+Trees,Trees,False
+Trees,Unimproved Pasture,False
+Trees,Unknown,False
+Trees,Water,False
+Trees,Wetlands,False
+Unimproved Pasture,Abandoned Agriculture,False
+Unimproved Pasture,Cropland,True
+Unimproved Pasture,Forest,False
+Unimproved Pasture,Pits/Quarries,True
+Unimproved Pasture,Plantations,False
+Unimproved Pasture,Settlement,True
+Unimproved Pasture,Trees,False
+Unimproved Pasture,Unimproved Pasture,True
+Unimproved Pasture,Unknown,True
+Unimproved Pasture,Wetlands,True
+Vineyards,Cropland,True
+Vineyards,Vineyards,True

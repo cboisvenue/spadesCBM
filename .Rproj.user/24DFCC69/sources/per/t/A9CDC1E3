@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1517440207496.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2056275399",
+    "id" : "A9CDC1E3",
+    "lastKnownWriteTime" : 1517440692,
+    "last_content_update" : 1517440692364,
+    "path" : "C:/Celine/GitHub/spadesCBM/spadesCBMdefaults/R/spadesCBMdefaultsFunctions.r",
+    "project_path" : "spadesCBMdefaults/R/spadesCBMdefaultsFunctions.r",
+    "properties" : {
+        "cursorPosition" : "53,7",
+        "scrollLine" : "48"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
