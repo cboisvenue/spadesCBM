@@ -8,7 +8,7 @@ defineModule(sim, list(
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
-  childModules = c("spadesCBMinputs","spadesCBMdefaults","spadesCBMcore"),
+  childModules = c("spadesCBMdefaults","spadesCBMinputs","spadesCBMcore"),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBM = "0.0.1"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
