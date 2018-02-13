@@ -77,8 +77,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "postSpinup")
-      sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual")
-      sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last())
+      #sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual")
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMcore", "plot")
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMcore", "save")
     },
@@ -103,6 +102,8 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- annual(sim)
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
       sim <- scheduleEvent(sim, time(sim) + 1, "spadesCBMcore", "annual")
+      if(time(sim)==end(sim))
+        sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last())
       # ! ----- STOP EDITING ----- ! #
     },
     postSpinup = {
@@ -110,7 +111,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # do stuff for this event
       sim <- postSpinup(sim)
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
-      sim <- scheduleEvent(sim, time(sim) + 1, "spadesCBMcore", "annual")
+      sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual")
       # ! ----- STOP EDITING ----- ! #
     },
     plot = {
@@ -316,8 +317,8 @@ annual <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
   # compute the growth increments
-  #browser()
-  growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
+
+    growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
     growthIncrements = sim$gcHash,
     ages = sim$ages,
     gcids = sim$gcids,
@@ -346,9 +347,8 @@ annual <- function(sim) {
                          opMatrix = sim$opMatrixCBM, 
                          flowMatrices = sim$allProcesses)
   sim$ages <- sim$ages+1
-  
   sim$cbmPools <- rbind(sim$cbmPools, cbind(1:sim$nStands, sim$ages, sim$pools))
-  
+
   return(invisible(sim))
 }
 
