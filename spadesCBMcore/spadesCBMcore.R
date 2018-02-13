@@ -129,7 +129,6 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     savePools = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      browser()
       colnames(sim$cbmPools) <- c( c("standindex", "age"), pooldef)
       write.csv(file = file.path(outputPath(sim),"output1stand.csv"), sim$cbmPools)
       
@@ -348,7 +347,6 @@ annual <- function(sim) {
                          opMatrix = sim$opMatrixCBM, 
                          flowMatrices = sim$allProcesses)
   sim$ages <- sim$ages+1
-  browser()
   sim$cbmPools <- rbind(sim$cbmPools, cbind(1:sim$nStands, sim$ages, sim$pools))
 
   return(invisible(sim))

@@ -39,7 +39,7 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 # Usage
 
 ```{r module_usage}
-library(SpaDES.core)
+library(SpaDES)
 
 moduleDir <- file.path("C:/Celine/GitHub/spadesCBM")
 inputDir <- file.path("C:/Celine/GitHub/data/12_Spades_run") %>% reproducible::checkPath(create = TRUE)

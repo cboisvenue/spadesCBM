@@ -26,7 +26,9 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
+    expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
+    expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
