@@ -17,7 +17,7 @@ gcIn <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_R
 # run readInSQLiteData.r which creates the data.frame spu (combines all ids with province and ecozone names)
 # figure out what spatial_unit these gc are in with the matching of 
 # gcIn$spatial_unit_id and cbmTables$spatial_unit
-x <- which(spu$spu_id %in% unique(gcIn[,1]))
+#x <- which(spu$spu_id %in% unique(gcIn[,1]))
 gcSpu <- spu[which(spu$spu_id %in% unique(gcIn[,1])),]
 
 # > gcSpu
