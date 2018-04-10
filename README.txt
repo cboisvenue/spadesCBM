@@ -1,4 +1,4 @@
-# spadesCBM
+﻿# spadesCBM
 three module Carbon Budget Model (CBM) for SpaDES
 
 In summer 2017 Scott Morken wrote a second incarnation of a CBM-like R-based carbon model in an intensive 2-week stint with EMcIntire and CBoisvenue. The code and scripts, including the calls to Cpp via RCpp, are all contained in RunSK_new.R. This emulates the science in CBM-CFS3 but works in matrix operations (the original CBM-CFS3 does not). Scott got a spin up working with a comparison for 1 stand in SK, which he ran for 100 years post spin-up in both CBMCFS3 and the script as developed here. Results are the same compared to classic CBMCFS3 (see C:\Celine\GitHub\RCBM\data\12_Spades_run\CBM3BaselineTesting). A map of the links and functions of the R and cpp code (created by CBoisvenue) is available here (G:\RES_Work\Work\SpaDES\work\RCBMoverview\June2017CBMcore\cbmCoreMap.xlsx). SMorken's work is archived in a github repo (https://github.com/cboisven/RCBM branch rcbmV1cb).
@@ -7,7 +7,9 @@ The present code is the new repo that forms the spadesCBM family (https://github
 
 Documentation describing these three modules is in GitHub\spadesCBM\spadesCBM\spadesCBM.Rmd.
 
-List of improvements that still need to be done to the RCpp code:
+An overview of this family is in a prezi here G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe
+
+List of improvements that still need to be done to the Rcpp code:
 CBM features not yet implemented:
 - "Flux indicators" CBM-speak for automatic calculation of NPP, heterotrophic respiration, and NEP
 - "Land-use change tracking" pieces of land that switch between the UNCFFF land-classification such as Forest-Land to Agricultural-Land, etc.
