@@ -42,13 +42,14 @@ gcSps <- sps[which(sps$species_id %in% unique(gcIn[,4])),c(1,2)]
 
 gcforest <- unique(sps[which(sps$forest_type_id %in% unique(gcIn[,5])),c(3,4)])
 
-##ANALYSES: wht does the spadesCBMinputs module do with these curves?
+##ANALYSES: what does the spadesCBMinputs module do with these curves?
+# reproducing it below
 library(CBMVolumeToBiomass)
 
 # each unique gc in gcIn$growth_curve_id is translated into biomass
-# this function calls a function in CBMVolume to Biomass
+# this functionv(processGrowthCurve) calls a function in CBMVolume to Biomass (VolumeToBiomassConvert)
 
-## This is a function in the spadesCBMinputsFunctions.r parsing file
+## This is in the spadesCBMinputsFunctions.r parsing file
 processGrowthCurve <- function(gcid,growthCurves,growthCurveComponents) {
   
   matchingRows <- t(as.matrix(growthCurves[growthCurves[,"growth_curve_id"]==gcid,]))
@@ -98,7 +99,7 @@ hash <- function(x) {
   return(e)
 }
 
-# used in spadeCBMInputes (in g&y reading) AND in spadesCBMdefaults (in creating sim$processes)
+# used in spadeCBMInputs (in g&y reading) AND in spadesCBMdefaults (in creating sim$processes)
 matrixHash <- function(x){
   keys = unique(x[,1])
   e <- new.env(hash = TRUE, size=length(keys), parent = emptyenv())
