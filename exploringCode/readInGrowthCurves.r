@@ -22,33 +22,34 @@ gcSpu <- spu[which(spu$spu_id %in% unique(gcIn[,1])),]
 
 # > gcSpu
 # spu_id admin_boundary_id     province eco_boundary_id            ecozone
-# 8      26                 9 Saskatchewan               5  Taiga Shield West
-# 11     27                 9 Saskatchewan               6 Boreal Shield West
-# 22     28                 9 Saskatchewan               9      Boreal Plains
-# 25     29                 9 Saskatchewan              10  Subhumid Prairies
-# 48     30                 9 Saskatchewan              18  Semiarid Prairies
+#     26                 9 Saskatchewan               5  Taiga Shield West
+#     27                 9 Saskatchewan               6 Boreal Shield West
+#     28                 9 Saskatchewan               9      Boreal Plains
+#     29                 9 Saskatchewan              10  Subhumid Prairies
+#     30                 9 Saskatchewan              18  Semiarid Prairies
 
 gcSps <- sps[which(sps$species_id %in% unique(gcIn[,4])),c(1,2)]
 
 # > gcSps
 # species_id         species
-# 2           2    Black spruce
-# 6           6    White spruce
-# 14         14       Jack pine
-# 33         29      Balsam fir
-# 74         63 Trembling aspen
-# 75         65   Balsam poplar
-# 86         76     White birch
+#          2    Black spruce
+#          6    White spruce
+#         14       Jack pine
+#         29      Balsam fir
+#         63 Trembling aspen
+#         65   Balsam poplar
+#         76     White birch
 
 gcforest <- unique(sps[which(sps$forest_type_id %in% unique(gcIn[,5])),c(3,4)])
 
-##ANALYSES: wht does the spadesCBMinputs module do with these curves?
+##ANALYSES: what does the spadesCBMinputs module do with these curves?
+# reproducing it below
 library(CBMVolumeToBiomass)
 
 # each unique gc in gcIn$growth_curve_id is translated into biomass
-# this function calls a function in CBMVolume to Biomass
+# this functionv(processGrowthCurve) calls a function in CBMVolume to Biomass (VolumeToBiomassConvert)
 
-## This is a function in the spadesCBMinputsFunctions.r parsing file
+## This is in the spadesCBMinputsFunctions.r parsing file
 processGrowthCurve <- function(gcid,growthCurves,growthCurveComponents) {
   
   matchingRows <- t(as.matrix(growthCurves[growthCurves[,"growth_curve_id"]==gcid,]))
@@ -98,7 +99,7 @@ hash <- function(x) {
   return(e)
 }
 
-# used in spadeCBMInputes (in g&y reading) AND in spadesCBMdefaults (in creating sim$processes)
+# used in spadeCBMInputs (in g&y reading) AND in spadesCBMdefaults (in creating sim$processes)
 matrixHash <- function(x){
   keys = unique(x[,1])
   e <- new.env(hash = TRUE, size=length(keys), parent = emptyenv())
