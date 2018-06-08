@@ -188,8 +188,44 @@ $(document).ready(function () {
 <p>Each pixel/stand needs a link to a growth curve. This could be a map, or a table that links all the indices (in 3 above) to a growth curve. These indices are presently needed to link to the function CBMVolumeToBiomass::VolumeToBiomassConvert. The original growth curves were developped from the SK PSP data (as used in the Boisvenue et al 2016 papers).However, the original work resulted in nine growth curves, one per species for five species (BF,BP, JP, TA, WB), and two for each of white and black spruce representing a medium and a good productivity level for each spruce species (BSMedium, BSGood, WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveComponentID, and growth_curve_id (slide 13 in the prezi spadesCBM modules overview describes both files in detail). The readInGrowthCurves.r (<code>GitHub\spadesCBM\exploringCode\readInGrowthCurves.r</code>) reads-in and describes well two files currently being read-in. Only one curve is being “translated” into biomass (<code>sim$gcids &lt;- c(1)</code>) via the CBMVolumeToBiomass::VolumeToBiomassConvert function in the prototype code. <strong>One of the growth and yield files being read-in has a columne identifying the spatial units</strong>, a piece of information needed in the CBMVolumeToBiomass translation.</p>
 <p><strong><em>TASKS</em></strong> 1. figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine’s calculation of CASFRI info - site_productivity.tif), both found here <code>F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers</code> can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 2. Better ways of assigning these? 3. Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.</p>
 </div>
-<div id="section" class="section level3">
-<h3></h3>
+<div id="historical-disturbance-matrix-identification-number" class="section level3">
+<h3>5- Historical Disturbance Matrix Identification Number</h3>
+<p>In the cbm_default.db, each spatial unit (admin boundaries X ecozones) have a specific historical disturbance matrix. It is always fire (true at least in the spatial units I have worked in) but the proportions change depending on where you are. So, once a spatial unit identification is assigned to each pixel (which can be via the gcID assignment (in 4) since they have spatial units associated with them also), the last column of the table <code>spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation</code> can provide the disturbance_matrix_id needed.</p>
+<p><strong><em>TASKS</em></strong> 1. once each pixel has a spatial unit, assign the Historical Disturbance Matrix Identification Number.</p>
+</div>
+<div id="last-pass-disturbance" class="section level3">
+<h3>6- Last pass disturbance</h3>
+<p>The user has to identify the last disturbance that happened to the stand/pixel that is at the age in the age raster (in 1). For example, this could be a fire or a clearcut. In each spatial unit across Canada, there are a number of defined matrices for clearcut and fire. So spatial unit needs to be associated with a pixel - as in 5, this can be done via the gcID assignment (in 4) since they have spatial units associated with them. Once the spatial unit per pixels is known, the table <code>spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation</code> can provide the disturbance_type_id and the disturbance_matrix_id that are possible for the spatial unit. The cbm_default.db table disturbance_type give the name and a description of the disturbance (using the disturbance_type_id).</p>
+<p><strong><em>TASKS</em></strong> 1. write script to facilitate the choice of last pass disturbance.</p>
+</div>
+<div id="delay" class="section level3">
+<h3>7- Delay</h3>
+<p>This is an assignment of a regeneration delay in years. I have not tested if this works. For now, it all should be assigned to 0 years.</p>
+<p><strong><em>TASKS</em></strong> 1. assign a vector 0s for each stand index</p>
+</div>
+<div id="minimum-rotations-for-spinup" class="section level3">
+<h3>8- Minimum rotations for spinup</h3>
+</div>
+<div id="maximum-rotations-for-spinup" class="section level3">
+<h3>9- Maximum rotations for spinup</h3>
+</div>
+<div id="distrubance-return-interval-for-spinup" class="section level3">
+<h3>10- Distrubance return interval for spinup</h3>
+<p>These three variables can be determined if we know which spatial units we are in. As above the spatial can be provided by the gcID and that can be linked to the <code>spadesCBMout@.envir$cbmData@spinupParameters</code>. The modules need to be run for this block of code to work.</p>
+<p><code>spinupParams &lt;- spadesCBMout@.envir$cbmData@spinupParameters gcIn &lt;- as.matrix(read.csv(&quot;C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv&quot;)) spu[which(spu$spu_id %in% unique(gcIn[,1])),] gcSpu &lt;- spadesCBMout@.envir$cbmData@spinupParameters[which(spadesCBMout@.envir$cbmData@spinupParameters[,1] %in% unique(gcIn[,1])),]</code></p>
+<p><strong><em>TASKS</em></strong> 1. assign a vector for each of these three variables</p>
+</div>
+<div id="spatial-units" class="section level3">
+<h3>11- spatial Units</h3>
+</div>
+<div id="ecozones" class="section level3">
+<h3>12- ecozones</h3>
+<p>The above steps associate a spatial unit and can be linked to an ecozone for each of the pixels/stands.</p>
+</div>
+<div id="disturbances" class="section level3">
+<h3>13- Disturbances</h3>
+<p>This will come from the Wulder and White work. There is a list for SK here: <code>SK_ReclineRuns30m\layers\projected_change_type</code></p>
+<p><strong><em>TASKS</em></strong> 1. get this working with existing SK data 2. Link it to large work of using disturbance info from that national product.</p>
 </div>
 </div>
 </div>
