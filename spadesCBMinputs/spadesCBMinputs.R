@@ -22,7 +22,7 @@ defineModule(sim, list(
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -71,21 +71,9 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- Init(sim)
 
       # schedule future event(s)
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMinputs", "plot")
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMinputs", "save")
     },
-    plot = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      #Plot(objectFromModule) # uncomment this, replace with object to plot
-      # schedule future event(s)
-
-      # e.g.,
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMinputs", "plot")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
+    
     save = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
@@ -100,34 +88,7 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
 
       # ! ----- STOP EDITING ----- ! #
     },
-    event1 = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMinputs", "templateEvent")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    event2 = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMinputs", "templateEvent")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
+   
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -200,38 +161,9 @@ Save <- function(sim) {
 }
 
 ### template for plot events
-Plot <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # do stuff for this event
-  #Plot("object")
 
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
 
 ### template for your event1
-Event1 <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
-  sim$event1Test1 <- " this is test for event 1. " # for dummy unit test
-  sim$event1Test2 <- 999 # for dummy unit test
-
-
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
-
-### template for your event2
-Event2 <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
-  sim$event2Test1 <- " this is test for event 2. " # for dummy unit test
-  sim$event2Test2 <- 777  # for dummy unit test
-
-
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
 
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #

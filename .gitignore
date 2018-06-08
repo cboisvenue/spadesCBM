@@ -2,3 +2,5 @@
 spadesCBMcore/data/SK_ReclineRuns30m/
 
 \.Rproj\.user/
+*Rproj.user*
+.Rproj.user

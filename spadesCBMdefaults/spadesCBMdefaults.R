@@ -22,7 +22,7 @@ defineModule(sim, list(
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -57,59 +57,12 @@ doEvent.spadesCBMdefaults = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMdefaults", "save")
     },
     plot = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
 
-      #Plot(objectFromModule) # uncomment this, replace with object to plot
-      # schedule future event(s)
-
-      # e.g.,
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMdefaults", "plot")
-
-      # ! ----- STOP EDITING ----- ! #
     },
     save = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
 
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMdefaults", "save")
-
-      # ! ----- STOP EDITING ----- ! #
     },
-    event1 = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
 
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMdefaults", "templateEvent")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    event2 = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMdefaults", "templateEvent")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -164,26 +117,26 @@ Init <- function(sim) {
 sim$PoolCount <- length(sim$pooldef)
 
 #step 1 read the cbm_defaults parameter data
-spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", dbPath, sqlDir))
-disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", dbPath, sqlDir))
+spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
+disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
 # this is the S4 object that has ALL the parameters
 sim$cbmData <- new("dataset",
-                   turnoverRates=as.matrix(getTable("turnoverRates.sql", dbPath, sqlDir)),
-                   rootParameters=as.matrix(getTable("rootParameters.sql", dbPath, sqlDir)),
-                   decayParameters=as.matrix(getTable("decayParameters.sql", dbPath, sqlDir)),
-                   spinupParameters=as.matrix(getTable("spinupParameters.sql", dbPath, sqlDir)),
-                   climate=as.matrix(getTable("climate.sql", dbPath, sqlDir)),
+                   turnoverRates=as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
+                   rootParameters=as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
+                   decayParameters=as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
+                   spinupParameters=as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
+                   climate=as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
                    spatialUnitIds=spatialUnitIds,
                    slowAGtoBGTransferRate=as.matrix(0.006),
                    biomassToCarbonRate=as.matrix(0.5),
-                   stumpParameters=as.matrix(getTable("stumpParameters.sql", dbPath, sqlDir)),
-                   overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", dbPath, sqlDir)),
+                   stumpParameters=as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
+                   overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
                    disturbanceMatrix=disturbanceMatrix,
-                   disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", dbPath, sqlDir)),
-                   disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", dbPath, sqlDir)),
-                   landclasses=as.matrix(getTable("landclasses.sql", dbPath, sqlDir)),
-                   pools = as.matrix(getTable("pools.sql", dbPath, sqlDir)),
-                   domPools = as.matrix(getTable("domPools.sql", dbPath, sqlDir))
+                   disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
+                   disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
+                   landclasses=as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
+                   pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
+                   domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
 )
 
 #step 2 create constant matrices from parameter data
@@ -229,28 +182,8 @@ Plot <- function(sim) {
 }
 
 ### template for your event1
-Event1 <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
-  sim$event1Test1 <- " this is test for event 1. " # for dummy unit test
-  sim$event1Test2 <- 999 # for dummy unit test
-
-
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
 
 ### template for your event2
-Event2 <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
-  sim$event2Test1 <- " this is test for event 2. " # for dummy unit test
-  sim$event2Test2 <- 777  # for dummy unit test
-
-
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
 
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
