@@ -14,7 +14,7 @@ gcComponent <- as.matrix(read.csv("C:/Ian/Boisvenue/spadesCBM/spadesCBMinputs/da
 gcIn <- as.matrix(read.csv("C:/Ian/Boisvenue/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
 
 ## here trying to match the spatial_unit_id in gcIn with the spatial_unit in cbm_defaults
-# run readInSQLiteData.r which creates the data.frame spu (combines all ids with province and ecozone names)
+# ***run readInSQLiteData.r which creates the data.frame spu (combines all ids with province and ecozone names)***
 # figure out what spatial_unit these gc are in with the matching of 
 # gcIn$spatial_unit_id and cbmTables$spatial_unit
 #x <- which(spu$spu_id %in% unique(gcIn[,1]))
