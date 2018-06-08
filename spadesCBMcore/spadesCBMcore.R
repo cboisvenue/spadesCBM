@@ -336,8 +336,8 @@ annual <- function(sim) {
   sim$yearEvents <- sim$disturbanceEvents[sim$disturbanceEvents[,"Year"]==time(sim),c("standIndex","DisturbanceMatrixId"),drop=FALSE]
   if(nrow(sim$yearEvents)>0){
     for(e in 1:nrow(sim$yearEvents)) {
-      eventDMIDs[yearEvents[e,"standIndex"]] <- sim$yearEvents[e,"DisturbanceMatrixId"]
-      sim$ages[yearEvents[e,"standIndex"]] <- 0
+      eventDMIDs[sim$yearEvents[e,"standIndex"]] <- sim$yearEvents[e,"DisturbanceMatrixId"]
+      sim$ages[sim$yearEvents[e,"standIndex"]] <- 0
     }
   }
   
