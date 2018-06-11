@@ -47,10 +47,10 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 ```{r module_usage}
 library(SpaDES)
 
-moduleDir <- getwd()#file.path("C:/Celine/GitHub/spadesCBM")
-inputDir <- file.path(getwd(),"data") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(getwd(),"outputs")
-cacheDir <- file.path(outputDir,"cache") # as to not to overwhelm my github I like my cache here C:\Celine\SpaDEScacheOutputs
+moduleDir <- file.path("C:/Celine/GitHub/spadesCBM")
+inputDir <- file.path("C:/Celine/GitHub/spadesCBM/data") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Celine/SpaDEScacheOutputs/outputs")
+cacheDir <- file.path("C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 1999.00)
 parameters <- list(
   #.progress = list(type = "text", interval = 1), # for a progress bar
