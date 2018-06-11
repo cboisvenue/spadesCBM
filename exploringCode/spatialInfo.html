@@ -122,7 +122,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">spatialInfo</h1>
 <h4 class="author"><em>CBoisvenue</em></h4>
-<h4 class="date"><em>June 6, 2018</em></h4>
+<h4 class="date"><em>June 8, 2018</em></h4>
 
 </div>
 
@@ -137,6 +137,7 @@ $(document).ready(function () {
 <h3>CBM-CFS3 jargon</h3>
 <p>The inputs that need to be spatial or linked to what in CBM-speak are called spatial units will be provided by the user. Spatial units are a CBM-CFS3 artifact. There are 48 spatial units in Canada and they are defined by the cross between provincial and territorial boundaries and ecozones.</p>
 <p>Here is a table of of the spatial units refered to in the cbm_default.db and the cbmData S4 object that reads-in some of the cbm_default.db parameter values.</p>
+<p>These spatial unites are the link to ALL the default parameters to run CBM across Canada.</p>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["spu_id"],"name":[1],"type":["int"],"align":["right"]},{"label":["province"],"name":[2],"type":["chr"],"align":["left"]},{"label":["ecozone"],"name":[3],"type":["chr"],"align":["left"]}],"data":[{"1":"1","2":"Newfoundland","3":"Boreal Shield East","_rn_":"46"},{"1":"3","2":"Labrador","3":"Taiga Shield East","_rn_":"41"},{"1":"4","2":"Labrador","3":"Boreal Shield East","_rn_":"45"},{"1":"5","2":"Nova Scotia","3":"Atlantic Maritime","_rn_":"15"},{"1":"6","2":"Prince Edward Island","3":"Atlantic Maritime","_rn_":"17"},{"1":"7","2":"New Brunswick","3":"Atlantic Maritime","_rn_":"14"},{"1":"11","2":"Quebec","3":"Atlantic Maritime","_rn_":"16"},{"1":"12","2":"Quebec","3":"Mixedwood Plains","_rn_":"19"},{"1":"13","2":"Quebec","3":"Hudson Plains","_rn_":"40"},{"1":"14","2":"Quebec","3":"Taiga Shield East","_rn_":"42"},{"1":"15","2":"Quebec","3":"Boreal Shield East","_rn_":"43"},{"1":"16","2":"Ontario","3":"Boreal Shield West","_rn_":"13"},{"1":"17","2":"Ontario","3":"Mixedwood Plains","_rn_":"18"},{"1":"18","2":"Ontario","3":"Hudson Plains","_rn_":"39"},{"1":"19","2":"Ontario","3":"Boreal Shield East","_rn_":"44"},{"1":"21","2":"Manitoba","3":"Taiga Shield West","_rn_":"9"},{"1":"22","2":"Manitoba","3":"Boreal Shield West","_rn_":"12"},{"1":"23","2":"Manitoba","3":"Boreal Plains","_rn_":"23"},{"1":"24","2":"Manitoba","3":"Subhumid Prairies","_rn_":"26"},{"1":"25","2":"Manitoba","3":"Hudson Plains","_rn_":"38"},{"1":"26","2":"Saskatchewan","3":"Taiga Shield West","_rn_":"8"},{"1":"27","2":"Saskatchewan","3":"Boreal Shield West","_rn_":"11"},{"1":"28","2":"Saskatchewan","3":"Boreal Plains","_rn_":"22"},{"1":"29","2":"Saskatchewan","3":"Subhumid Prairies","_rn_":"25"},{"1":"30","2":"Saskatchewan","3":"Semiarid Prairies","_rn_":"48"},{"1":"31","2":"Alberta","3":"Taiga Plains","_rn_":"1"},{"1":"32","2":"Alberta","3":"Taiga Shield West","_rn_":"5"},{"1":"33","2":"Alberta","3":"Boreal Shield West","_rn_":"10"},{"1":"34","2":"Alberta","3":"Boreal Plains","_rn_":"24"},{"1":"35","2":"Alberta","3":"Subhumid Prairies","_rn_":"27"},{"1":"36","2":"Alberta","3":"Montane Cordillera","_rn_":"36"},{"1":"37","2":"Alberta","3":"Semiarid Prairies","_rn_":"47"},{"1":"38","2":"British Columbia","3":"Taiga Plains","_rn_":"4"},{"1":"39","2":"British Columbia","3":"Boreal Plains","_rn_":"21"},{"1":"40","2":"British Columbia","3":"Boreal Cordillera","_rn_":"32"},{"1":"41","2":"British Columbia","3":"Pacific Maritime","_rn_":"34"},{"1":"42","2":"British Columbia","3":"Montane Cordillera","_rn_":"35"},{"1":"44","2":"Yukon Territory","3":"Taiga Plains","_rn_":"3"},{"1":"45","2":"Yukon Territory","3":"Taiga Cordillera","_rn_":"29"},{"1":"46","2":"Yukon Territory","3":"Boreal Cordillera","_rn_":"30"},{"1":"47","2":"Yukon Territory","3":"Pacific Maritime","_rn_":"33"},{"1":"50","2":"Northwest Territories","3":"Taiga Plains","_rn_":"2"},{"1":"51","2":"Northwest Territories","3":"Taiga Shield West","_rn_":"6"},{"1":"52","2":"Northwest Territories","3":"Boreal Plains","_rn_":"20"},{"1":"53","2":"Northwest Territories","3":"Taiga Cordillera","_rn_":"28"},{"1":"54","2":"Northwest Territories","3":"Boreal Cordillera","_rn_":"31"},{"1":"58","2":"Nunavut","3":"Taiga Shield West","_rn_":"7"},{"1":"59","2":"Nunavut","3":"Hudson Plains","_rn_":"37"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -147,8 +148,8 @@ $(document).ready(function () {
 </div>
 <div id="inputs" class="section level1">
 <h1>Inputs</h1>
-<p>The user-provided inputs that need to be spatial are presently being created or read-in on the spadesCBMinputs module. In the prototype code, growth information is being read from two external files, growthCurves and growthCurvesComponents. These are specific formats that are presently necessary for the data to be read-in and used. <strong>THIS FORMAT NEEDS TO BE MAINTAINED</strong>, since it links to some spatial parameters in the cbm_defaults.db. The spadesCBM modules overview prezi details these files and the readInGrowthCurves.r code (<code>GitHub\spadesCBM\exploringCode\readInGrowthCurves.r</code>) also delves into these files. They are read-in from here: GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv and GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv.</p>
-<p>These are the other variables that need to associated with each stand or pixels:<br />
+<p>The user-provided inputs that need to be spatial are presently being created or read-in in the spadesCBMinputs module. In the prototype code, growth information is being read from two external files, growthCurves and growthCurvesComponents. These are specific formats that are presently necessary for the data to be read-in and used. <strong>THIS FORMAT NEEDS TO BE MAINTAINED</strong>, since it links to some spatial parameters in the cbm_defaults.db. The spadesCBM_modules_overview prezi details these files and the readInGrowthCurves.r code (<code>GitHub\spadesCBM\exploringCode\readInGrowthCurves.r</code>) also delves into these files. They are read-in from here: GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv and GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv.</p>
+<p>These are the other variables, in addition to the growth info, that need to associated with each stand or pixels:<br />
 1- ages: <code>sim$ages &lt;- c(0)#,2,3,140)</code><br />
 2- number of stands or of pixels: <code>sim$nStands &lt;- length(sim$ages)</code><br />
 3- identifier for each stand: <code>standIdx &lt;- 1:sim$nStands</code><br />
@@ -165,31 +166,81 @@ $(document).ready(function () {
 <code>colnames(sim$disturbanceEvents)&lt;-c(&quot;standIndex&quot;, &quot;Year&quot;, &quot;DisturbanceMatrixId&quot;)</code></p>
 <div id="exploring-each-input-entry" class="section level2">
 <h2>Exploring each input entry</h2>
-<p>Each of the 13 above inputs needs to be created from tehinput information of the SK CBM-CFS3 runs. Here, each of the 13 items is listed with where or how we think they can be obtained.</p>
+<p>Each of the 13 above inputs needs to be created from the input information of the SK CBM-CFS3 runs. Here, each of the 13 items is listed with where or how we think they can be obtained.</p>
 <div id="ages" class="section level3">
 <h3>1- Ages</h3>
 <p>Ages should come from a raster. The original values for the Age, dominant species and productivity level (the two later variables were used in the development of the growth curves) were extracted from polygon information in Canada’s Forest Resource Inventories. CASFRI is a vector-based spatial forest inventory assembled for forest management and conservation projects (<a href="http://www.beaconsproject.ca/documents" class="uri">http://www.beaconsproject.ca/documents</a>). Note: eventually, we need to create a module that gets the CASFRI information into the format we need for carbon modelling.</p>
-<p><strong><em>TASKS</em></strong> 1.This should be age in 1984, please check this raster to see if gives ages and calculate how many pixels there are with an age value: C:_Work1.tif<br />
-2.Please check if this rasrter is the same as the one above: (_ReclineRuns30m1CASFRI.tif) 3. Use the age raster (in 1) to create a vector of ages that can be assigned to <code>sim$ages</code>.</p>
+<p><strong><em>TASKS</em></strong><br />
+1.This should be age in 1984, please check this raster to see if it gives ages and calculate how many pixels there are with an age value: <code>C:\Celine\Syndocs\RES_Work\Work\SpaDES\spadesCBM\rasters\age1.tif</code><br />
+2.Please check if this raster is the same as the one above: <code>\SK_ReclineRuns30m\layers\age1CASFRI.tif</code><br />
+3. Use the age raster (in 1) to create a vector of ages that can be assigned to <code>sim$ages</code>.</p>
 </div>
 <div id="number-of-standspixels" class="section level3">
 <h3>2- Number of stands/pixels</h3>
-<p>The number of pixels in the study area of the size that we want (I think this is available in SK30_new.tif - <code>F:\07_SK_30m\Working\Sask_runs\4_Testing_wallToWall_inputs\SKmask\Sask30_new.tif</code>). So the number of forested pixels we will be modelling (30m pixels, and something like 66359013 pixels? infor from here<code>F:\07_SK_30m\Working\Sask_runs\Processing_time.xlsx</code>. The total extent should be 623940100). This should match the number of pixels with ages (from the previous step).</p>
-<p><strong><em>TASKS</em></strong> 1.Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)<br />
+<p>The number of pixels in the study area of the size that we want (I think this is available in SK30_new.tif - <code>F:\07_SK_30m\Working\Sask_runs\4_Testing_wallToWall_inputs\SKmask\Sask30_new.tif</code>). So the number of forested pixels we will be modelling (30m pixels, and something like 66359013 pixels? info from here<code>F:\07_SK_30m\Working\Sask_runs\Processing_time.xlsx</code>. The total extent should be 623940100). This should match the number of pixels with ages (from the previous step).</p>
+<p><strong><em>TASKS</em></strong><br />
+1.Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)<br />
 2. Write some R-code that would assign the number of pixels to <code>sim$nStands &lt;- length(sim$ages)</code></p>
 </div>
 <div id="stand-index" class="section level3">
 <h3>3- Stand index</h3>
 <p>This is unique identifier for each stand. I think it will be used to “rebuild” maps at the end of the simulations. Stands/pixels will be “hashed” for simulation…so, somehow a map needs to be remade to show results - right?</p>
-<p><strong><em>TASKS</em></strong> 1.discussion to make sure this is the best way of doing this right now</p>
+<p><strong><em>TASKS</em></strong><br />
+1.discussion to make sure this is the best way of doing this right now</p>
 </div>
 <div id="assign-a-growth-curve-id-to-each-standpixel" class="section level3">
 <h3>4- Assign a growth curve id to each stand/pixel</h3>
-<p>Each pixel/stand needs a link to a growth curve. This could be a map, or a table that links all the indices (in 3 above) to a growth curve. These indices are presently needed to link to the function CBMVolumeToBiomass::VolumeToBiomassConvert. The original growth curves were developped from the SK PSP data (as used in the Boisvenue et al 2016 papers).However, the original work resulted in nine growth curves, one per species for five species (BF,BP, JP, TA, WB), and two for each of white and black spruce representing a medium and a good productivity level for each spruce species (BSMedium, BSGood, WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveComponentID, and growth_curve_id (slide 13 in the prezi spadesCBM modules overview describes both files in detail). The readInGrowthCurves.r (<code>GitHub\spadesCBM\exploringCode\readInGrowthCurves.r</code>) reads-in and describes well two files currently being read-in. Only one curve is being “translated” into biomass (<code>sim$gcids &lt;- c(1)</code>) via the CBMVolumeToBiomass::VolumeToBiomassConvert function in the prototype code. <strong>One of the growth and yield files being read-in has a columne identifying the spatial units</strong>, a piece of information needed in the CBMVolumeToBiomass translation.</p>
-<p><strong><em>TASKS</em></strong> 1. figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine’s calculation of CASFRI info - site_productivity.tif), both found here <code>F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers</code> can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 2. Better ways of assigning these? 3. Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.</p>
+<p>Each pixel/stand needs a link to a growth curve. This could be a map, or a table that links all the indices (in 3 above) to a growth curve. These indices are presently needed to link to the function CBMVolumeToBiomass::VolumeToBiomassConvert. The original growth curves were developped from the SK PSP data (as used in the Boisvenue et al 2016 papers).However, the original work resulted in nine growth curves, one per species for five species (BF,BP, JP, TA, WB), and two for each of white and black spruce representing a medium and a good productivity level for each spruce species (BSMedium, BSGood, WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveComponentID, and growth_curve_id (slide 13 in the prezi spadesCBM modules overview describes both files in detail). The readInGrowthCurves.r (<code>GitHub\spadesCBM\exploringCode\readInGrowthCurves.r</code>) reads-in and describes well two files currently being read-in. Only one curve is being “translated” into biomass (<code>sim$gcids &lt;- c(1)</code>) via the CBMVolumeToBiomass::VolumeToBiomassConvert function and used for simulation in the prototype code. <strong>One of the growth and yield files being read-in has a column identifying the spatial units</strong>, a piece of information needed in the CBMVolumeToBiomass translation and useful since we need that info for each pixel also.</p>
+<p><strong><em>TASKS</em></strong><br />
+1. figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine’s calculation of CASFRI info - site_productivity.tif), both found here <code>F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers</code> can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs.<br />
+2. Better ways of assigning these?<br />
+3. Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.</p>
 </div>
-<div id="section" class="section level3">
-<h3></h3>
+<div id="historical-disturbance-matrix-identification-number" class="section level3">
+<h3>5- Historical Disturbance Matrix Identification Number</h3>
+<p>In the cbm_default.db, each spatial unit (admin boundaries X ecozones) have a specific historical disturbance matrix. It is always fire (true at least in the spatial units I have worked in) but the proportions change depending on where you are. So, once a spatial unit identification is assigned to each pixel (which can be via the gcID assignment (in 4) since they have spatial units associated with them also), the last column of the table <code>spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation</code> can provide the disturbance_matrix_id needed.</p>
+<p><strong><em>TASKS</em></strong><br />
+1. once each pixel has a spatial unit, assign the Historical Disturbance Matrix Identification Number.</p>
+</div>
+<div id="last-pass-disturbance" class="section level3">
+<h3>6- Last pass disturbance</h3>
+<p>The user has to identify the last disturbance that happened to the stand/pixel that is at the age in the age raster (in 1). For example, this could be a fire or a clearcut. In each spatial unit across Canada, there are a number of defined matrices for clearcut and fire. So spatial unit needs to be associated with a pixel - as in 5, this can be done via the gcID assignment (in 4) since they have spatial units associated with them. Once the spatial unit per pixels is known, the table <code>spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation</code> can provide the disturbance_type_id and the disturbance_matrix_id that are possible for the spatial unit. The cbm_default.db table disturbance_type gives the name and a description of the disturbance (using the disturbance_type_id) from which the user can select..</p>
+<p><strong><em>TASKS</em></strong><br />
+1. write script to facilitate the choice of last pass disturbance.</p>
+</div>
+<div id="delay" class="section level3">
+<h3>7- Delay</h3>
+<p>This is an assignment of a regeneration delay in years. I have not tested if this works. For now, it all should be assigned to 0 years.</p>
+<p><strong><em>TASKS</em></strong><br />
+1. assign a vector 0s for each stand index</p>
+</div>
+<div id="minimum-rotations-for-spinup" class="section level3">
+<h3>8- Minimum rotations for spinup</h3>
+</div>
+<div id="maximum-rotations-for-spinup" class="section level3">
+<h3>9- Maximum rotations for spinup</h3>
+</div>
+<div id="distrubance-return-interval-for-spinup" class="section level3">
+<h3>10- Distrubance return interval for spinup</h3>
+<p>These three variables can be determined if we know which spatial units we are in. As above the spatial unit can be provided by the gcID and that can be linked to the <code>spadesCBMout@.envir$cbmData@spinupParameters</code>. The modules need to be run for this block of code to work. here is the code to get these variables:</p>
+<p><code>spinupParams &lt;- spadesCBMout@.envir$cbmData@spinupParameters gcIn &lt;- as.matrix(read.csv(&quot;C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv&quot;)) spu[which(spu$spu_id %in% unique(gcIn[,1])),] gcSpu &lt;- spadesCBMout@.envir$cbmData@spinupParameters[which(spadesCBMout@.envir$cbmData@spinupParameters[,1] %in% unique(gcIn[,1])),]</code></p>
+<p><strong><em>TASKS</em></strong><br />
+1. assign a vector for each of these three variables</p>
+</div>
+<div id="spatial-units" class="section level3">
+<h3>11- spatial Units</h3>
+</div>
+<div id="ecozones" class="section level3">
+<h3>12- ecozones</h3>
+<p>The above steps associate a spatial unit and can be linked to an ecozone for each of the pixels/stands.</p>
+</div>
+<div id="disturbances" class="section level3">
+<h3>13- Disturbances</h3>
+<p>This will come from the Wulder and White work. There is a list for SK here: <code>SK_ReclineRuns30m\layers\projected_change_type</code></p>
+<p><strong><em>TASKS</em></strong><br />
+1. get the prototype working with one disturbance<br />
+2. get the prototype working with existing SK data<br />
+3. Link it to larger work of using disturbance info from that national product.</p>
 </div>
 </div>
 </div>

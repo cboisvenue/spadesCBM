@@ -75,12 +75,6 @@ standIDx <- 1:nStands
 dom <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/casfri_dom2_recliner.tif")
 siteprod <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif")
 
-#IE I've loaded some GIS data just to make sure spUnits and Sask are what I think they are
-adminBoundaries <- shapefile("C:/Ian/GIS/Can_pol_boundaries/boundary_p_v2/boundary_l_v2.shp")
-#source http://ftp.geogratis.gc.ca/pub/nrcan_rncan/vector/framework_cadre/North_America_Atlas10M/boundaries/
-can <- adminBoundaries[adminBoundaries$COUNTRY == "CAN",]
-ecozones <- shapefile("C:/Ian/GIS/Canada Ecosystem/Ecozones/ecozones.shp") #source http://sis.agr.gc.ca/cansis/nsdb/ecostrat/gis_data.html
-
 
 #read in spatial unit data
 spUnits_Can <- shapefile("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
