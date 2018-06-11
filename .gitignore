@@ -37,8 +37,8 @@ Temporary Items
 *.Rdata
 *.RData
 *.Rhistory
-.Rhistory
-.Ruserdata
+.Rhistory*
+.Ruserdata*
 .Rapp.history
 *.doc*
 *.pdf
@@ -50,7 +50,7 @@ Temporary Items
 data/
 */data
 output/
-cache/
+cache/*
 *.db
 **/cache
 ## Data Files
