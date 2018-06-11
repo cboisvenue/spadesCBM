@@ -29,7 +29,8 @@ casfri <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/age1C
 
 ## TASK1: CALCULATE THESE FROM THE NUMBER OF PIXELS IN THE ABOVE AGE RASTER 
 # sim$nStands ####<- length(sim$ages) # this will come from the number of pixels in the raster above that have ages
-nStands <- ncell(age)
+#IE: we can get this from the raster function ncell
+nStands <- raster::ncell(age)
 
 # standIdx ####<- 1:sim$nStands 
 standIDx <- 1:nStands
@@ -40,23 +41,21 @@ standIDx <- 1:nStands
 # TASK2: intersect the two rasters that determine growth curve:
 #casfri_dom2.tif
 #site_productivity.tif
+#IE: I should put these in the data folder so path names can be relative
 dom <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/casfri_dom2_recliner.tif")
-siteprod <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif")
-adminBoundaries <- shapefile("C:/Ian/Global GIS/Can_pol_boundaries/boundary_p_v2/boundary_l_v2.shp")
-#source http://ftp.geogratis.gc.ca/pub/nrcan_rncan/vector/framework_cadre/North_America_Atlas10M/boundaries/
-can <- adminBoundaries[adminBoundaries$COUNTRY == "CAN",]
-ecozones <- shapefile("C:/Ian/Global GIS/Ecozones/ecozones.shp") #source http://sis.agr.gc.ca/cansis/nsdb/ecostrat/gis_data.html
-#get into same coordinate system
-canAdmin <- spTransform(can, CRSobj = ecozones@proj4string)
 
-#read in spatial . We will want to make these ourselves eventually by intersecting Admin and Ecozones, matching field to table.  
-# spUnits <- shapefile("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp") 
-# spUnits <- spTransform(spUnits, CRSobj = age@crs)
-# abovedefinitely not spatial unit ids. values = 90026-90020.....
+siteprod <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif")
+
+
+#IE read in spatial units. We will want to rasterize this with prepInputs eventually
+spUnits_Can <- shapefile("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp") 
+
+#Using just Saskatchewan area for now
 spUnits <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspuRas2.tif")
 spUnits <- raster::crop(spUnits, y = age)
-#Clip to study area
 
+
+#Result of running SpadesCBMdefaults
 outSim@.envir$cbmData@disturbanceMatrixAssociation
 
 #get the following from spUnits Raster: gcID, disturbance????
