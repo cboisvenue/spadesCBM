@@ -47,32 +47,31 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 ```{r module_usage}
 library(SpaDES)
 
-moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
-inputDir <- file.path(moduleDir,"data") %>% reproducible::checkPath(create = TRUE) #"C:/Celine/GitHub/spadesCBM/data")
-outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
-cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
+<<<<<<< HEAD
+setPaths(modulePath = "C:/Ian/Boisvenue/spadesCBM/",
+        inputPath = "C:/Ian/Boisvenue/spadesCBM/data",
+        outputPath = "C:/Ian/Boisvenue/spadesCBM/outputs",
+        cachePath = "C:/Ian/Boisvenue/spadesCBM/cache"
+        )
+
+=======
+moduleDir <- getwd()#file.path("C:/Celine/GitHub/spadesCBM")
+inputDir <- file.path(getwd(),"data") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(getwd(),"outputs")
+cacheDir <- file.path(outputDir,"cache") # as to not to overwhelm my github I like my cache here C:\Celine\SpaDEScacheOutputs
+>>>>>>> 925cdd0c21d26c2e8d9bec31b4068b8b301667db
 times <- list(start = 1990.00, end = 1999.00)
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  spadesCBMcore = list(.useCache = c(".inputObjects", "init")),
-  spadesCBMinputs = list(.useCache = c(".inputObjects")),
-  spadesCBMdefaults = list(.useCache = c(".inputObjects"))
-#module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+  spadesCBMcore = list(.useCache = FALSE),
+  spadesCBMinputs = list(.useCache = FALSE),
+  spadesCBMdefaults = list(.useCache = FALSE)
 )
+
 modules <- list("spadesCBM")
 objects <- list(
   dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
   sqlDir = file.path(inputDir,"cbm_defaults")
-
-)
-paths <- list(
-  cachePath = cacheDir,
-  modulePath = moduleDir,
-  inputPath = inputDir,
-  outputPath = outputDir
-)
+  )
 
 spadesCBMSim <- simInit(times = times, params = parameters, 
                     modules = modules,

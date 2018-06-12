@@ -10,8 +10,8 @@
 ## DESCRIPTIVE: what is in those files? how does it relate to cbm_defaults?
 
 # in the data folder of the spadesCBMinputs module
-gcComponent <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv"))
-gcIn <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
+gcComponent <- as.matrix(read.csv("C:/Ian/Boisvenue/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv"))
+gcIn <- as.matrix(read.csv("C:/Ian/Boisvenue/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
 
 ## here trying to match the spatial_unit_id in gcIn with the spatial_unit in cbm_defaults
 # ***run readInSQLiteData.r which creates the data.frame spu (combines all ids with province and ecozone names)***
