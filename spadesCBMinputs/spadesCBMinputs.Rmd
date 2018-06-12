@@ -28,7 +28,7 @@ For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 library(igraph)
 library(SpaDES.core)
 
-moduleDir <- file.path("C:/Celine/GitHub/spadesCBM")
+moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
