@@ -80,8 +80,7 @@ siteprod <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/sit
 
 
 #read in spatial unit data
-spUnits_Can <- shapefile("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
-spUnits_Can <- spTransform(spUnits, CRSobj = age@crs)
+
 #IE Crop to age and compare with Sask data
 spUnits_sask <- raster::crop(spUnits_Can, y = age)
 plot(spUnits_sask)
