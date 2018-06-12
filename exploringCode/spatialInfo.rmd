@@ -29,7 +29,7 @@ Here is a table of of the spatial units refered to in the cbm_default.db and the
 library(RSQLite)
 
 
-inputDir <- file.path(getwd(),"data/12_Spades_run")#"C:/Celine/GitHub/data/12_Spades_run") 
+inputDir <- file.path(getwd(),"data")#/12_Spades_run")#"C:/Celine/GitHub/data/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 
 sqlite.driver <- dbDriver("SQLite")
