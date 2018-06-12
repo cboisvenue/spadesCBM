@@ -29,7 +29,7 @@ Here is a table of of the spatial units refered to in the cbm_default.db and the
 library(RSQLite)
 
 
-inputDir <- file.path("C:/Celine/GitHub/data/12_Spades_run") 
+inputDir <- file.path(getwd(),"data/12_Spades_run")#"C:/Celine/GitHub/data/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 
 sqlite.driver <- dbDriver("SQLite")
@@ -173,6 +173,7 @@ This will come from the Wulder and White work. There is a list for SK here: `SK_
 3. Link it to larger work of using disturbance info from that national product.  
 
 
+# Important Notes
 
-
+Homogeneous polygons are defined by the combination of admin and eco boundaries which form the spatial units, leading species (from CASFRI) and productivity levels (calculated from CASFRI) which together form the gcIDs and with age which defines the boundaries of stands. Ages cannot be currently removed as a homogenizing variable, it is an necessary input to the Rcpp functions Spinup and ComputeGrowrhAndDeclineMatrices2. It would be better if that could be seperated (work for a programmer).
 
