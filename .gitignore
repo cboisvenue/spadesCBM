@@ -52,7 +52,7 @@ data/
 output/
 cache/*
 *.db
-**/cache
+*/cache
 ## Data Files
 *.xlsx
 .xls

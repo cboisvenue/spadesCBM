@@ -32,6 +32,9 @@ hist(onlyTrees, breaks = max(onlyTrees)/10)
 #e.g.2 Assign 10 year age classes
 decadalAgeClass <- round(onlyTrees/10, digits = 0)*10
 summary(decadalAgeClass)
+#put back into a raster if we want
+newAge <- age
+newAge <- setValues(decadalAgeClass)
 #sim$ageClass <- decadalAgeClass
 
 #task 2
