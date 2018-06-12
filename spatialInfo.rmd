@@ -1,0 +1,246 @@
+---
+title: "spatialInfo"
+author: "CBoisvenue"
+date: "June 8, 2018"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "../")   ## THIS IS NOT WORKING - ANNOYING! changed to normal R script
+library(raster)
+library(maptools)
+```
+
+# Overview
+This document is a log to figure out how to go from running one stand in the spadesCBM family to running the managed forests of Saskatchewan as per the Boisvenue et al 2016 paper.
+
+## Background
+spadesCBM is a three module family that evolved from the logic of CBM-CFS3. The initial prototype just runs one stand. Now we need to run this on a spatial grid to take full advantage of SpaDES capabilities, such as spatially explicitness and links to other models.  
+
+### CBM-CFS3 jargon
+
+The inputs that need to be spatial or linked to what in CBM-speak are called spatial units will be provided by the user. Spatial units are a CBM-CFS3 artifact. There are 48 spatial units in Canada and they are defined by the cross between provincial and territorial boundaries and ecozones. 
+
+Here is a table of of the spatial units refered to in the cbm_default.db and the cbmData S4 object that reads-in some of the cbm_default.db parameter values.
+
+```{r spu,echo=FALSE}
+library(RSQLite)
+
+
+inputDir <- file.path("C:/Celine/GitHub/data/12_Spades_run") 
+dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
+
+sqlite.driver <- dbDriver("SQLite")
+
+cbmDefaults <- dbConnect(sqlite.driver,
+                dbname = dbPath)
+
+alltables = dbListTables(cbmDefaults)
+cbmTables <- list()
+
+
+for(i in 1:length(alltables)){
+  cbmTables[[i]] <- dbReadTable(cbmDefaults,alltables[i])
+}
+
+names(cbmTables) <- alltables
+adminNames <- cbmTables$admin_boundary
+names(adminNames) <- c("admin_boundary_id","stump_parameter_id","name")
+ecoNames <- cbmTables$eco_boundary
+names(ecoNames) <- c("eco_boundary_id","stump_parameter_id","name")
+
+spuNames <- merge(adminNames,cbmTables$spatial_unit,by="admin_boundary_id")
+names(spuNames) <- c("admin_boundary_id","stump_parameter_id", "province","id",
+                     "eco_boundary_id","root_parameter_id", "climate_time_series_id","spinup_parameter_id")
+spuNames1 <- merge(ecoNames,spuNames,by="eco_boundary_id")
+names(spuNames1) <- c("eco_boundary_id","stump_parameter_id.x","ecozone","admin_boundary_id","stump_parameter_id.y", 
+                      "province","spu_id","root_parameter_id", "climate_time_series_id","spinup_parameter_id")
+spu <- spuNames1[,c(7,4,6,1,3,5,8,9,10)]
+spu <- spu[order(spu$spu_id),]
+```
+
+These spatial unites are the link to ALL the default parameters to run CBM across Canada.
+
+```{r plotSpu,echo=FALSE}
+spu[,c(1,3,5)]
+```
+
+# Inputs 
+
+The user-provided inputs that need to be spatial are presently being created or read-in in the spadesCBMinputs module. In the prototype code, growth information is being read from two external files, growthCurves and growthCurvesComponents. These are specific formats that are presently necessary for the data to be read-in and used. **THIS FORMAT NEEDS TO BE MAINTAINED**, since it links to some spatial parameters in the cbm_defaults.db. The spadesCBM_modules_overview prezi details these files and the readInGrowthCurves.r code (`GitHub\spadesCBM\exploringCode\readInGrowthCurves.r`) also delves into these files. They are read-in from here: GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv and GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv.
+
+These are the other variables, in addition to the growth info, that need to associated with each stand or pixels:  
+1- ages: `sim$ages <- c(0)#,2,3,140)`  
+2- number of stands or of pixels: `sim$nStands <- length(sim$ages)`  
+3- identifier for each stand: `standIdx <- 1:sim$nStands`  
+4- which growth curve is associated with this stand: `sim$gcids <- c(1)`  
+5- what is the historical Disturbance matrix identification number (CBM-jargon) associated with this `stand/pixel: sim$historicDMIDs <- c(214)`  
+6- the disturbance matrix identification number that points to the last disturbance that affect each pixel/stand prior to it growing to the age it is at at the begining of the simulations: `sim$lastPassDMIDS <- c(214)#,1,1,1)`  
+7- what is the length (in years) of the regeneration delay for this perticular stand/pixel: `sim$delays <- c(0)`  
+8- what is the minimum number of rotations allowed to be simulated in the spinup (CBM-jargon) of the model prior to the lastPass disturbance (CBM-jargon): `sim$minRotations <- rep(0, sim$nStands)`  
+9- what is the maximum number of rotations allowed to be simulated in the spinup (CBM-jargon) of the model prior to the lastPass disturbance (CBM-jargon): `sim$maxRotations <- rep(100, sim$nStands)`  
+10- what is the fire return interval for each of these stands/pixels: `sim$returnIntervals <- c(200)`  
+11- in what spatial unit (see table above) is this stand/pixel located: `sim$spatialUnits <- rep(26, sim$nStands)`  
+12- in what ecozone is this stand/pixel: `sim$ecozones <- rep(5, sim$nStands)`  
+13- identify the stands/pixels (by the identifier in 3 above) that are disturbed, when this disturbance is going to occur in your simulations, and associate the Disturbance matrix Identification number (CBM-jargon) that should be applied: `sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))`  
+  `colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")`  
+
+
+
+## Exploring each input entry  
+Each of the 13 above inputs needs to be created from the input information of the SK CBM-CFS3 runs. Here, each of the 13 items is listed with where or how we think they can be obtained.
+
+### 1- Ages  
+Ages should come from a raster. The original values for the Age, dominant
+species and productivity level (the two later variables were used in the development of the growth curves) were extracted from polygon information in Canada’s Forest Resource Inventories. CASFRI is a vector-based spatial forest inventory assembled for forest management and conservation projects (http://www.beaconsproject.ca/documents). Note: eventually, we need to create a module that gets the CASFRI information into the format we need for carbon modelling.
+
+***TASKS***  
+a)This should be age in 1984, please check this raster to see if it gives ages and calculate how many pixels there are with an age value:
+`C:\Celine\Syndocs\RES_Work\Work\SpaDES\spadesCBM\rasters\age1.tif` 
+```{r} 
+library(raster)
+age <- raster("data/forIan/SK_data/rasters/age1.tif")
+age <- raster("")
+ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
+#age is now a vector 
+#Most age values are 0 so remove them, then histogram
+onlyTrees <- ageVal[ageVal != 0]
+hist(onlyTrees, breaks = 15)
+#To group into 10 year age classes and put back into raster
+ageVal[ageVal != 0] <- round(onlyTrees/10, digits = 0)*10
+ageClass <- setValues(age, ageVal)
+plot(ageClass)
+rm(ageClass, ageVal)
+```
+b) Please check if this raster is the same as the one above:
+`\SK_ReclineRuns30m\layers\age1CASFRI.tif`
+```{r}
+# Firstcrop to a smaller area first for faster comparisons
+small_extent <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #This is smaller
+casfri <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1CASFRI.tif")
+age1_subset <- crop(age, small_extent)
+casfri_subset <- crop(casfri, small_extent)
+#Extract values
+age1_values <- getValues(age1_subset)
+casfri_values <- getValues(casfri_subset)
+
+#The NAs are different
+length(casfri_values[is.na(casfri_values)]) #14091
+length(age1_values[is.na(age1_values)]) #0
+
+#But if we set 0 to NA...
+casfri_values[casfri_values == 0] <- NA
+age1_values[age_values == 0] <- NA
+summary(casfri_values)
+summary(age1_values)
+
+#age1 is basically casfri_values - 3. Maybe Age1 has an older reference year?
+rm(age1_values, casfri_values, age1_subset, casfri_subset, small_extent)
+```
+c) Use the age raster (in 1) to create a vector of ages that can be assigned to `sim$ages`.  
+```{r}
+#No sim object in this rmd but replaces ages with sim$ages
+age_ras <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #Using the small subset for speed
+ages <- getValues(age_ras)
+#Note there are 61901 NAs and 34027 age 0.
+```
+
+### 2- Number of stands/pixels
+The number of pixels in the study area of the size that we want (I think this is available in SK30_new.tif - `F:\07_SK_30m\Working\Sask_runs\4_Testing_wallToWall_inputs\SKmask\Sask30_new.tif`). So the number of forested pixels we will be modelling (30m pixels, and something like 66359013 pixels? info from here`F:\07_SK_30m\Working\Sask_runs\Processing_time.xlsx`. The total extent should be 623940100). This should match the number of pixels with ages (from the previous step).  
+
+***TASKS***  
+a)Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)  
+b). Write some R-code that would assign the number of pixels to `sim$nStands <- length(sim$ages)`  
+```{r}
+nStands <- length(sim$ages) #I guess this isn't true because we will have grouped pixels into stands
+```
+
+### 3- Stand index
+This is unique identifier for each stand. I think it will be used to "rebuild" maps at the end of the simulations. Stands/pixels will be "hashed" for simulation...so, somehow a map needs to be remade to show results - right?  
+```{r}
+#This will be borrowed from LMBR, and use polygons, 
+```
+***TASKS***  
+a) discussion to make sure this is the best way of doing this right now
+
+### 4- Assign a growth curve id to each stand/pixel  
+Each pixel/stand needs a link to a growth curve. This could be a map, or a table that links all the indices (in 3 above) to a growth curve. These indices are presently needed to link to the function CBMVolumeToBiomass::VolumeToBiomassConvert. The original growth curves were developped from the SK PSP data (as used in the Boisvenue et al 2016 papers).However, the original work resulted in nine growth curves, one per species for five species (BF,BP, JP, TA, WB), and two for each of white and black
+spruce representing a medium and a good productivity level for each spruce species (BSMedium, BSGood,
+WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveComponentID, and growth_curve_id (slide 13 in the prezi spadesCBM modules overview describes both files in detail). The readInGrowthCurves.r (`GitHub\spadesCBM\exploringCode\readInGrowthCurves.r`) reads-in and describes well two files currently being read-in. Only one curve is being "translated" into biomass (`sim$gcids <- c(1)`) via the CBMVolumeToBiomass::VolumeToBiomassConvert function and used for simulation in the prototype code. **One of the growth and yield files being read-in has a column identifying the spatial units**, a piece of information needed in the CBMVolumeToBiomass translation and useful since we need that info for each pixel also.
+
+***TASKS***  
+a) figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine's calculation of CASFRI info - site_productivity.tif), both found here `F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers` can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 
+```{r}
+#Crop to smal study area for now
+species <- raster("data/forIan/SK_data/rasters/casfri_dom2.tif") #This matches original age
+species <- crop(species, y = age_ras)
+
+#Spatial Units, cropping to small area
+spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
+spUnits_Can <- spTransform(spUnits_Can, CRSobj = age_ras@crs)
+spUnits_Can <- crop(spUnits_Can, y = age_ras)
+#To convert to raster, first make empty raster with same resolution as age_ras
+spUnits_ras <- raster(spUnits_Can, res = res(age_ras))
+spUnits_ras <- rasterize(x = spUnits_Can, field = spUnits_Can$PSPU_ID, y = spUnits_ras)
+plot(spUnits_ras)
+#Delete this line it is just for Github Experimentation
+#This is more Git Experimentation
+```
+b) Better ways of assigning these?  
+c) Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.  
+
+### 5- Historical Disturbance Matrix Identification Number  
+In the cbm_default.db, each spatial unit (admin boundaries X ecozones) have a specific historical disturbance matrix. It is always fire (true at least in the spatial units I have worked in) but the proportions change depending on where you are. So, once a spatial unit identification is assigned to each pixel (which can be via the gcID assignment (in 4) since they have spatial units associated with them also), the last column of the table `spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation` can provide the disturbance_matrix_id needed.   
+
+***TASKS***  
+1. once each pixel has a spatial unit, assign the Historical Disturbance Matrix Identification Number.  
+
+### 6- Last pass disturbance  
+The user has to identify the last disturbance that happened to the stand/pixel that is at the age in the age raster (in 1). For example, this could be a fire or a clearcut. In each spatial unit across Canada, there are a number of defined matrices for clearcut and fire. So spatial unit needs to be associated with a pixel - as in 5, this can be done via the gcID assignment (in 4) since they have spatial units associated with them. Once the spatial unit per pixels is known, the table `spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation` can provide the disturbance_type_id and the disturbance_matrix_id that are possible for the spatial unit. The cbm_default.db table disturbance_type gives the name and a description of the disturbance (using the disturbance_type_id) from which the user can select..  
+
+***TASKS***  
+1. write script to facilitate the choice of last pass disturbance.
+
+### 7- Delay  
+This is an assignment of a regeneration delay in years. I have not tested if this works. For now, it all should be assigned to 0 years.
+
+***TASKS***  
+1. assign a vector 0s for each stand index 
+
+### 8- Minimum rotations for spinup  
+### 9- Maximum rotations for spinup  
+### 10- Distrubance return interval for spinup
+
+These three variables can be determined if we know which spatial units we are in. As above the spatial unit can be provided by the gcID and that can be linked to the `spadesCBMout@.envir$cbmData@spinupParameters`.  The modules need to be run for this block of code to work. here is the code to get these variables:  
+
+`spinupParams <- spadesCBMout@.envir$cbmData@spinupParameters
+gcIn <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
+spu[which(spu$spu_id %in% unique(gcIn[,1])),]
+gcSpu <- spadesCBMout@.envir$cbmData@spinupParameters[which(spadesCBMout@.envir$cbmData@spinupParameters[,1] %in% unique(gcIn[,1])),]`
+
+***TASKS***  
+1. assign a vector for each of these three variables  
+
+### 11- spatial Units
+### 12- ecozones
+
+The above steps associate a spatial unit and can be linked to an ecozone for each of the pixels/stands.
+
+### 13- Disturbances
+
+This will come from the Wulder and White work. There is a list for SK here: `SK_ReclineRuns30m\layers\projected_change_type`
+
+***TASKS***  
+1. get the prototype working with one disturbance  
+2. get the prototype working with existing SK data  
+3. Link it to larger work of using disturbance info from that national product.  
+
+
+
+
+

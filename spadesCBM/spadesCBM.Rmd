@@ -53,26 +53,16 @@ outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outpu
 cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 1999.00)
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  spadesCBMcore = list(.useCache = c(".inputObjects", "init")),
-  spadesCBMinputs = list(.useCache = c(".inputObjects")),
-  spadesCBMdefaults = list(.useCache = c(".inputObjects"))
-#module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+  spadesCBMcore = list(.useCache = FALSE),
+  spadesCBMinputs = list(.useCache = FALSE),
+  spadesCBMdefaults = list(.useCache = FALSE)
 )
+
 modules <- list("spadesCBM")
 objects <- list(
   dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
   sqlDir = file.path(inputDir,"cbm_defaults")
-
-)
-paths <- list(
-  cachePath = cacheDir,
-  modulePath = moduleDir,
-  inputPath = inputDir,
-  outputPath = outputDir
-)
+  )
 
 spadesCBMSim <- simInit(times = times, params = parameters, 
                     modules = modules,
