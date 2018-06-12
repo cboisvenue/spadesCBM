@@ -138,6 +138,12 @@ The user has to identify the last disturbance that happened to the stand/pixel t
 ***TASKS***  
 1. write script to facilitate the choice of last pass disturbance.
 
+```{r}
+library(SpaDES)
+# loading the spadesCBMout sim list
+dim(spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation)
+```
+
 ### 7- Delay  
 This is an assignment of a regeneration delay in years. I have not tested if this works. For now, it all should be assigned to 0 years.
 
