@@ -8,7 +8,7 @@
 library(RSQLite)
 
 
-inputDir <- file.path("C:/Ian/Boisvenue/spadesCBM/data/12_Spades_run/") 
+inputDir <- file.path(getwd(),"data")#/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 
 sqlite.driver <- dbDriver("SQLite")
