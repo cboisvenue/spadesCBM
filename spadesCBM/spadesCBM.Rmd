@@ -63,6 +63,12 @@ objects <- list(
   dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
   sqlDir = file.path(inputDir,"cbm_defaults")
   )
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+  )
 
 spadesCBMSim <- simInit(times = times, params = parameters, 
                     modules = modules,

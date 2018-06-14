@@ -34,7 +34,6 @@ setPaths(inputPath = inputDir,
          modulePath = moduleDir, 
          outputPath = outputDir, 
          cachePath = cacheDir)
-getPaths()
 
 times <- list(start = 0, end = 10)
 parameters <- list(
