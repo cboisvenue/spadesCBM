@@ -104,14 +104,24 @@ a)This should be age in 1984, please check this raster to see if it gives ages a
 `C:\Celine\Syndocs\RES_Work\Work\SpaDES\spadesCBM\rasters\age1.tif` 
 ```{r} 
 library(raster)
-age <- raster("data/forIan/SK_data/rasters/age1.tif")
-age <- raster("")
+
+age <- raster(file.path(getwd(),"data/forIan/SK_data/rasters/age1.tif"))
+## Ian: is the line below necessary? I have commented it out
+##age <- raster("")
 ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
 #age is now a vector 
 #Most age values are 0 so remove them, then histogram
-onlyTrees <- ageVal[ageVal != 0]
-hist(onlyTrees, breaks = 15)
+##Ian: we can't we remove all the 0, some stand will be at 0 post disturbance, so you are loosing forested pixels here. This age raster has the 623940100 pixels we are expecting (see item 2-). We need to keep all those pixels
+## CONLCUSION: we need all the pixels inthe raster age1.tif
+
+## DO NOT GET RID OF ALL THE 0s
+# onlyTrees <- ageVal[ageVal != 0]
+# hist(onlyTrees, breaks = 15)
+
+
 #To group into 10 year age classes and put back into raster
+
+## Ian: why do this? the increments are specific to the years on the growth curve and the model runs annually...reason for lumping them that I am missing? I think we can remove this
 ageVal[ageVal != 0] <- round(onlyTrees/10, digits = 0)*10
 ageClass <- setValues(age, ageVal)
 plot(ageClass)
@@ -121,8 +131,20 @@ b) Please check if this raster is the same as the one above:
 `\SK_ReclineRuns30m\layers\age1CASFRI.tif`
 ```{r}
 # Firstcrop to a smaller area first for faster comparisons
-small_extent <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #This is smaller
+small_extent <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")) #This is smaller
+## Ian: yes, it is smaller...but we are not sure this is the same as the age raster above...how can you be sure that it is a cropped version of the age raster above? 
+
+# what if I just get the values and compare the vectors? 
 casfri <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1CASFRI.tif")
+casfriAgeVal <- getValues(casfri)
+identical(ageVal,casfriAgeVal)
+# Conclusion: same lenght, not identical
+all.equal(age,casfri)
+#[1] FALSE
+#Warning message:
+#In compareRaster(target, current, ..., values = values, stopiffalse = stopiffalse,  :
+#  not all objects have the same values
+
 age1_subset <- crop(age, small_extent)
 casfri_subset <- crop(casfri, small_extent)
 #Extract values
@@ -139,13 +161,17 @@ age1_values[age_values == 0] <- NA
 summary(casfri_values)
 summary(age1_values)
 
+identical(casfri_values,age1_values)
+## Ian, this is really what I want to know...but how are we to know that the age1CASFRI.tif is a smaller extent of the age raster (age1.tif)?
 #age1 is basically casfri_values - 3. Maybe Age1 has an older reference year?
 rm(age1_values, casfri_values, age1_subset, casfri_subset, small_extent)
+
 ```
 c) Use the age raster (in 1) to create a vector of ages that can be assigned to `sim$ages`.  
 ```{r}
 #No sim object in this rmd but replaces ages with sim$ages
 age_ras <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #Using the small subset for speed
+## Ian: again...not sure if we want to use the smaller extent. How do you know it is the same? and the point in doing this is to run all of SK.
 ages <- getValues(age_ras)
 #Note there are 61901 NAs and 34027 age 0.
 ```
@@ -158,12 +184,14 @@ a)Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)
 b). Write some R-code that would assign the number of pixels to `sim$nStands <- length(sim$ages)`  
 ```{r}
 nStands <- length(sim$ages) #I guess this isn't true because we will have grouped pixels into stands
+## Ian: age is one of the values that defines the homegenous groups. I need you to create these homogenous groups from the raster and polygon info we have...
 ```
 
 ### 3- Stand index
 This is unique identifier for each stand. I think it will be used to "rebuild" maps at the end of the simulations. Stands/pixels will be "hashed" for simulation...so, somehow a map needs to be remade to show results - right?  
 ```{r}
 #This will be borrowed from LMBR, and use polygons, 
+## Ian: this will be the raster that will be able to apply disturbances to a set of pixels and change the homogenous groups. Reference to cohortData (a data.table) in Land-R and to a function called something like recluster in Land-R
 ```
 ***TASKS***  
 a) discussion to make sure this is the best way of doing this right now
