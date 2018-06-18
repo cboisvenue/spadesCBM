@@ -32,7 +32,7 @@ Here is a table of of the spatial units refered to in the cbm_default.db and the
 library(RSQLite)
 
 
-inputDir <- file.path("C:/Celine/GitHub/data/12_Spades_run") 
+inputDir <- file.path(getwd(),"data/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 
 sqlite.driver <- dbDriver("SQLite")
@@ -106,26 +106,16 @@ a)This should be age in 1984, please check this raster to see if it gives ages a
 library(raster)
 
 age <- raster(file.path(getwd(),"data/forIan/SK_data/rasters/age1.tif"))
-## Ian: is the line below necessary? I have commented it out
-##age <- raster("")
+
 ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
 #age is now a vector 
-#Most age values are 0 so remove them, then histogram
-##Ian: we can't we remove all the 0, some stand will be at 0 post disturbance, so you are loosing forested pixels here. This age raster has the 623940100 pixels we are expecting (see item 2-). We need to keep all those pixels
-## CONLCUSION: we need all the pixels inthe raster age1.tif
-
-## DO NOT GET RID OF ALL THE 0s
-# onlyTrees <- ageVal[ageVal != 0]
-# hist(onlyTrees, breaks = 15)
-
-
-#To group into 10 year age classes and put back into raster
+## 
+# age1CASFRI has equal number of pixels but 483695822 (75%) are NA and age1 has no NAs. Non-zero, non-NA values are 3 years apart 
+#CONLCUSION: we need all the pixels inthe raster age1.tif
+# To group into 10 year age classes and put back into raster
 
 ## Ian: why do this? the increments are specific to the years on the growth curve and the model runs annually...reason for lumping them that I am missing? I think we can remove this
-ageVal[ageVal != 0] <- round(onlyTrees/10, digits = 0)*10
-ageClass <- setValues(age, ageVal)
-plot(ageClass)
-rm(ageClass, ageVal, age)
+#Celine: Sorry I was just doing this as an example of how we can now manipulate our raste values
 ```
 b) Please check if this raster is the same as the one above:
 `\SK_ReclineRuns30m\layers\age1CASFRI.tif`
@@ -133,8 +123,8 @@ b) Please check if this raster is the same as the one above:
 # Firstcrop to a smaller area first for faster comparisons
 small_extent <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")) #This is smaller
 ## Ian: yes, it is smaller...but we are not sure this is the same as the age raster above...how can you be sure that it is a cropped version of the age raster above? 
-
-# what if I just get the values and compare the vectors? 
+##Celine: I am just using this extent (which happens to be from an age raster) to crop but keeping the original age raster values to compare. 
+# what if I just get the values and compare the vectors? Celine: You can do this.But "identical"" and "all.equal" will fail over a single difference
 casfri <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1CASFRI.tif")
 casfriAgeVal <- getValues(casfri)
 identical(ageVal,casfriAgeVal)
@@ -172,6 +162,7 @@ c) Use the age raster (in 1) to create a vector of ages that can be assigned to 
 #No sim object in this rmd but replaces ages with sim$ages
 age_ras <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #Using the small subset for speed
 ## Ian: again...not sure if we want to use the smaller extent. How do you know it is the same? and the point in doing this is to run all of SK.
+# Celine: Yes I am just trying to make things on a small area before we try SK as a whole, to minimize waiting for functions to run
 ages <- getValues(age_ras)
 #Note there are 61901 NAs and 34027 age 0.
 ```
@@ -222,6 +213,7 @@ simgcID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRC
 #Where does productivity come from?
 
 #Spatial Units - None of these spatialUnit IDs match the gcID. 
+#Celine: I will edit this shapefile so the values match
 spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
 spUnits_sub <- spTransform(spUnits_Can, CRSobj = age1@crs)
 spUnits_sub <- crop(spUnits_sub, y = age1)
