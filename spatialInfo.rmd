@@ -4,7 +4,7 @@ author: "CBoisvenue"
 date: "June 8, 2018"
 output:
   html_document:
-    df_print: paged
+    theme: spacelab
 editor_options: 
   chunk_output_type: console
 ---
@@ -105,7 +105,6 @@ a)This should be age in 1984, please check this raster to see if it gives ages a
 ```{r} 
 library(raster)
 age <- raster("data/forIan/SK_data/rasters/age1.tif")
-age <- raster("")
 ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
 #age is now a vector 
 #Most age values are 0 so remove them, then histogram
@@ -115,7 +114,7 @@ hist(onlyTrees, breaks = 15)
 ageVal[ageVal != 0] <- round(onlyTrees/10, digits = 0)*10
 ageClass <- setValues(age, ageVal)
 plot(ageClass)
-rm(ageClass, ageVal)
+rm(ageClass, ageVal, age)
 ```
 b) Please check if this raster is the same as the one above:
 `\SK_ReclineRuns30m\layers\age1CASFRI.tif`
@@ -135,7 +134,7 @@ length(age1_values[is.na(age1_values)]) #0
 
 #But if we set 0 to NA...
 casfri_values[casfri_values == 0] <- NA
-age1_values[age_values == 0] <- NA
+age1_values[age1_values == 0] <- NA # '1' was missing from subset in the script you PR to Celine
 summary(casfri_values)
 summary(age1_values)
 
@@ -145,7 +144,7 @@ rm(age1_values, casfri_values, age1_subset, casfri_subset, small_extent)
 c) Use the age raster (in 1) to create a vector of ages that can be assigned to `sim$ages`.  
 ```{r}
 #No sim object in this rmd but replaces ages with sim$ages
-age_ras <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #Using the small subset for speed
+age <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #Using the small subset for speed
 ages <- getValues(age_ras)
 #Note there are 61901 NAs and 34027 age 0.
 ```
@@ -176,20 +175,35 @@ WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveC
 ***TASKS***  
 a) figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine's calculation of CASFRI info - site_productivity.tif), both found here `F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers` can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 
 ```{r}
-#Crop to smal study area for now
+#IE: Here is my confusion....
+#SpatialUnits
+#I can't find any way to recreate the spatial unit IDs, species IDs, or forest type IDs from spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv
+#I also don't understand where the productivity values are used in the gcID, or growthcurve table look up
+#age
+library(raster)
+age1 <- raster('data/forIan/SK_data/rasters/age1.tif')
+#
 species <- raster("data/forIan/SK_data/rasters/casfri_dom2.tif") #This matches original age
-species <- crop(species, y = age_ras)
+speciesVal <- getValues(species)
+# range(speciesVal) #species range from 0-7 but....
+gcID <- read.csv("data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/oldlookups/yield.csv")
+simgcID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")# enter productivity and leading species
+# species_ids are 2, 6, 14, 29, 63, 65, and 76. Do not match. 
+#There are also two classes of gcID but values are identical between classes for everything except management status and species 
+#Where does productivity come from?
 
-#Spatial Units, cropping to small area
+#Spatial Units - None of these spatialUnit IDs match the gcID. 
 spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
-spUnits_Can <- spTransform(spUnits_Can, CRSobj = age_ras@crs)
-spUnits_Can <- crop(spUnits_Can, y = age_ras)
-#To convert to raster, first make empty raster with same resolution as age_ras
-spUnits_ras <- raster(spUnits_Can, res = res(age_ras))
-spUnits_ras <- rasterize(x = spUnits_Can, field = spUnits_Can$PSPU_ID, y = spUnits_ras)
-plot(spUnits_ras)
-#Delete this line it is just for Github Experimentation
-#This is more Git Experimentation
+spUnits_sub <- spTransform(spUnits_Can, CRSobj = age1@crs)
+spUnits_sub <- crop(spUnits_sub, y = age1)
+
+#Productivty
+prod <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif") #productivity for the small extent
+#Clip to study area
+prodID <- read.csv('data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv')
+
+simgcCompID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv") #enter age and gcID
+
 ```
 b) Better ways of assigning these?  
 c) Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.  
@@ -199,7 +213,10 @@ In the cbm_default.db, each spatial unit (admin boundaries X ecozones) have a sp
 
 ***TASKS***  
 1. once each pixel has a spatial unit, assign the Historical Disturbance Matrix Identification Number.  
+```{r}
+disturbanceID <- outSim@.envir$disturbanceEvents
 
+```
 ### 6- Last pass disturbance  
 The user has to identify the last disturbance that happened to the stand/pixel that is at the age in the age raster (in 1). For example, this could be a fire or a clearcut. In each spatial unit across Canada, there are a number of defined matrices for clearcut and fire. So spatial unit needs to be associated with a pixel - as in 5, this can be done via the gcID assignment (in 4) since they have spatial units associated with them. Once the spatial unit per pixels is known, the table `spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation` can provide the disturbance_type_id and the disturbance_matrix_id that are possible for the spatial unit. The cbm_default.db table disturbance_type gives the name and a description of the disturbance (using the disturbance_type_id) from which the user can select..  
 
