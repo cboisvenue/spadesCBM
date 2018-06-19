@@ -102,7 +102,7 @@ species and productivity level (the two later variables were used in the develop
 ***TASKS***  
 a)This should be age in 1984, please check this raster to see if it gives ages and calculate how many pixels there are with an age value:
 `C:\Celine\Syndocs\RES_Work\Work\SpaDES\spadesCBM\rasters\age1.tif` 
-```{r} 
+```{r Age raster,echo = FALSE, include=FALSE} 
 library(raster)
 
 age <- raster(file.path(getwd(),"data/forIan/SK_data/rasters/age1.tif"))

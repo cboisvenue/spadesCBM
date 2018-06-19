@@ -49,6 +49,7 @@ Temporary Items
 ## Folders with Data
 data/
 */data
+*/data*
 output/
 cache/*
 *.db

@@ -1,5 +1,8 @@
 #----------------------------------------------------------
 # Growth Curves exploration
+## Descriptive - what is in there and what does it mean?
+## ANALYSES -  what does the spadesCBMinputs module do with these curves?
+## SPECIES - how did we go from 9 curves to a file with 105 unique growth curve ids?
 # Arpil 6, 2018
 # CBoisvenue
 #----------------------------------------------------------
@@ -10,8 +13,8 @@
 ## DESCRIPTIVE: what is in those files? how does it relate to cbm_defaults?
 
 # in the data folder of the spadesCBMinputs module
-gcComponent <- as.matrix(read.csv("C:/Ian/Boisvenue/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv"))
-gcIn <- as.matrix(read.csv("C:/Ian/Boisvenue/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
+gcComponent <- as.matrix(read.csv(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv")))
+gcIn <- as.matrix(read.csv(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")))
 
 ## here trying to match the spatial_unit_id in gcIn with the spatial_unit in cbm_defaults
 # ***run readInSQLiteData.r which creates the data.frame spu (combines all ids with province and ecozone names)***
@@ -118,5 +121,11 @@ gcHash <- matrixHash(growth_increments)
 for(item in ls(sim$gcHash)){
   sim$gcHash[[item]] <- hash(sim$gcHash[[item]])
 }
+
+## END OF FUNCTION############################
+
+## SPECIES - how did we go from 9 curves to a file with 105 unique growth curve ids?
+
+#There are 7 unique species in the gcIn
 
 
