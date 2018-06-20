@@ -15,7 +15,7 @@ sqlite.driver <- dbDriver("SQLite")
 
 cbmDefaults <- dbConnect(sqlite.driver,
                 dbname = dbPath)
-dbDriver()
+#dbDriver()
 alltables = dbListTables(cbmDefaults)
 cbmTables <- list()
 

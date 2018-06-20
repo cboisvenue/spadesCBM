@@ -3,7 +3,7 @@
 ## Descriptive - what is in there and what does it mean?
 ## ANALYSES -  what does the spadesCBMinputs module do with these curves?
 ## SPECIES - how did we go from 9 curves to a file with 105 unique growth curve ids?
-# Arpil 6, 2018
+# April 6, 2018, June 20, 2018
 # CBoisvenue
 #----------------------------------------------------------
 
@@ -126,6 +126,80 @@ for(item in ls(sim$gcHash)){
 
 ## SPECIES - how did we go from 9 curves to a file with 105 unique growth curve ids?
 
-#There are 7 unique species in the gcIn
+#There are 7 unique species_id in the gcIn
+# here are there names
+gcSps <- sps[which(sps$species_id %in% unique(gcIn[,4])),]
+
+# There are 5 unique spatial_unit
+gcSpu <- spu[which(spu$spu_id %in% unique(gcIn[,1])),]
+#There are 2 forest types: softwood and hardwood (not mixed)
+forest_type_id <- unique(gcIn[,5])
+
+# are there lines that are the same if we ignore the growth_curve_id and growth_curve_component_id?
+dim(unique(gcIn[,c(-2,-3)])) 
+# 35 and 3
+## IDEA: this could be the productivity levels? if so...only the spruces really have 
+## different growth curves
+
+# how may lines for each species?
+
+library(dplyr)
+class(gcIn)
+gcDF <- as.data.frame(gcIn)
+gcDF %>% tally() #test
+
+# there are 15 lines per species
+gcDF %>% count(gcDF$species_id)
+# Forest type is strickly associated with leading species
+gcDF %>% count(gcDF$species_id, gcDF$forest_type_id)
+# There are three growth_curve_id by 
+gcDF %>% count(gcDF$spatial_unit_id, gcDF$species_id, gcDF$forest_type_id) %>% print(n=35)
+
+# how many of those are different?
+# only Black spruce (2) and white spruce (6) should have 2 that are different...
+# first check the the other species are all using the same curve in their three instances 
+# in the 5 spatial spatial units
+
+# which growth_curve_component_id identify
+
+library(tidyr)
+spsCurves <- NULL
+
+for(i in 1:length(gcSps$species_id)){
+  curves <- unique(gcDF$growth_curve_component_id[gcDF$species_id==gcSps$species_id[i]])
+  getComponents <- as.data.frame(gcComponent[gcComponent[,1]%in% curves,])
+  curvesWide <- getComponents %>% spread(Age, MerchVolume)
+  curveCheck <- unique(curvesWide[,-1])
+  addSps <- cbind(gcSps[i,1:2],curveCheck)
+  spsCurves <- rbind(spsCurves,addSps)
+}
+
+# There are 10 curves
+
+# how many levels of productivity on the productivity raster?
+library(raster)
+prod <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity.tif"))
+prod_val <- getValues(prod)
+unique(prod_val) # NA  1  2  3  0
+# from lookup Tables in here:
+# C:/Celine/GitHub/spadesCBM/data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv
+# RasterValue	prodClass
+# 1	G
+# 2	M
+# 3	P
+prodLookup <- read.csv(file.path(getwd(),
+                      "data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv"))
 
 
+# match the productivity levels with each curve
+
+# get rid of the 0/NA raster value
+prodLookup <- prodLookup[prodLookup$RasterValue>0,]
+# by looking at the spsCurves, I can tell that spruces, and Trembling Aspen each have two levels
+# the first in the table of each level is the higher values one (so the "G")
+dim(spsCurves)
+species_id= sort(rep.int(unique(spsCurves$species_id),3))
+prodClass <- cbind(species_id,prodLookup)
+spsProdCurves <- merge(prodClass,spsCurves, by="species_id")
+# getting rid of the extra matches. Rows 2,3,5, 8,9,11, 20,21,23
+spsProdCurves <- spsProdCurves[c(-2,-3,-5,-8,-9,-11,-20,-21,-23),]
