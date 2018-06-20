@@ -112,10 +112,7 @@ ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
 ## 
 # age1CASFRI has equal number of pixels but 483695822 (75%) are NA and age1 has no NAs. Non-zero, non-NA values are 3 years apart 
 #CONLCUSION: we need all the pixels inthe raster age1.tif
-# To group into 10 year age classes and put back into raster
 
-## Ian: why do this? the increments are specific to the years on the growth curve and the model runs annually...reason for lumping them that I am missing? I think we can remove this
-#Celine: Sorry I was just doing this as an example of how we can now manipulate our raste values
 ```
 b) Please check if this raster is the same as the one above:
 `\SK_ReclineRuns30m\layers\age1CASFRI.tif`
@@ -147,7 +144,7 @@ length(age1_values[is.na(age1_values)]) #0
 
 #But if we set 0 to NA...
 casfri_values[casfri_values == 0] <- NA
-age1_values[age1_values == 0] <- NA # '1' was missing from subset in the script you PR to Celine
+age1_values[age1_values == 0] <- NA 
 summary(casfri_values)
 summary(age1_values)
 
@@ -174,15 +171,16 @@ The number of pixels in the study area of the size that we want (I think this is
 a)Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)  
 b). Write some R-code that would assign the number of pixels to `sim$nStands <- length(sim$ages)`  
 ```{r}
-nStands <- length(sim$ages) #I guess this isn't true because we will have grouped pixels into stands
+nStands <- length(sim$ages) 
 ## Ian: age is one of the values that defines the homegenous groups. I need you to create these homogenous groups from the raster and polygon info we have...
 ```
 
 ### 3- Stand index
 This is unique identifier for each stand. I think it will be used to "rebuild" maps at the end of the simulations. Stands/pixels will be "hashed" for simulation...so, somehow a map needs to be remade to show results - right?  
 ```{r}
-#This will be borrowed from LMBR, and use polygons, 
+#This will be borrowed from LMBR, and use polygons,
 ## Ian: this will be the raster that will be able to apply disturbances to a set of pixels and change the homogenous groups. Reference to cohortData (a data.table) in Land-R and to a function called something like recluster in Land-R
+#Celine: LBMR (or LandR) converts a raster of communityGroup(or leading species for our purposes?) to data.table, matches the code to a table that has both community group, species, and age, and all the magic happens from there. I will try this with age, spUnit, and gcID.  
 ```
 ***TASKS***  
 a) discussion to make sure this is the best way of doing this right now
@@ -195,16 +193,12 @@ WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveC
 ***TASKS***  
 a) figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine's calculation of CASFRI info - site_productivity.tif), both found here `F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers` can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 
 ```{r}
-#IE: Here is my confusion....
-#SpatialUnits
-#I can't find any way to recreate the spatial unit IDs, species IDs, or forest type IDs from spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv
-#I also don't understand where the productivity values are used in the gcID, or growthcurve table look up
-#age
+##age
 library(raster)
 age1 <- raster('data/forIan/SK_data/rasters/age1.tif')
 #
-species <- raster("data/forIan/SK_data/rasters/casfri_dom2.tif") #This matches original age
-speciesVal <- getValues(species)
+species <- raster("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif") #This matches original age
+
 # range(speciesVal) #species range from 0-7 but....
 gcID <- read.csv("data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/oldlookups/yield.csv")
 simgcID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")# enter productivity and leading species
@@ -212,18 +206,29 @@ simgcID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRC
 #There are also two classes of gcID but values are identical between classes for everything except management status and species 
 #Where does productivity come from?
 
-#Spatial Units - None of these spatialUnit IDs match the gcID. 
-#Celine: I will edit this shapefile so the values match
-spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
-spUnits_sub <- spTransform(spUnits_Can, CRSobj = age1@crs)
-spUnits_sub <- crop(spUnits_sub, y = age1)
 
 #Productivty
-prod <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif") #productivity for the small extent
-#Clip to study area
+prod <- raster("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif")
 prodID <- read.csv('data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv')
 
+#Spatial Units - None of these spatialUnit IDs match the gcID. 
+#Celine: I will edit this shapefile so the values match
+#spUnits need to match those in cbmTables
+#Join the two datasets together.
+
+# library(dplyr)
+# spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
+# spUnits_Can@data <- left_join(spUnits_Can@data, spuNames, by = c("ProvinceID" = "admin_boundary_id", "EcoBoundar" = "eco_boundary_id"))
+# spUnits_Can <- spTransform(spUnits_Can, CRSobj = prod@crs)
+# spUnits_Can <- crop(spUnits_Can, prod)
+# template <- raster(prod)
+# spUnits <- rasterize(spUnits_Can, y = template, field = "id")
+# writeRaster(spUnits, "data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif")
+spUnits <- raster("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif")
+
+#
 simgcCompID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv") #enter age and gcID
+
 
 ```
 b) Better ways of assigning these?  
