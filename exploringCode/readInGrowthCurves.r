@@ -164,15 +164,24 @@ gcDF %>% count(gcDF$spatial_unit_id, gcDF$species_id, gcDF$forest_type_id) %>% p
 
 library(tidyr)
 spsCurves <- NULL
+gcIDspsProd <- NULL
 
 for(i in 1:length(gcSps$species_id)){
   curves <- unique(gcDF$growth_curve_component_id[gcDF$species_id==gcSps$species_id[i]])
   getComponents <- as.data.frame(gcComponent[gcComponent[,1]%in% curves,])
   curvesWide <- getComponents %>% spread(Age, MerchVolume)
+    # these lines are to create a table of leading species by prod level by gcIDs
+    gcIDwork <- cbind(gcSps$species_id[i],curvesWide)
+    gcIDspsProd <- rbind(gcIDspsProd,gcIDwork)
+  # these lines create the table needed to make sense of which species is what curve  
   curveCheck <- unique(curvesWide[,-1])
   addSps <- cbind(gcSps[i,1:2],curveCheck)
   spsCurves <- rbind(spsCurves,addSps)
 }
+
+gcIDspsProd %>% count(gcIDspsProd$`gcSps$species_id[i]`) %>% print(n=7)
+names(gcIDspsProd) <- c("species_id","growth_curve_component_id",names(gcIDspsProd)[3:253])
+
 
 # There are 10 curves
 
@@ -203,3 +212,6 @@ prodClass <- cbind(species_id,prodLookup)
 spsProdCurves <- merge(prodClass,spsCurves, by="species_id")
 # getting rid of the extra matches. Rows 2,3,5, 8,9,11, 20,21,23
 spsProdCurves <- spsProdCurves[c(-2,-3,-5,-8,-9,-11,-20,-21,-23),]
+
+# 
+gcID_ref <- cbind(gcIDspsProd[,1:2],prodLookup)
