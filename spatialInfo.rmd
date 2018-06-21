@@ -233,20 +233,25 @@ library(dplyr)
 
 LeadingSp <- getValues(species)
 Productivity <- getValues(prod)
-temp <- data.table(LeadingSp, Productivity)
+SpUnit <- getValues(spUnits)
+Age <- getValues(age)
+temp <- data.table(LeadingSp, Productivity, SpUnit)
 
 gc <- data.table(gc) %>%
-  .[,.("Productivity" = RasterValue,"LeadingSp" = rasterSps, "gcID" = growth_curve_component_id) ]
+  .[,.("Productivity" = RasterValue,"LeadingSp" = rasterSps, "gcID" = growth_curve_component_id, "SpUnit" = spatial_unit_id) ]
 
-test <- left_join(temp, gc, by = c("Productivity" ,"LeadingSp"))
+master <- left_join(temp, gc, by = c("Productivity" ,"LeadingSp", "SpUnit"))
+master$Age <- Age
+#Results in NAs where leading species == 0
 
+forest <- data.table(master) %>%
+  .[(is.na(gcID) == FALSE)]
 
-spUVal <- getValues(spUnits)
-cohort <- data.table::data.table(spUVal, ldSpVal,prodVal)
-cohort$PixelGroupID <- as.numeric(factor(paste(cohort$spUVal, cohort$ldSpVal, cohort$prodVal)))
+forest$PixelGroupID <- as.numeric(factor(paste(forest$spUVal, forest$gcID, forest$Age)))
 
 testRas <- raster(spUnits)
-testRas <- setValues(testRas, cohort$PixelGroupID)
+testRas[LeadingSp == 0] <- NA
+testRas[LeadingSp != 0] <- forest$PixelGroupID
 plot(testRas)
 
 #
