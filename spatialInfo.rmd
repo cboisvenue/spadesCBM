@@ -193,15 +193,14 @@ WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveC
 ***TASKS***  
 a) figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine's calculation of CASFRI info - site_productivity.tif), both found here `F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers` can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 
 ```{r}
-##age
 library(raster)
-age1 <- raster('data/forIan/SK_data/rasters/age1.tif')
-#
+##age
+age <- raster('data/forIan/SK_data/CBM_GIS/age_TestArea.tif')
+
+#Species
 species <- raster("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif") #This matches original age
 
-# range(speciesVal) #species range from 0-7 but....
-gcID <- read.csv("data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/oldlookups/yield.csv")
-simgcID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")# enter productivity and leading species
+
 # species_ids are 2, 6, 14, 29, 63, 65, and 76. Do not match. 
 #There are also two classes of gcID but values are identical between classes for everything except management status and species 
 #Where does productivity come from?
@@ -211,11 +210,8 @@ simgcID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRC
 prod <- raster("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif")
 prodID <- read.csv('data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv')
 
-#Spatial Units - None of these spatialUnit IDs match the gcID. 
-#Celine: I will edit this shapefile so the values match
-#spUnits need to match those in cbmTables
+#SpUnits
 #Join the two datasets together.
-
 # library(dplyr)
 # spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
 # spUnits_Can@data <- left_join(spUnits_Can@data, spuNames, by = c("ProvinceID" = "admin_boundary_id", "EcoBoundar" = "eco_boundary_id"))
@@ -226,8 +222,34 @@ prodID <- read.csv('data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productiv
 # writeRaster(spUnits, "data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif")
 spUnits <- raster("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif")
 
-#
+#load gcID look up
+gc <- read.csv("data/forIan/SK_data/gcID_ref.csv")
 simgcCompID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv") #enter age and gcID
+
+#reclassify prod and species to gcID
+library(data.table)
+library(magrittr)
+library(dplyr)
+
+LeadingSp <- getValues(species)
+Productivity <- getValues(prod)
+temp <- data.table(LeadingSp, Productivity)
+
+gc <- data.table(gc) %>%
+  .[,.("Productivity" = RasterValue,"LeadingSp" = rasterSps, "gcID" = growth_curve_component_id) ]
+
+test <- left_join(temp, gc, by = c("Productivity" ,"LeadingSp"))
+
+
+spUVal <- getValues(spUnits)
+cohort <- data.table::data.table(spUVal, ldSpVal,prodVal)
+cohort$PixelGroupID <- as.numeric(factor(paste(cohort$spUVal, cohort$ldSpVal, cohort$prodVal)))
+
+testRas <- raster(spUnits)
+testRas <- setValues(testRas, cohort$PixelGroupID)
+plot(testRas)
+
+#
 
 
 ```
