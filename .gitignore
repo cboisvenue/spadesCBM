@@ -47,7 +47,7 @@ Temporary Items
 ## Output files
 .png
 ## Folders with Data
-data/
+data/*
 */data
 */data*
 output/
