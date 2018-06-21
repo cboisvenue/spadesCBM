@@ -214,12 +214,14 @@ spsProdCurves <- merge(prodClass,spsCurves, by="species_id")
 spsProdCurves <- spsProdCurves[c(-2,-3,-5,-8,-9,-11,-20,-21,-23),]
 
 # need to have one place to lookup the links between raster species (1 to 7), cbm species (species_id),
-# prodClass, RasterValue for the prodClass, all linked to the growth_curve_component_id
+# prodClass, RasterValue for the prodClass, and spatial unit, all linked to the growth_curve_component_id
 # adding the prodClass and its Raster values
 gcID_ref <- cbind(gcIDspsProd[,1:2],prodLookup)
 # adding the raster species from ~data\forIan\SK_data\SK_ReclineRuns30m\LookupTables/species_map_to_codes_v2_6.xls
 sps_ref <- cbind(gcSps[,1:2],rasterSps=c(3,7,4,1,5,2,6))
 gcID_ref <- merge.data.frame(gcID_ref,sps_ref)
+# adding the spatial units id
+gcID_ref <- merge.data.frame(gcDF[,1:2],gcID_ref)
 write.csv(gcID_ref,file=file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
 
           
