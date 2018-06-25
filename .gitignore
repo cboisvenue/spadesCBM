@@ -1,4 +1,94 @@
 
 spadesCBMcore/data/SK_ReclineRuns30m/
 
-\.Rproj\.user/
+Thumbs.db
+ehthumbs.db
+# Folder config file
+Desktop.ini
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+# Windows shortcuts
+*.lnk
+# =========================
+# Operating System Files
+# =========================
+# OSX
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+# Thumbnails
+._*
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+## R related files
+*.Rdata
+*.RData
+*.Rhistory
+.Rhistory*
+.Ruserdata*
+.Rapp.history
+*.doc*
+*.pdf
+*.Rproj.user
+/.Rproj.user
+## Output files
+.png
+## Folders with Data
+data/*
+*/data
+*/data*
+output/
+cache/*
+*.db
+*/cache
+## Data Files
+*.xlsx
+.xls
+*.csv
+.csv
+*.txt
+.txt
+*.mxd
+.mxd
+*.txt
+*.cpg
+*.dbf
+*.lyr
+*.tfw
+*.tif.*
+*.xml
+*.ovr
+*.tif
+*.tiff
+*.png
+.Rproj.user
+*.zip
+*.prj
+*.sbn
+*.sbx
+*.shp
+*.shx
+*.db
+*.rda
+*.asc
+*.rds
+# Keygens
+*sshkeygen.*
+*.pub
+sshkeygen
+.httr-oauth
+*.gri
+*.grd
