@@ -142,7 +142,7 @@ simhistoricDMIDs <- rep.int(214,simnStands)
 
 ### 6- Last pass disturbance 
 # as in 5
-simlastPassDMIDS <- c(214,simnStands)
+simlastPassDMIDS <- rep.int(214,simnStands)
 #sim$lastPassDMIDS <- c(214,sim$nStands)#,1,1,1)
 
 ### 7- Delay 
@@ -154,20 +154,27 @@ simdelays <- c(0,simnStands)
 ### 10- Distrubance return interval for spinup
 # these can be found here
 spadesCBMSim@.envir$cbmData@spinupParameters
-## but keeping it simple for now
-simminRotations <- rep(0, simnStands)
+## but keeping they are all the same...
+simminRotations <- rep(10, simnStands)
 #sim$minRotations <- rep(0, sim$nStands)
-simmaxRotations <- rep(100, simnStands)
+simmaxRotations <- rep(30, simnStands)
 #sim$maxRotations <- rep(100, sim$nStands)
-simreturnIntervals <- c(200)#,110,120,130)
+
+simreturnIntervals <-merge(level3DT,spadesCBMSim@.envir$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9]
 #sim$returnIntervals <- c(200)#,110,120,130)
 
 ### 11- spatial Units
-sim$spatialUnits <- rep(26, sim$nStands)
+simspatialUnits <- level3DT[,spatial_unit_id]
+#sim$spatialUnits <- rep(26, sim$nStands)
 
-sim$spatialUnits <- rep(26, sim$nStands)
-sim$ecozones <- rep(5, sim$nStands)
+### 12- ecozones
+ecoToSpu <- gcSpu[,c(1,4)]
+names(ecoToSpu) <- c("spatial_unit_id","ecozones")
+simecozones <- merge(level3DT,ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]
+#sim$ecozones <- rep(5, sim$nStands)
 
+### 13- Disturbances
+## for now keep this the same
 sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
 colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
 

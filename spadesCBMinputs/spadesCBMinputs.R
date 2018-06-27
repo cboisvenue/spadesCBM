@@ -129,18 +129,55 @@ Init <- function(sim) {
   colnames(sim$pools)<- sim$pooldef
   sim$pools[,Input] = rep(1.0, nrow(sim$pools))
   
-  sim$ages <- c(0)#,2,3,140)
+  #### Data will have to be provided...short cut for now...
+  library(data.table)
+  library(raster)
+  
+  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  #This works
+  ages <- getValues(age)
+  # read-in species
+  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+  rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
+  # read-in productivity  levels
+  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+  RasterValue <- getValues(prodRaster)#1 2 3 0
+  # read-in spatial units
+  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+  spatial_unit_id <- getValues(spuRaster) #28 27
+  
+  # make it a data.table
+  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
+  level2DT1 <- unique(level2DT) # 820 4
+  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4
+  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+  
+  
+  # add the gcID
+  gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+  gcID <- as.data.table(gcID[,-1])
+  setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
+  
+  level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
+  ############
+  
+  
+  sim$ages <- level3DT[,ages]#c(0)#,2,3,140)
   sim$nStands <- length(sim$ages)
   standIdx <- 1:sim$nStands
-  sim$gcids <- c(1)#,2,3,101)
-  sim$historicDMIDs <- c(214)#,1,1,1)
-  sim$lastPassDMIDS <- c(214)#,1,1,1)
-  sim$delays <- c(0)#,0,0,0)
+  sim$gcids <- level3DT[,growth_curve_component_id]#c(1)#,2,3,101)
+  sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
   sim$minRotations <- rep(0, sim$nStands)
   sim$maxRotations <- rep(100, sim$nStands)
-  sim$returnIntervals <- c(200)#,110,120,130)
-  sim$spatialUnits <- rep(26, sim$nStands)
-  sim$ecozones <- rep(5, sim$nStands)
+  sim$returnIntervals <- merge(level3DT,spadesCBMSim@.envir$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
+  sim$spatialUnits <- level3DT[,spatial_unit_id]#rep(26, sim$nStands)
+  ecoToSpu <- gcSpu[,c(1,4)]
+  names(ecoToSpu) <- c("spatial_unit_id","ecozones")
+  sim$ecozones <- merge(level3DT,ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
+  
+  # no change in disturbance for now
   sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
   
