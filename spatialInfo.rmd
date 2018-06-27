@@ -326,8 +326,7 @@ spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestA
 spatial_unit_id <- as.integer(getValues(spuRaster)) #28 27
 # make it a data.table
 level2DT <- as.data.table(cbind("LeadingSp" = rasterSps,"Productivity" = RasterValue, spatial_unit_id, "Age" = ages))
-setindex(level2DT, LeadingSp, Productivity, spatial_unit_id, Age)
-head(level2DT)
+
 #Join to Growth Curves
 # add the gcID
 gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
@@ -342,20 +341,20 @@ setkey(level2DT1, LeadingSp, Productivity,spatial_unit_id)
 
 level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
 level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id, level3DT$growth_curve_component_id, level3DT$Age)))
-
+setke
 # all unique combinations
 # dim(unique(level3DT))
 # [1] 759   8
-#Hey Celine step below has to be done with left-join or it automatically sorts values and we lose location, I think....
-#callled forest because it has no NA
-forest <- left_join(level2DT, gcID, by = c("LeadingSp", "Productivity", "spatial_unit_id"))
+
+#This sort = FALSE is crucial to preserving spatial data
+spatialDT <- merge(level2DT, gcID, by = c("LeadingSp", "Productivity", "spatial_unit_id"), sort = FALSE)
 
 #This was Eliot's suggestion as an alternative to the LBMR method
-forest$PixelGroupID <- as.numeric(as.factor(paste(forest$spatial_unit_id, forest$growth_curve_component_id, forest$Age)))
+spatialDT$PixelGroupID <- as.numeric(as.factor(paste(spatialDT$spatial_unit_id, spatialDT$growth_curve_component_id, spatialDT$Age)))
 
 #to set back into raster, need Raster (record of what is NA), at least first time. 
 masterRaster <- raster(spuRaster)
-masterRaster[rasterSps != 0] <- forest$PixelGroupID[!is.na(forest$growth_curve_component_id)] #1347529 pixels
+masterRaster[rasterSps != 0] <- spatialDT$PixelGroupID[!is.na(spatialDT$growth_curve_component_id)] #1347529 pixels
 plot(masterRaster)
 
 #It works. Example of linking data back. You can delete this. 
