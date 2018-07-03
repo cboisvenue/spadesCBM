@@ -2,6 +2,56 @@
 # CBoisvenue January 18
 # with Eliot
 
+
+# Added these after (copied from spadesCBMdefaultFunctions.r)
+setClass("dataset", where = envir(sim), slots=list(
+  turnoverRates="matrix",
+  rootParameters="matrix",
+  decayParameters="matrix",
+  spinupParameters="matrix",
+  classifierValues="matrix",
+  climate="matrix",
+  spatialUnitIds="matrix",
+  slowAGtoBGTransferRate="matrix",
+  biomassToCarbonRate="matrix",
+  ecoIndices="matrix",
+  spuIndices="matrix",
+  stumpParameters="matrix",
+  overmatureDeclineParameters="matrix",
+  disturbanceMatrix="matrix",
+  disturbanceMatrixAssociation="matrix",
+  disturbanceMatrixValues="matrix",
+  disturbanceMatrixIndices="matrix",
+  disturbanceEvents="matrix",
+  landclasses="matrix",
+  pools="matrix",
+  domPools="matrix"))
+
+readSqlFile <- function(filePath) {
+  fileconn<-file(filePath,"r")
+  sqlString<-readLines(fileconn)
+  sqlString<-paste(sqlString,collapse=" ")
+  gsub("\t","", sqlString)
+  close(fileconn)
+  return( sqlString )
+}
+
+query <- function(dbPath, sql){
+  con = dbConnect(dbDriver("SQLite"), dbPath)
+  table <- dbGetQuery(con, sql)
+  dbDisconnect(con)
+  return(table)
+}
+
+getTable <- function(filename, dbPath, sqlDir) {
+  
+  con = dbConnect(dbDriver("SQLite"), dbPath)
+  filePath <- file.path(sqlDir, filename)
+  table <- query(dbPath, readSqlFile(filePath))
+  dbDisconnect(con)
+  return(table)
+}
+
 hash <- function(x) {
   e <- new.env(hash = TRUE, size = nrow(x),
                parent = emptyenv());
@@ -46,3 +96,4 @@ processGrowthCurve <- function(gcid,growthCurves,growthCurveComponents,sim) {
                                         hwAgeVolume = hwAgeVolumePairs)
   return (carbonCurve)
 }
+
