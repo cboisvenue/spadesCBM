@@ -178,3 +178,6 @@ simecozones <- merge(level3DT,ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]
 sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
 colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
 
+### line 636 of level3DT problem #######################################
+
+

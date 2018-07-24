@@ -206,13 +206,14 @@ spinup <- function(sim) {
   # SpatialUnitID <- sim$level3DT[,3]
   # root2 <- cbind(SpatialUnitID,root1)
     
-  browser()
+
+
   sim$spinupResult <- Spinup(pools = sim$pools, 
                              opMatrix = opMatrix,
                              constantProcesses = sim$processes,
                              growthIncrements = sim$gcHash, 
                              ages = sim$ages, 
-                             gcids = sim$gcids, 
+                             gcids = sim$gcids,
                              historicdmids = sim$historicDMIDs, 
                              lastPassdmids = sim$lastPassDMIDS, 
                              delays = sim$delays, 
@@ -258,7 +259,7 @@ postSpinup <- function(sim) {
                                delays = sim$delays, 
                                minRotations = sim$minRotations, 
                                maxRotations = sim$maxRotations,
-                               returnIntervals = sim$returnIntervals, 
+                               returnIntervals = sim$returnIntervals$return_interval, 
                                rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
                                turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
                                biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
@@ -330,7 +331,7 @@ annual <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
   # compute the growth increments
-browser()
+
     growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
     growthIncrements = sim$gcHash,
     ages = sim$ages,

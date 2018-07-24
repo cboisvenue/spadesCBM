@@ -126,10 +126,6 @@ Init <- function(sim) {
     sim$gcHash[[item]] <- hash(sim$gcHash[[item]])
   }
   
-  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
-  sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
-  colnames(sim$pools)<- sim$pooldef
-  sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
   
   #### Data will have to be provided...short cut for now...
   ##############################################################
@@ -165,21 +161,27 @@ Init <- function(sim) {
   ############################################################
   
   
-  sim$ages <- sim$level3DT[,ages]#c(0)#,2,3,140)
+  sim$ages <- sim$level3DT[637:759,ages]#c(0)#,2,3,140)
   sim$nStands <- length(sim$ages)
+  
+  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
+  sim$pools <- matrix(ncol = sim$PoolCount, nrow=sim$nStands, data=0)
+  colnames(sim$pools)<- sim$pooldef
+  sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
+  
   #standIdx <- 1:sim$nStands
-  sim$gcids <- sim$level3DT[,growth_curve_component_id]#c(1)#,2,3,101)
+  sim$gcids <- sim$level3DT[637:759,growth_curve_component_id]#c(1)#,2,3,101)
   sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
   sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
   sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
-  sim$minRotations <- rep.int(0,sim$nStands)#rep(0, sim$nStands)
-  sim$maxRotations <- rep.int(100,sim$nStands)#rep(100, sim$nStands)
-  sim$returnIntervals <- merge(sim$level3DT,sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
-  sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
+  sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
+  sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
+  sim$returnIntervals <- merge(sim$level3DT[637:759,,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
+  sim$spatialUnits <- sim$level3DT[637:759,spatial_unit_id]#rep(26, sim$nStands)
   spu <- as.data.frame(sim$cbmData@spatialUnitIds)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
-  sim$ecozones <- merge.data.frame(sim$level3DT,ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
+  sim$ecozones <- merge.data.frame(sim$level3DT[637:759,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
   
   # no change in disturbance for now
   sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
