@@ -359,19 +359,22 @@ plot(masterRaster)
 
 
 #example linking disturbance
-fire1987 <- raster("data/forIan/SK_data/CBM_GIS/disturbance/1987.tif")
-plot(fire1987) #not sure what these values mean, range = 5000-25000. Ask Byron? Anyway lets pretend all pixels are burned
+# fire1987 <- raster("data/forIan/SK_data/CBM_GIS/disturbance/1987.tif")
+# plot(fire1987) #not sure what these values mean, range = 5000-25000. Ask Byron? Anyway lets pretend all pixels are burned
 
 
-#It works. Example of linking data back. You can delete this. 
-temp <- level3DT 
-temp$RootsCarbon <- temp$Age / runif(length(temp$Age), 10, 15) #simulated data from the CBM value
-PixelGroupID <- data.table("PixelGroupID" = getValues(masterRaster)) 
-RootsCarbon <- left_join(PixelGroupID, temp, by = "PixelGroupID")  #Need to make this merge
+#We probably do not want to generate one raster for every pool. Maybe make function that does these steps?
+poolsDT <- as.data.table(spadesCBMout$cbmPools)
+poolsDT <- poolsDT[, .("PixelGroupID" = standindex, BelowGroundSlowSoil, "new.age" = age)] #not sure if we want to join all....
+#The first subset calculates the max age, the second subset selects only rows where age == max.age
+poolsDT <- poolsDT[, max.age := max(new.age), by = .(PixelGroupID)][new.age == max.age, .(BelowGroundSlowSoil, PixelGroupID, new.age)]
 
-RootsCarbonRas <- raster(masterRaster)
-RootsCarbonRas <- setValues(RootsCarbonRas, RootsCarbon$RootsCarbon)
-plot(RootsCarbonRas)
-rm(RootsCarbonRas, RootsCarbon, temp, PixelGroupID)
+#Each stand index has ten values. Need to get the max of each and subset by that. 
+masterTable <- right_join(poolsDT, spatialDT, by = "PixelGroupID", sort = FALSE)  #Need to make this merge
+
+outputBelowGroundSlowSoil <- masterRaster
+outputBelowGroundSlowSoil[!is.na(outputBelowGroundSlowSoil)] <- masterTable$BelowGroundSlowSoil
+
+plot(outputBelowGroundSlowSoil)
 ########################### DATA.TABLE COMPLETE #########################################
 ```
