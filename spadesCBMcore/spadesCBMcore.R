@@ -42,12 +42,13 @@ defineModule(sim, list(
     expectsInput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData", sourceURL = NA),
     expectsInput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3", sourceURL = NA),
     expectsInput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup.", sourceURL = NA),
-    expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA)
+    expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "level3DT", objectClass = "character", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = "processes", objectClass = "list", desc = NA),
-    createsOutput(objectName = "decayRates", objectClass = "list", desc = NA),
+    #createsOutput(objectName = "processes", objectClass = "list", desc = NA),
+    #createsOutput(objectName = "decayRates", objectClass = "list", desc = NA),
     createsOutput(objectName = "opMatrixCBM", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "spinupResult", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "allProcesses", objectClass = "list", desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"),
@@ -193,19 +194,32 @@ spinup <- function(sim) {
     sim$spatialUnits, #slow decay
     rep(1, sim$nStands) #slow mixing
   )
+  #don't need this...all rootParameters are constant across all spatial units
+  #ourSpus <- unique(sim$level3DT[,3]) 
+  #roots <- sim$cbmData@rootParameters[sim$cbmData@rootParameters[,1] %in% ourSpus$spatial_unit_id,]
+  # for these spatial units, turnover parameters are also the same
+  #ourEcos <- sim$cbmData@spatialUnitIds[sim$cbmData@spatialUnitIds[,1] %in% ourSpus$spatial_unit_id,3]
+  #turn <- sim$cbmData@turnoverRates[sim$cbmData@turnoverRates[,1] %in% ourEcos,]
   
+    # try making the rootParameter the same length as the rest of the vectors
+  # root1 <- t(sim$cbmData@rootParameters[1,-1])
+  # SpatialUnitID <- sim$level3DT[,3]
+  # root2 <- cbind(SpatialUnitID,root1)
+    
+
+
   sim$spinupResult <- Spinup(pools = sim$pools, 
                              opMatrix = opMatrix,
                              constantProcesses = sim$processes,
                              growthIncrements = sim$gcHash, 
                              ages = sim$ages, 
-                             gcids = sim$gcids, 
+                             gcids = sim$gcids,
                              historicdmids = sim$historicDMIDs, 
                              lastPassdmids = sim$lastPassDMIDS, 
                              delays = sim$delays, 
                              minRotations = sim$minRotations, 
                              maxRotations = sim$maxRotations,
-                             returnIntervals = sim$returnIntervals, 
+                             returnIntervals = sim$returnIntervals$return_interval, 
                              rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
                              turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
                              biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
@@ -233,7 +247,7 @@ postSpinup <- function(sim) {
       sim$spatialUnits, #slow decay
       rep(1, sim$nStands) #slow mixing
     )
-    
+
     sim$spinupResult <- Spinup(pools = sim$pools, 
                                opMatrix = opMatrix,
                                constantProcesses = sim$processes,
@@ -245,7 +259,7 @@ postSpinup <- function(sim) {
                                delays = sim$delays, 
                                minRotations = sim$minRotations, 
                                maxRotations = sim$maxRotations,
-                               returnIntervals = sim$returnIntervals, 
+                               returnIntervals = sim$returnIntervals$return_interval, 
                                rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
                                turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
                                biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
@@ -379,7 +393,7 @@ Event2 <- function(sim) {
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   
-  if (is.null(sim$pooldef)) {
+  if (!suppliedElsewhere("pooldef", sim)){
     sim$pooldef = c("Input",
                     "SoftwoodMerch",
                     "SoftwoodFoliage",
@@ -415,12 +429,36 @@ Event2 <- function(sim) {
     }
   }
   
+  if (!suppliedElsewhere("cbmData", sim)){
+    spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
+    disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
+    sim$cbmData <- new("dataset",
+                       turnoverRates=as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
+                       rootParameters=as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
+                       decayParameters=as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
+                       spinupParameters=as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
+                       climate=as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
+                       spatialUnitIds=spatialUnitIds,
+                       slowAGtoBGTransferRate=as.matrix(0.006),
+                       biomassToCarbonRate=as.matrix(0.5),
+                       stumpParameters=as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
+                       overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrix=disturbanceMatrix,
+                       disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
+                       landclasses=as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
+                       pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
+                       domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
+    ) 
+  }
+  
+  
   if(is.null(sim$PoolCount))
     sim$PoolCount <- length(sim$pooldef)
   if(is.null(sim$pools)){
     sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
     colnames(sim$pools)<- sim$pooldef
-    sim$pools[,Input] = rep(1.0, nrow(sim$pools))
+    sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
     }
   if(is.null(sim$ages)){
     sim$ages <- c(0)#,2,3,140)

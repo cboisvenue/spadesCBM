@@ -92,3 +92,5 @@ sshkeygen
 .httr-oauth
 *.gri
 *.grd
+
+exploringCode/scratchErrorsCBMinputs\.R

@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("CBMVolumeToBiomass", "raster"),
+  reqdPkgs = list("RSQLite","data.table","CBMVolumeToBiomass", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -27,6 +27,7 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
+    expectsInput(objectName = "cbmData", objectClass = "dataset", desc = "S4 object created from selective reading in of cbm_default.db in spadesCBMefaults module", sourceURL = NA),
     expectsInput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
@@ -41,6 +42,7 @@ defineModule(sim, list(
     createsOutput(objectName = "PoolCount", objectClass = "numeric", desc = "count of the length of the Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands from the inventory in 1990"),
+    createsOutput(objectName = "nStands", objectClass = "numeric", desc = "not really the number of stands, but the number of pixel groups"),
     createsOutput(objectName = "gcids", objectClass = "numeric", desc = "The identification of which growth curves to use on the specific stands provided by..."),
     createsOutput(objectName = "historicDMIDs", objectClass = "numeric", desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup."),
     createsOutput(objectName = "lastPassDMIDS", objectClass = "numeric", desc = "Vector, one for each stand, indicating final disturbance type, linked to the S4 table called cbmData. Only Spinup."),
@@ -52,8 +54,8 @@ defineModule(sim, list(
     createsOutput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"),
     createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "growth_increments", objectClass = "matrix", desc = "to this later"),
-    createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later")
-    
+    createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
+    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "tthe table containing one line per pixel group")
   )
 ))
 
@@ -124,23 +126,64 @@ Init <- function(sim) {
     sim$gcHash[[item]] <- hash(sim$gcHash[[item]])
   }
   
-  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
-  sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
-  colnames(sim$pools)<- sim$pooldef
-  sim$pools[,Input] = rep(1.0, nrow(sim$pools))
   
-  sim$ages <- c(0)#,2,3,140)
+  #### Data will have to be provided...short cut for now...
+  ##############################################################
+  library(data.table)
+  library(raster)
+  
+  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  #This works
+  ages <- getValues(age)
+  # read-in species
+  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+  rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
+  # read-in productivity  levels
+  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+  RasterValue <- getValues(prodRaster)#1 2 3 0
+  # read-in spatial units
+  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+  spatial_unit_id <- getValues(spuRaster) #28 27
+  
+  # make it a data.table
+  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
+  level2DT1 <- unique(level2DT) # 820 4
+  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4
+  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+
+  
+  # add the gcID
+  gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+  gcID <- as.data.table(gcID[,-1])
+  setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
+  
+  sim$level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
+  ############################################################
+  
+  
+  sim$ages <- sim$level3DT[-636,ages]#c(0)#,2,3,140)
   sim$nStands <- length(sim$ages)
-  standIdx <- 1:sim$nStands
-  sim$gcids <- c(1)#,2,3,101)
-  sim$historicDMIDs <- c(214)#,1,1,1)
-  sim$lastPassDMIDS <- c(214)#,1,1,1)
-  sim$delays <- c(0)#,0,0,0)
-  sim$minRotations <- rep(0, sim$nStands)
-  sim$maxRotations <- rep(100, sim$nStands)
-  sim$returnIntervals <- c(200)#,110,120,130)
-  sim$spatialUnits <- rep(26, sim$nStands)
-  sim$ecozones <- rep(5, sim$nStands)
+  
+  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
+  sim$pools <- matrix(ncol = sim$PoolCount, nrow=sim$nStands, data=0)
+  colnames(sim$pools)<- sim$pooldef
+  sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
+  
+  #standIdx <- 1:sim$nStands
+  sim$gcids <- sim$level3DT[-636,growth_curve_component_id]#c(1)#,2,3,101)
+  sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
+  sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
+  sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
+  sim$returnIntervals <- merge(sim$level3DT[-636,,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
+  sim$spatialUnits <- sim$level3DT[-636,spatial_unit_id]#rep(26, sim$nStands)
+  spu <- as.data.frame(sim$cbmData@spatialUnitIds)
+  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
+  names(ecoToSpu) <- c("spatial_unit_id","ecozones")
+  sim$ecozones <- merge.data.frame(sim$level3DT[-636,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
+  
+  # no change in disturbance for now
   sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
   
@@ -168,14 +211,39 @@ Save <- function(sim) {
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
+  if(is.null(sim$sqlDir))
+    sim$sqlDir <- file.path(dataPath,"cbm_defaults")
   if(is.null(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
   if(is.null(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
   if(is.null(sim$gcurveComponentsFileName))
-     sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
+    sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
   
-  if (is.null(sim$pooldef)) {
+  
+  if(is.null(sim$cbmData)){
+    spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
+    disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
+    sim$cbmData <- new("dataset",
+                       turnoverRates=as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
+                       rootParameters=as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
+                       decayParameters=as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
+                       spinupParameters=as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
+                       climate=as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
+                       spatialUnitIds=spatialUnitIds,
+                       slowAGtoBGTransferRate=as.matrix(0.006),
+                       biomassToCarbonRate=as.matrix(0.5),
+                       stumpParameters=as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
+                       overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrix=disturbanceMatrix,
+                       disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
+                       landclasses=as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
+                       pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
+                       domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
+    ) 
+  }
+  if (is.null(sim$pooldef)) 
     sim$pooldef = c("Input",
                     "SoftwoodMerch",
                     "SoftwoodFoliage",
@@ -202,16 +270,6 @@ Save <- function(sim) {
                     "CH4",
                     "CO",
                     "Products")
-    
-    # These objects currently are required to be in the .GlobalEnv
-    #   due to cpp code in RCBMGrowthIncrements.cpp. This should be
-    #   changed in the cpp and also here so it is in the sim
-    for(i in 1:length(sim$pooldef)){
-      assign(sim$pooldef[i], i, envir = .GlobalEnv)#?.globals
-    }
-  }
-  
-  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }

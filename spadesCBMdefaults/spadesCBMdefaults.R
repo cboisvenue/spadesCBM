@@ -33,9 +33,11 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = NA, objectClass = NA, desc = NA),
+    createsOutput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one"),
     createsOutput(objectName = "PoolCount", objectClass = "numeric", desc = "Length of pooldef"),
     createsOutput(objectName = "cbmData", objectClass = "dataset", desc = NA),
-    createsOutput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one")
+    createsOutput(objectName = "decayRates", objectClass = "matrix", desc = "decay rates per spatial unit?"),
+    createsOutput(objectName = "processes", objectClass = "list", desc = "decay mixing turnover and disturbances")
   )
 ))
 
@@ -77,7 +79,7 @@ doEvent.spadesCBMdefaults = function(sim, eventTime, eventType, debug = FALSE) {
 ### template initialization
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
-  sim$pooldef = c("Input",
+sim$pooldef = c("Input",
                   "SoftwoodMerch",
                   "SoftwoodFoliage",
                   "SoftwoodOther",
