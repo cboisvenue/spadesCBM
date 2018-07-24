@@ -341,7 +341,7 @@ setkey(level2DT1, LeadingSp, Productivity,spatial_unit_id)
 
 level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
 level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id, level3DT$growth_curve_component_id, level3DT$Age)))
-setke
+
 # all unique combinations
 # dim(unique(level3DT))
 # [1] 759   8
@@ -356,6 +356,12 @@ spatialDT$PixelGroupID <- as.numeric(as.factor(paste(spatialDT$spatial_unit_id, 
 masterRaster <- raster(spuRaster)
 masterRaster[rasterSps != 0] <- spatialDT$PixelGroupID[!is.na(spatialDT$growth_curve_component_id)] #1347529 pixels
 plot(masterRaster)
+
+
+#example linking disturbance
+fire1987 <- raster("data/forIan/SK_data/CBM_GIS/disturbance/1987.tif")
+plot(fire1987) #not sure what these values mean, range = 5000-25000. Ask Byron? Anyway lets pretend all pixels are burned
+
 
 #It works. Example of linking data back. You can delete this. 
 temp <- level3DT 
