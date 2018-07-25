@@ -2,7 +2,7 @@
 title: "spadesCBM"
 author: ""
 date: "19 January 2018"
-output: pdf_document
+output:   html_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -44,7 +44,7 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 
 # Usage
 
-```{r module_usage}
+```{r module_usage, echo=TRUE,eval=FALSE}
 library(SpaDES)
 
 moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")

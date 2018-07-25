@@ -179,5 +179,17 @@ sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$n
 colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
 
 ### line 636 of level3DT problem #######################################
+spadesCBMout@.envir$level3DT[636,]
+# rasterSps RasterValue spatial_unit_id ages growth_curve_component_id species_id
+# 1:         6           1              28    1                        58         76
+# prodClass     species
+# 1:         G White birch
+## run line 77 to 105
 
-
+table(rasterSps)
+table(RasterValue)
+table(spatial_unit_id)
+level3DT[,.N,by="growth_curve_component_id"]
+level3DT[,.N,by="species_id"]
+level3DT[,.N,by="prodClass"]
+gcid58 <- spadesCBMout@.envir$growth_increments[spadesCBMout@.envir$growth_increments[,1]==58,]
