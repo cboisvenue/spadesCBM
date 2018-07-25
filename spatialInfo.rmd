@@ -202,6 +202,12 @@ age <- raster('data/forIan/SK_data/CBM_GIS/age_TestArea.tif')
 #Species
 species <- raster("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif") #This matches original age
 
+
+# species_ids are 2, 6, 14, 29, 63, 65, and 76. Do not match. 
+#There are also two classes of gcID but values are identical between classes for everything except management status and species 
+#Where does productivity come from?
+
+
 #Productivty
 prod <- raster("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif")
 prodID <- read.csv('data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv')
@@ -231,22 +237,25 @@ LeadingSp <- getValues(species)
 Productivity <- getValues(prod)
 SpUnit <- getValues(spUnits)
 Age <- getValues(age)
-temp <- data.table(LeadingSp, Productivity, SpUnit, Age)
+temp <- data.table(LeadingSp, Productivity, SpUnit)
 
 gc <- data.table(gc) %>%
-  .[,.("Productivity" = RasterValue,"LeadingSp" = rasterSps, growth_curve_component_id, "SpUnit" = spatial_unit_id) ]
+  .[,.("Productivity" = RasterValue,"LeadingSp" = rasterSps, "gcID" = growth_curve_component_id, "SpUnit" = spatial_unit_id) ]
 
-master <- as.data.table(left_join(temp, gc, by = c("Productivity" ,"LeadingSp", "SpUnit")))
-#MERGE IS ORDERING BUT THEN WE LOSE SPATIAL LOCATIONS)
+master <- left_join(temp, gc, by = c("Productivity" ,"LeadingSp", "SpUnit"))
+master$Age <- Age
 #Results in NAs where leading species == 0
-forest <- master[(is.na(growth_curve_component_id) == FALSE)]
-forest$PixelGroupID <- as.numeric(factor(paste(forest$spUVal, forest$growth_curve_component_id, forest$Age)))
+
+forest <- data.table(master) %>%
+  .[(is.na(gcID) == FALSE)]
+
+forest$PixelGroupID <- as.numeric(factor(paste(forest$spUVal, forest$gcID, forest$Age)))
 
 testRas <- raster(spUnits)
 testRas[LeadingSp == 0] <- NA
 testRas[LeadingSp != 0] <- forest$PixelGroupID
 plot(testRas)
-forest$PixelGroupID
+
 #
 
 
@@ -310,7 +319,6 @@ This will come from the Wulder and White work. There is a list for SK here: `SK_
 ###################### MAKING A DATA.TABLE FIRST ##########################################
 library(data.table)
 library(raster)
-library(dplyr)
 
 age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
 #This works
@@ -323,58 +331,24 @@ prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestAre
 RasterValue <- getValues(prodRaster)#1 2 3 0
 # read-in spatial units
 spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
-spatial_unit_id <- as.integer(getValues(spuRaster)) #28 27
-# make it a data.table
-level2DT <- as.data.table(cbind("LeadingSp" = rasterSps,"Productivity" = RasterValue, spatial_unit_id, "Age" = ages))
+spatial_unit_id <- getValues(spuRaster) #28 27
 
-#Join to Growth Curves
+# make it a data.table
+level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
+level2DT1 <- unique(level2DT) # 820 4
+level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4
+setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+
+
 # add the gcID
 gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
-gcID <- as.data.table(gcID[,-1])%>%
-  .[,.("LeadingSp" = rasterSps,"Productivity" = RasterValue, growth_curve_component_id, spatial_unit_id)]
-setkey(gcID, growth_curve_component_id, LeadingSp, Productivity, spatial_unit_id)
-
-#filter the spatial data by unique values
-level2DT1 <- unique(level2DT) # 820 4
-level2DT1 <- level2DT1[level2DT1$LeadingSp>0,] # 759   4
-setkey(level2DT1, LeadingSp, Productivity,spatial_unit_id)
+gcID <- as.data.table(gcID[,-1])
+setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
 
 level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
-level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id, level3DT$growth_curve_component_id, level3DT$Age)))
-
 # all unique combinations
 # dim(unique(level3DT))
 # [1] 759   8
 
-#This sort = FALSE is crucial to preserving spatial data
-spatialDT <- merge(level2DT, gcID, by = c("LeadingSp", "Productivity", "spatial_unit_id"), sort = FALSE)
-
-#This was Eliot's suggestion as an alternative to the LBMR method
-spatialDT$PixelGroupID <- as.numeric(as.factor(paste(spatialDT$spatial_unit_id, spatialDT$growth_curve_component_id, spatialDT$Age)))
-
-#to set back into raster, need Raster (record of what is NA), at least first time. 
-masterRaster <- raster(spuRaster)
-masterRaster[rasterSps != 0] <- spatialDT$PixelGroupID[!is.na(spatialDT$growth_curve_component_id)] #1347529 pixels
-plot(masterRaster)
-
-
-#example linking disturbance
-# fire1987 <- raster("data/forIan/SK_data/CBM_GIS/disturbance/1987.tif")
-# plot(fire1987) #not sure what these values mean, range = 5000-25000. Ask Byron? Anyway lets pretend all pixels are burned
-
-
-#We probably do not want to generate one raster for every pool. Maybe make function that does these steps?
-poolsDT <- as.data.table(spadesCBMout$cbmPools)
-poolsDT <- poolsDT[, .("PixelGroupID" = standindex, BelowGroundSlowSoil, "new.age" = age)] #not sure if we want to join all....
-#The first subset calculates the max age, the second subset selects only rows where age == max.age
-poolsDT <- poolsDT[, max.age := max(new.age), by = .(PixelGroupID)][new.age == max.age, .(BelowGroundSlowSoil, PixelGroupID, new.age)]
-
-#Each stand index has ten values. Need to get the max of each and subset by that. 
-masterTable <- right_join(poolsDT, spatialDT, by = "PixelGroupID", sort = FALSE)  #Need to make this merge
-
-outputBelowGroundSlowSoil <- masterRaster
-outputBelowGroundSlowSoil[!is.na(outputBelowGroundSlowSoil)] <- masterTable$BelowGroundSlowSoil
-
-plot(outputBelowGroundSlowSoil)
 ########################### DATA.TABLE COMPLETE #########################################
 ```
