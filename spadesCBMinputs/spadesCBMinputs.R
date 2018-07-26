@@ -144,20 +144,27 @@ Init <- function(sim) {
   # read-in spatial units
   spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
-  
-  # make it a data.table
-  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
-  level2DT1 <- unique(level2DT) # 820 4
-  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4
-  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
 
+  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
+  level2DT1 <- level2DT[level2DT$rasterSps>0,]
+  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
   
   # add the gcID
   gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
   gcID <- as.data.table(gcID[,-1])
   setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
   
-  sim$level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
+  level3DTallPixels <- merge(level2DT1, gcID, all.x=TRUE) #1347529       8
+  # creating the pixel group id
+  level3DTallPixels[,pixelGroupId := as.numeric(as.factor(paste(level3DTallPixels$spatial_unit_id, 
+                                                                level3DTallPixels$growth_curve_component_id, 
+                                                                level3DTallPixels$ages)))]
+  
+  sim$level3DT <- unique(level3DTallPixels) #[1] 759   9
+
+
+  
+  
   ############################################################
   
   

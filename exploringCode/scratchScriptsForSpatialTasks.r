@@ -193,3 +193,4 @@ level3DT[,.N,by="growth_curve_component_id"]
 level3DT[,.N,by="species_id"]
 level3DT[,.N,by="prodClass"]
 gcid58 <- spadesCBMout@.envir$growth_increments[spadesCBMout@.envir$growth_increments[,1]==58,]
+## CAN'T FIGURE IT OUT YET
