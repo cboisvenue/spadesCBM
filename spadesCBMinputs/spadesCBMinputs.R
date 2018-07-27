@@ -145,22 +145,36 @@ Init <- function(sim) {
   spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
 
-  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
-  level2DT1 <- level2DT[level2DT$rasterSps>0,]
+  # level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
+  # level2DT1 <- level2DT[level2DT$rasterSps>0,]
+  # setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+  # 
+  # # add the gcID
+  # gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+  # gcID <- as.data.table(gcID[,-1])
+  # setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
+  # 
+  # level3DTallPixels <- merge(level2DT1, gcID, all.x=TRUE) #1347529       8
+  # # creating the pixel group id
+  # pixelGroupId <- as.numeric(as.factor(paste(level3DTallPixels$spatial_unit_id, 
+  #                                            level3DTallPixels$growth_curve_component_id, 
+  #                                            level3DTallPixels$ages)))
+  # abc <- as.data.table(cbind(level3DTallPixels,pixelGroupId))
+  # 
+  # sim$level3DT <- unique(abc) #[1] 759   9
+  # make it a data.table	
+  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))	  
+  
+  level2DT1 <- unique(level2DT) # 820 4	  level2DT1 <- level2DT[level2DT$rasterSps>0,]
+  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4	
   setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
   
-  # add the gcID
+  # add the gcID	  # add the gcID
   gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
   gcID <- as.data.table(gcID[,-1])
   setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
   
-  level3DTallPixels <- merge(level2DT1, gcID, all.x=TRUE) #1347529       8
-  # creating the pixel group id
-  level3DTallPixels[,pixelGroupId := as.numeric(as.factor(paste(level3DTallPixels$spatial_unit_id, 
-                                                                level3DTallPixels$growth_curve_component_id, 
-                                                                level3DTallPixels$ages)))]
-  
-  sim$level3DT <- unique(level3DTallPixels) #[1] 759   9
+  sim$level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
 
 
   
@@ -183,7 +197,7 @@ Init <- function(sim) {
   sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
   sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
   sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
-  sim$returnIntervals <- merge(sim$level3DT[-636,,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
+  sim$returnIntervals <- merge(sim$level3DT[-636,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
   sim$spatialUnits <- sim$level3DT[-636,spatial_unit_id]#rep(26, sim$nStands)
   spu <- as.data.frame(sim$cbmData@spatialUnitIds)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
