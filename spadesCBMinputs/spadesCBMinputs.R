@@ -205,7 +205,7 @@ Init <- function(sim) {
   sim$ecozones <- merge.data.frame(sim$level3DT[-636,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
   
   # no change in disturbance for now
-  sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
+  sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2001,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
   
   
