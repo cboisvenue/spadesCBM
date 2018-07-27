@@ -43,7 +43,7 @@ defineModule(sim, list(
     expectsInput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3", sourceURL = NA),
     expectsInput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup.", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "level3DT", objectClass = "character", desc = NA, sourceURL = NA)
+    expectsInput(objectName = "level3DT", objectClass = "data.table", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
