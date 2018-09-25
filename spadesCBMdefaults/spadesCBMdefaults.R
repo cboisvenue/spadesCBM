@@ -189,9 +189,9 @@ Plot <- function(sim) {
 
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
-  if(is.null(sim$sqlDir))
+  if(!suppliedElsewhere(sim$sqlDir))
     sim$sqlDir <- file.path(file.path(modulePath(sim),currentModule(sim),"data","cbm_defaults"))
-  if(is.null(sim$dbPath))
+  if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(sim$sqlDir, "cbm_defaults.db")
   
   # ! ----- STOP EDITING ----- ! #

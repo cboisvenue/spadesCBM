@@ -207,7 +207,6 @@ spinup <- function(sim) {
   # root2 <- cbind(SpatialUnitID,root1)
     
 
-
   sim$spinupResult <- Spinup(pools = sim$pools, 
                              opMatrix = opMatrix,
                              constantProcesses = sim$processes,
@@ -453,45 +452,45 @@ Event2 <- function(sim) {
   }
   
   
-  if(is.null(sim$PoolCount))
+  if(!suppliedElsewhere(sim$PoolCount))
     sim$PoolCount <- length(sim$pooldef)
-  if(is.null(sim$pools)){
+  if(!suppliedElsewhere(sim$pools)){
     sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
     colnames(sim$pools)<- sim$pooldef
     sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
     }
-  if(is.null(sim$ages)){
+  if(!suppliedElsewhere(sim$ages)){
     sim$ages <- c(0)#,2,3,140)
     sim$nStands <- length(sim$ages)
     standIdx <- 1:sim$nStands
   }
-  if(is.null(sim$gcids))
+  if(!suppliedElsewhere(sim$gcids))
     sim$gcids <- c(1)#,2,3,101)
-  if(is.null(sim$historicDMIDs))
+  if(!suppliedElsewhere(sim$historicDMIDs))
     sim$historicDMIDs <- c(214)#,1,1,1)
-  if(is.null(sim$lastPassDMIDS))
+  if(!suppliedElsewhere(sim$lastPassDMIDS))
     sim$lastPassDMIDS <- c(214)#,1,1,1)
-  if(is.null(sim$delays))
+  if(!suppliedElsewhere(sim$delays))
     sim$delays <- c(0)#,0,0,0)
-  if(is.null(sim$minRotations))
+  if(!suppliedElsewhere(sim$minRotations))
     sim$minRotations <- rep(0, sim$nStands)
-  if(is.null(sim$maxRotations))
+  if(!suppliedElsewhere(sim$maxRotations))
     sim$maxRotations <- rep(100, sim$nStands)
-  if(is.null(sim$returnIntervals))
+  if(!suppliedElsewhere(sim$returnIntervals))
     sim$returnIntervals <- c(200)#,110,120,130)
-  if(is.null(sim$spatialUnits))
+  if(!suppliedElsewhere(sim$spatialUnits))
     sim$spatialUnits <- rep(26, sim$nStands)
-  if(is.null(sim$ecozones))
+  if(!suppliedElsewhere(sim$ecozones))
     sim$ecozones <- rep(5, sim$nStands)
-  if(is.null(sim$disturbanceEvents)){sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
+  if(!suppliedElsewhere(sim$disturbanceEvents)){sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
   }
   dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
-  if(is.null(sim$dbPath))
+  if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  if(is.null(sim$gcurveFileName))
+  if(!suppliedElsewhere(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
-  if(is.null(sim$gcurveComponentsFileName))
+  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
     sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))

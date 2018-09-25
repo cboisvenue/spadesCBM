@@ -131,7 +131,7 @@ Init <- function(sim) {
   ##############################################################
   library(data.table)
   library(raster)
-  
+
   age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
   #This works
   ages <- getValues(age)
@@ -163,6 +163,7 @@ Init <- function(sim) {
   # 
   # sim$level3DT <- unique(abc) #[1] 759   9
   # make it a data.table	
+
   level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))	  
   
   level2DT1 <- unique(level2DT) # 820 4	  level2DT1 <- level2DT[level2DT$rasterSps>0,]
@@ -232,17 +233,17 @@ Save <- function(sim) {
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
-  if(is.null(sim$sqlDir))
+  if(!suppliedElsewhere(sim$sqlDir))
     sim$sqlDir <- file.path(dataPath,"cbm_defaults")
-  if(is.null(sim$dbPath))
+  if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  if(is.null(sim$gcurveFileName))
+  if(!suppliedElsewhere(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
-  if(is.null(sim$gcurveComponentsFileName))
+  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
     sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
   
   
-  if(is.null(sim$cbmData)){
+  if(!suppliedElsewhere(sim$cbmData)){
     spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
     disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
     sim$cbmData <- new("dataset",
@@ -264,7 +265,7 @@ Save <- function(sim) {
                        domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
     ) 
   }
-  if (is.null(sim$pooldef)) 
+  if (!suppliedElsewhere(sim$pooldef)) 
     sim$pooldef = c("Input",
                     "SoftwoodMerch",
                     "SoftwoodFoliage",
