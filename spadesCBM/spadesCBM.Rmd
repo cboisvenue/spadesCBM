@@ -1,9 +1,11 @@
 ---
 title: "spadesCBM"
-author: ""
-date: "19 January 2018"
-output: pdf_document
-editor_options: 
+author: ''
+date: "September 2018"
+output:
+  html_document:
+    df_print: paged
+editor_options:
   chunk_output_type: console
 ---
 # Overview
