@@ -5,6 +5,7 @@ date: "September 2018"
 output:
   html_document:
     df_print: paged
+  pdf_document: default
 editor_options:
   chunk_output_type: console
 ---
@@ -13,51 +14,50 @@ editor_options:
 The theme here is "Transparency, flexibility and science improvement in CFS carbon modelling". 
 
 ## Background
-This is a family of SpaDES modules that emulates the science in CBM-CFS3. It was developed on the SpaDES platform (a package in R - https://cran.r-project.org/web/packages/SpaDES/index.html) to make it transparent, spatial explicit and flexible. It is meant to be an environment in which science improvements can be explored and tested. These include links to other models for multi-use decision making and carbon science improvements. The computing difference with CBM-CFS3 is that the operations on the carbon pools are done by matrix multiplications instead of simple multiplication. Being in the SpaDES environment, it is meant to be run spatially explicitly which assumes that the required inputs are spatially explicit.
+This is a family of SpaDES modules that emulates the science in CBM-CFS3 (Kurz et al.2009). It was developed on the SpaDES platform (a package in R - https://cran.r-project.org/web/packages/SpaDES/index.html) to make it transparent, spatial explicit and flexible. Spades is a Spatial Discrete Event Simulator. It is an R-package that functions as a scheduler through space and time. Being an R-pased platform, is makes modelling transparent and accessible to a large community of researchers across disciplines. The family of modules, spadesCBM, is meant to be an environment in which science improvements can be explored and tested. These include links to other models for multi-use decision making and carbon science improvements. More information on SpaDES and other openly available SpaDES modules can be found here http://spades.predictiveecology.org/. 
+
+The only substantial technical difference betwenn spadesCBM and CBM-CFS3 is that spadesCBM modifies the carbon pools via matrix multiplications instead of simple multiplication. Being in the SpaDES environment, it is meant to be run spatially explicitly (CBM-CFS3 is not) which assumes that the required inputs are spatially explicit. Knowledge of the SpaDES structure would help an R-knowledgable user to manipulate simulations but is not necessary to run the current simulations. The code-chunk in this document will run simulations for managed forests in Saskatchewan, Canada. Prior knowledge of CBM-CFS3 would also help users understand the structure of these modules, but is not necessary to run simulations. All modules being written in R and the publically available description of the SpaDES R-package imply that any R-user can learn how to run these modules and simulate carbon on a landscape. In this document, I describe all three modules necessary for simulations using spadesCBM. The history of how these modules were developed can be find in spadesCBMhistory.Rmd.
 
 # Three-module family
 
-The family of modules is called from a parent module named spadesCBM. The spadesCBM parent module calls three child modules: spadesCBMdefaults, spadesCBMinputs, and spadesCBMcore. The code environment is on a private repository here: https://github.com/cboisvenue/spadesCBM.git.
+The family of modules is called from a parent module named spadesCBM. The spadesCBM parent module calls three child modules: spadesCBMdefaults, spadesCBMinputs, and spadesCBMcore. The code environment is on a private repository here: https://github.com/cboisvenue/spadesCBM.git. You need permission and a github account to acess this and for now, please don't distribute this code.
 
+The two first modules each have a parsing file (an R file that has all the functions - spadesCBMdefaultFunctions.r, spadesCBMinputsFunctions.r). The 
+spadesCBMdefaultFunctions.r has r-language functions to build and query the S4 object cbmData, while spadesCBMinputsFunctions.r, has r-language hashing functions and calls on the library "CBMVolumeToBiomass". This library was build by Scott Morken to apply the Boudewyn *et al.*(2007) stand-level parameters to growth curve information for a translation into biomass pools. This library needs to be already built before running this module. The code for this library is on this private github repository (https://github.com/smorken/CBMVolumeToBiomass). In SpaDES, parsing files get compiled when a simlist gets created. The spadesCBMcore module (spadesCBMcore.r) compiles the Rcpp code in .InputObjects and has no parsing file.
 
-
-The two first modules have a parsing file (the R file that has all the functions - spadesCBMdefaultFunctions.r, spadesCBMinputsFunctions.r). 
-spadesCBMdefaultFunctions.r has r-language functions to build and query the S4 object cbmData. spadesCBMinputsFunctions.r, has r-language hashing functions and calls on the library "CBMVolumeToBiomass". This library was build by Scott Morken to apply the Boudewyn et al stand-level parameters to growth curve information for a translation into biomass pools. This library needs to be already built before running this module.
-spadesCBMcoreFunctions.r compiles the Rcpp code in .InputObjects of spadesCBMcore.R (it has no parsing file). The compiled code is cached in the cache directory  `cacheDir = cachePath(sim), env = envir(sim)`
-
-Many more details of this three-modules family are in G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe, which is also a working document.
+Many more details of this three-modules family are in this prezi G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe, which is also a working document.
 
 ### spadesCBMdefaults 
-This module has one event (init) and does not schedule anything else. It requires the "dbPath" and "sqlDir" to run. This present .rmd file creates "dbPath" and "sqlDir" (see below) and so does the .InputObjects section of spadesCBMdefault.R so that the spadesCBMdefault can run independently from the two other modules or from this parent module. This module loads all the CBM-CFS3 default parameters (Canadian defaults that is akin to the ArchiveIndex access database in CBM-CFS3). It is read as an S4 object called cbmData. This object has the following slot names "turnoverRates" (15byb13 full), "rootParameters" (48by7 full), "decayParameters" (11X6 full), "spinupParameters"(48by4 full), "classifierValues"(0X0), "climate" (48by2 full - mean annual temp), "spatialUnitIds" (48by3 full), "slowAGtoBGTransferRate"(1by1 0.006), "biomassToCarbonRate"(1by1 0.5),"ecoIndices" (0by0), "spuIndices" (0by0), "stumpParameters" (48by5 full), "overmatureDeclineParameters" (48by4 full), "disturbanceMatrix" (426X3 - character matrix with word descriptions of disturbances ["id" "name" "description"]). The whole sqlite db that contains the defaults is read/accessible via C:\Celine\GitHub\spadesCBM\exploringCode\readInSQLiteData.r.
+This module loads all the CBM-CFS3 default parameters (Canadian defaults that is akin to the ArchiveIndex access database in CBM-CFS3). These parameters are then stored in an S4 object called cbmData and accessed throughout the simulations. This object has the following slot names "turnoverRates" (15byb13 full), "rootParameters" (48by7 full), "decayParameters" (11X6 full), "spinupParameters"(48by4 full), "classifierValues"(0X0), "climate" (48by2 full - mean annual temp), "spatialUnitIds" (48by3 full), "slowAGtoBGTransferRate"(1by1 0.006), "biomassToCarbonRate"(1by1 0.5),"ecoIndices" (0by0), "spuIndices" (0by0), "stumpParameters" (48by5 full), "overmatureDeclineParameters" (48by4 full), "disturbanceMatrix" (426X3 - character matrix with word descriptions of disturbances ["id" "name" "description"]). The whole sqlite db that contains the defaults is stored in this RStudio project (spadesCBM.Rproj) un the data folder \spadesCBM\exploringCode\readInSQLiteData.r. *All parameters used in these simulations and the general canadian defaults, are searcheable with common R functionality*. In the SpaDES environment, this module has one event (init) and does not schedule anything else. It requires the "dbPath" and "sqlDir" to run. This present .rmd file creates "dbPath" and "sqlDir" (see below) and so does the .InputObjects section of spadesCBMdefault.R so that the spadesCBMdefault can run independently from the two other modules or from this parent module. 
 
 ### spadesCBMinputs
-This module has one event (init) and does not schedule anything else. This module reads in information that is expected to be provided by the user: the growth curves, the ages of the stands/pixels, links between each stand and the growth curves, and where these stands are in Canada (which provides a link to the default parameters read-in by the previous module). It translates the m3/ha into the biomass pools and carbon curve using the CBMVolumeToBiomass.dll (by Scott Morken) which is done using the Boudewyn et al. stand-level parameters (this will eventually be a separate module for transparency). The CBMVolumeToBiomass library needs to already by built to run this module. This module will read-in spatially explicit data (eventually). It reads-in min and max rotation lengths, mean fire return interval, provided a place for regeneration delays, and this is the place where you will tell the model where you are (which ecozone and spatial unit). The disturbance events also go in here (what and what date).
+This module reads in information that is expected to be provided by the user similarly to CBM-CFS3: the growth curves, the ages of the stands/pixels, links between each stand and the growth curves, and where these stands are in Canada (which provides a link to the default parameters read-in by the previous module). It translates the m3/ha of the growth curves into the biomass pools for stem wood, bark, branches and foliage using the CBMVolumeToBiomass library (by Scott Morken). This library is based on the stand-level parameters of Boudewyn *et al.*(2007). The volume to biomass translations will eventually be a separate module to increase transparency of this process and permit the use of other biomass curves (example from LandR-biomass, a SpaDES module of the vegetation dynamics model LANDIS-II). This module reads-in spatially explicit data (in this case: age, leading species, productivity level, cbm_default spatial unit, growth curve identification for each pixel) which define the unique pixel groups for modelling. It also reads-in min and max rotation lengths, mean fire return interval, and provides a place for regeneration delays. Disturbance events must also be spatially explicit and will redefine the pixel groups post-disturbance. Disturbances information needs to specify what type of disturbance using the cbm_default disturbance matrix numbers (see cbmData), the year of disturbance and the pixel or stands disturbed. This module has one event (init) and does not schedule anything else. 
 
 ## spadesCBMcore
-This module completes the simulations of the spadesCBM. It has five events: spinup, postSpinup, saveSpinup, annual, and savePools, with the saveSpinup being optional. The spinup event is in the init, and it runs the traditional spinup similarly to CBM-CFS3 where each stand is disturbed using the "historicDMIDs" and re-grown using the provided growth curves, until the DOM pools "fill-up" and stabilize.  A user can set a minimun and a maximum number of rotations, and the disturbance return interval ("minRotations", "maxRotations", "returnIntervals" set in the spadesCBMinput module) for the spinup. Once the DOM pools have stabilized, the spinup event growths the stand (still using the same growth curve) to the user-provided age of that stand/pixel ("ages" created in spadesCBMinputs module). If spinupDebug is set to FALSE, the spinup event provides a line for each stand with the intial pool values to initialize the stands/pixels for the annual simulations. These are assigned in postSpinup event. In the postSpinup event, matrices are set up for the processes that will happen in the annual event. The annual event is where all the processes are applied and the savePools event is scheduled last to save a .csv of the final pool values.
+This module completes the simulations of the spadesCBM. It has five SpaDES-events: spinup, postSpinup, saveSpinup, annual, and savePools, with the saveSpinup being optional. The spinup event is the "init" event run by default in SpaDES modules.the event "spinup" runs the traditional spinup of CBM-CFS3: where each stand/pixel is disturbed using the disturbance specified in "historicDMIDs" and re-grown using the provided five above ground biomass pools, until the dead organic matter (DOM) pools values stabilize. A user can set a minimun and a maximum number of rotations, and the disturbance return interval ("minRotations", "maxRotations", "returnIntervals") for the spinup. Once the DOM pools have stabilized, the spinup event grows the stand (still using the same growth curve) to the user-provided age of that stand/pixel ("ages" created in spadesCBMinputs module). If spinupDebug is set to FALSE, the spinup event provides a line for each stand with the intial pool values to initialize the stands/pixels for the annual simulations. These are assigned in the postSpinup event. In the postSpinup event, matrices are set up for the processes that will happen in the annual event. The event spinupDebug was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles. Please refer to the next paragraph for warnings about this event. The annual event is where all the processes are applied. These include annual growth, turnover, overmature decline, decay, and disturbances. The event "savePools" is scheduled last. It currently creates a ".csv" file (output1stand.csv) that contains the carbon pool values for each unique stand/pixel type at the end of each simulation year. Outputs can modified as needed.
 
-### DANGER with the spinupDebug parameter
+#### DANGER with the spinupDebug parameter
 The spinupDebug parameter is a logical parameter defined in the metadata of the spadesCBMcore.R module. It determines if the results from the spinup will be saved as an external file. The default is FALSE. If this is set to TRUE, the postSpinup event re-runs the cpp Sinup function because the cpp Spinup function actually uses the sinpupDebug and spits-out all the runs for all the stand/pixelss until the stabilization of the DOM pools instead of the DOM for each stand needed to start the annual simulation runs. This could take a long time if you have a lot of stands/pixels. This can be changed later, it was a work around to get these modules running. 
 
-## Known Errors carried over from carb1
+#### Known Errors to eventually fix in teh Rcpp scripts
 Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$processes,  : 
   Expecting a single value: [extent=0].
 This is because the pooldef values are expected to be in the .GlobalEnv due to a function inside RCMBGrowthIncrements.cpp . That file should be changed so it is not looking in .GlobalEnv. Current work around is to place all the pooldef values in .GlobalEnv. This happens inside the ".inputObjects" function.
 
-# Usage
+# Simulations
 
-```{r module_usage}
+```{r, module_usage, eval=FALSE, echo=TRUE}
 library(SpaDES)
 
 moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
 inputDir <- file.path(moduleDir,"data") %>% reproducible::checkPath(create = TRUE) #"C:/Celine/GitHub/spadesCBM/data")
 outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
 cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
-times <- list(start = 1990.00, end = 1999.00)
+times <- list(start = 1990.00, end = 2005.00)
 parameters <- list(
-  spadesCBMcore = list(.useCache = TRUE),
-  spadesCBMinputs = list(.useCache = TRUE),
-  spadesCBMdefaults = list(.useCache = TRUE)
+  spadesCBMcore = list(.useCache = FALSE),
+  spadesCBMinputs = list(.useCache = FALSE),
+  spadesCBMdefaults = list(.useCache = FALSE)
 )
 
 modules <- list("spadesCBM")
@@ -77,38 +77,53 @@ spadesCBMSim <- simInit(times = times, params = parameters,
                  objects = objects, paths = paths)
 
 spadesCBMout <- spades(spadesCBMSim,debug=TRUE)
+
 ```
 
-# Noteworthy objects
+# Noteworthy objects and periferal functions
 
-- pooldef: names of all the pools that also have a memory spot saved in teh .Globals right now
+#### Objects
+- pooldef: names of all the pools that also have a memory spot saved in the .Globals right now
 - allMatrices: return the matrix ids of the loaded matrices
 - decayRates: matrix 48X12 - holds the decay rates for all the dom pools (11 of them) per spatial unit. Where is this created? How does it link to the "decay_parameter" table in cbmData?
-- carbonCurve: this is the result from using all the growth curves and "translating" them into biomass compartments using SMorken's CBMVolumeToBiomass library and its function VolumeToBiomassConvert(). This is one of the components that will need to be made into an independent module and more transparent
+- carbonCurve: this is the result from using all the growth curves and "translating" them into biomass compartments using SMorken's CBMVolumeToBiomass library and its function VolumeToBiomassConvert(). This is one of the components that will need to be made into an independent module and more transparency
 - growth_increments: not convinced we need this to be in the sim environment...but, it would be good to have this easily visible.
 - processes: this is a list of "matrixHash"-ed (R function in spadesCBMinputsFunctions.r) of domDecay, slowDecay, slowMixing, domTurnover, bioTurnover, disturbanceMatrices. 
 
+#### Functions
+seeDist() is an R function, current in \spadesCBM\exploringCode\disturbanceInfo.r, that requires a simulation list (from the SpaDES functions simList() or spades()) and retunrs a list of data.frames. Each data had the descriptive name of a disturbance used in the simulations, the disturbance matrix identification number from cbm_defaults, the pool from which carbon is taken (source pools) in this specific disturbance, the pools into which carbon goes, and the proportion in which the carbon-transfers are completed.
+
+TO COME: 
+- choices of historic disturbances for your specific area (whith the corresponding identification number from cbm_defaults)
+- same as above but for lastpass disturbances.
 
 
-## Plotting
 
-Nothing for now.
+## Plotting and Mapping
+
+Nothing for now. To come biomass/carbon by poolk through time
 
 ## Saving
 
 Pools at the end of all runs via the savePools event of the spadesCBMcore module.
 
 # Data dependencies
+These three modules require the cbm_defaults data as inputs and user defined inputs. Eventually, some of the inputs may come from other modules (growth and yield modules, biomass dynamics modules, etc.).
 
 ## Input data
-
-Working on using the spatial data from SK. These are stored here C:\Celine\Syndocs\RES_Work\Work\SpaDES\SK_data. Eventually external sources of growth and yield and forest inventory can be used.
+The current example simulations are for managed forests in Saskatchewan. Simulations use the same data as in Boisevnue *et al.* (2016). These data are here: \spadesCBM\data\forIan\SK_data
+Working on using the spatial data from SK. These are stored here. Eventually, the growth and yield curve development that was done using the PSP in Saskatchewan will be an explicit module that could be replaced by external sources of growth and yield. Similarly, all user-defined inputs will eventually be able to be sources elsewhere.
 
 ## Output data
 
-See G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe for now
+For now, the stand carbon pools at the end of each simluation year can be found here: \spadesCBM\outputs.
 
 # Links to other modules
+This will be linked to the SpaDES caribou models, to the SpaDES version of LANDIS-II, and to any other available SpaDES modules available (growth and yield).
 
-This will be linked to the SpaDES caribou models, to the SpaDES version of LANDIS-II, and to any other available SpaDES modules available (growth and yield?).
+
+# Refences
+1.	Kurz, W.A.; Dymond, C.C.; White, T.M.; Stinson, G.; Shaw, C.H.; Rampley, G.J.; Smyth, C.; Simpson, B.N.; Neilson, E.T.; Trofymow, J.A., et al. CBM-CFS3: A model of carbon-dynamics in forestry and land-use change implementing IPCC standards. Ecological Modelling 2009, 220, 480-504.
+1.	Boudewyn, P.; Song, X.; Magnussen, S.; Gillis, M.D. Model-based, volume-to-biomass conversion for forested and vegetated land in Canada; BC-X-411; Natural Resources Canada: Victoria, BC, 2007.
+1.	Boisvenue, C.; Smiley, B.P.; White, J.C.; Kurz, W.A.; Wulder, M.A. Improving carbon monitoring and reporting in forests using spatially-explicit information. Carbon Balance and Management 2016, 11, 23, doi:10.1186/s13021-016-0065-6.
 

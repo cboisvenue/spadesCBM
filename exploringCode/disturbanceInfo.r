@@ -31,6 +31,14 @@ spadesCBMout1 <- spades(spadesCBMout,debug=TRUE)
 # how can I check?
 
 # Answer: yes
+
+  ## look at them like this:
+  head(spadesCBMSim@.envir$disturbanceEvents)
+
+  ## seems like this should show what is scheduled here...but really, it is a place holder
+  ## the the disturbances in that specific sim year
+  spadesCBMout@.envir$yearEvents
+
 # this is what the current simulations spitout
 outPixelGroupPools <- read.csv(file.path(getwd(),"outputs","output1stand.csv"))
 # this has all the pools (25+"Input" which seems to always be equal to 1) 
@@ -54,6 +62,7 @@ unique(outPixelGroupPools$age[8339:9096])
 # Specifically in the spadesCBMinputs.R file, right now in lines 209 and 210
 sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2001,sim$nStands),rep(214,sim$nStands))
 colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
+
 #-------------------------------
 
 

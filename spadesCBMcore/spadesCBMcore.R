@@ -346,7 +346,8 @@ annual <- function(sim) {
   sim$allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
   
   eventDMIDs <- rep(0,sim$nStands)
-  sim$yearEvents <- sim$disturbanceEvents[sim$disturbanceEvents[,"Year"]==time(sim),c("standIndex","DisturbanceMatrixId"),drop=FALSE]
+  sim$yearEvents <- sim$disturbanceEvents[which(sim$disturbanceEvents[,"Year"]==time(sim)),c("standIndex","DisturbanceMatrixId"),drop=FALSE]
+  
   if(nrow(sim$yearEvents)>0){
     for(e in 1:nrow(sim$yearEvents)) {
       eventDMIDs[sim$yearEvents[e,"standIndex"]] <- sim$yearEvents[e,"DisturbanceMatrixId"]
