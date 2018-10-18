@@ -35,6 +35,10 @@
 
 
 
+# Less pressing
+# spu locator map
+# create a cbm-default spu map (raster) and give the user the change to manually
+# (on a map) or with coordinates to determine which spu they are in
 
 
 

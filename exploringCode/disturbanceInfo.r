@@ -134,7 +134,7 @@ clearDist <- sourceNames[,c(5,1:4,6)]
 ## NEXT:
 # creat a list of data.frames where each data.frame is the explicit (as sourceNames)
 # disturbance matrix
-seeDist <- function(sim){
+simDist <- function(sim){
   # put names to the pools
   poolNames <- as.data.frame(cbind(sim@.envir$pooldef[-1],c(1:24,26)))
   names(poolNames) <- c("pool","dmPoolId")

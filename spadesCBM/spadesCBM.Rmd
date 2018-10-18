@@ -91,7 +91,7 @@ spadesCBMout <- spades(spadesCBMSim,debug=TRUE)
 - processes: this is a list of "matrixHash"-ed (R function in spadesCBMinputsFunctions.r) of domDecay, slowDecay, slowMixing, domTurnover, bioTurnover, disturbanceMatrices. 
 
 #### Functions
-seeDist() is an R function, current in \spadesCBM\exploringCode\disturbanceInfo.r, that requires a simulation list (from the SpaDES functions simList() or spades()) and returns a list of data.frames. Each data had the descriptive name of a disturbance used in the simulations, the disturbance matrix identification number from cbm_defaults, the pool from which carbon is taken (source pools) in this specific disturbance, the pools into which carbon goes, and the proportion in which the carbon-transfers are completed.
+simDist() is an R function, current in \spadesCBM\exploringCode\disturbanceInfo.r, that requires a simulation list (from the SpaDES functions simList() or spades()) and returns a list of data.frames. Each data had the descriptive name of a disturbance used in the simulations, the disturbance matrix identification number from cbm_defaults, the pool from which carbon is taken (source pools) in this specific disturbance, the pools into which carbon goes, and the proportion in which the carbon-transfers are completed.
 
 TO COME: 
 - choices of historic disturbances for your specific area (whith the corresponding identification number from cbm_defaults)
