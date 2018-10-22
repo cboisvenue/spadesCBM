@@ -131,7 +131,7 @@ Init <- function(sim) {
   ##############################################################
   library(data.table)
   library(raster)
-  
+
   age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
   #This works
   ages <- getValues(age)
@@ -144,20 +144,42 @@ Init <- function(sim) {
   # read-in spatial units
   spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
-  
-  # make it a data.table
-  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
-  level2DT1 <- unique(level2DT) # 820 4
-  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4
-  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
 
+  # level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
+  # level2DT1 <- level2DT[level2DT$rasterSps>0,]
+  # setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+  # 
+  # # add the gcID
+  # gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+  # gcID <- as.data.table(gcID[,-1])
+  # setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
+  # 
+  # level3DTallPixels <- merge(level2DT1, gcID, all.x=TRUE) #1347529       8
+  # # creating the pixel group id
+  # pixelGroupId <- as.numeric(as.factor(paste(level3DTallPixels$spatial_unit_id, 
+  #                                            level3DTallPixels$growth_curve_component_id, 
+  #                                            level3DTallPixels$ages)))
+  # abc <- as.data.table(cbind(level3DTallPixels,pixelGroupId))
+  # 
+  # sim$level3DT <- unique(abc) #[1] 759   9
+  # make it a data.table	
+
+  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))	  
   
-  # add the gcID
+  level2DT1 <- unique(level2DT) # 820 4	  level2DT1 <- level2DT[level2DT$rasterSps>0,]
+  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4	
+  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+  
+  # add the gcID	  # add the gcID
   gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
   gcID <- as.data.table(gcID[,-1])
   setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
   
   sim$level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
+
+
+  
+  
   ############################################################
   
   
@@ -176,7 +198,7 @@ Init <- function(sim) {
   sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
   sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
   sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
-  sim$returnIntervals <- merge(sim$level3DT[-636,,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
+  sim$returnIntervals <- merge(sim$level3DT[-636,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
   sim$spatialUnits <- sim$level3DT[-636,spatial_unit_id]#rep(26, sim$nStands)
   spu <- as.data.frame(sim$cbmData@spatialUnitIds)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
@@ -184,7 +206,7 @@ Init <- function(sim) {
   sim$ecozones <- merge.data.frame(sim$level3DT[-636,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
   
   # no change in disturbance for now
-  sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
+  sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2001,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
   
   
@@ -211,17 +233,17 @@ Save <- function(sim) {
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
-  if(is.null(sim$sqlDir))
+  if(!suppliedElsewhere(sim$sqlDir))
     sim$sqlDir <- file.path(dataPath,"cbm_defaults")
-  if(is.null(sim$dbPath))
+  if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  if(is.null(sim$gcurveFileName))
+  if(!suppliedElsewhere(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
-  if(is.null(sim$gcurveComponentsFileName))
+  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
     sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
   
   
-  if(is.null(sim$cbmData)){
+  if(!suppliedElsewhere(sim$cbmData)){
     spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
     disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
     sim$cbmData <- new("dataset",
@@ -243,7 +265,7 @@ Save <- function(sim) {
                        domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
     ) 
   }
-  if (is.null(sim$pooldef)) 
+  if (!suppliedElsewhere(sim$pooldef)) 
     sim$pooldef = c("Input",
                     "SoftwoodMerch",
                     "SoftwoodFoliage",
