@@ -16,6 +16,8 @@
 
 ####Task1####
 require(raster)
+require(magrittr)
+require(data.table)
 ##Need to recreate level3DT
 
 #1. Get test area GIS data
@@ -36,6 +38,7 @@ spatial_unit_id <- as.integer(getValues(spuMap)) #28 27
 
 #2. Make level 2DT
 level2DT <- as.data.table(cbind("LeadingSp" = species, "Productivity" = prod, spatial_unit_id, "Age" = ages))
+level2DT <- level2DT[LeadingSp != 0] #Remove NAs
 
 #3. Add growth curves
 #3 i get growth curve table
@@ -43,16 +46,15 @@ gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
 gcID <- as.data.table(gcID[,-1])%>%
   .[,.("LeadingSp" = rasterSps,"Productivity" = RasterValue, growth_curve_component_id, spatial_unit_id)]
 setkey(gcID, growth_curve_component_id, LeadingSp, Productivity, spatial_unit_id)
-gcID
+
 
 #3 ii filter the spatial data by unique values
-level2DT1 <- unique(level2DT) # 820 4
-level2DT1 <- level2DT1[level2DT1$LeadingSp>0,] # 759   4
-setkey(level2DT1, LeadingSp, Productivity,spatial_unit_id)
+level3DT <- unique(level2DT) # remove row order for unique operation
+level3DT <- level3DT[level3DT$LeadingSp>0,] # removes values that should be NA
+setkey(level3DT, LeadingSp, Productivity,spatial_unit_id)
 
 #4 Make level 3DT
-
-level3DT <- level2DT1[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5   
+level3DT <- level3DT[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5   
 
 #4 ii add PixelGroupID: 
 level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
@@ -60,19 +62,29 @@ level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
                                                  level3DT$Age)))
 
 #5 Prepare raster that will have location of pixelGroupIds
-#5 i make spatial data table - this table will be large (basically a raster stack)
-spatialDT <- merge(level2DT, gcID, by = c("LeadingSp", "Productivity", "spatial_unit_id"), sort = FALSE)
-#sort = FALSE is crucial to preserving spatial data
+#5 i make spatial data table 
+level2DT$rowOrder <- 1:nrow(level2DT) #failsafe to make sure rows aren't sorted
+
+setkey(level2DT, LeadingSp, Productivity, spatial_unit_id)
+
+setkey(gcID, NULL) #apparently you have to unkey before a join
+setkey(level2DT, NULL)
+
+spatialDT <- gcID[level2DT, on = c("LeadingSp", "Productivity", "spatial_unit_id")]
+spatialDT <- spatialDT[order(rowOrder)]
 
 #5 ii add pixelGroupIds to spatialDT
 spatialDT$PixelGroupID <- as.numeric(as.factor(paste(spatialDT$spatial_unit_id,
                                                      spatialDT$growth_curve_component_id,
                                                      spatialDT$Age)))
+#####TEST####
 
 #5 iii Generate 'master raster' that has location of NAs.
 # use species map because it has NA where there are no trees, unlike productivity
-masterRaster <- raster(ldSpsMap)
-masterRaster[species != 0] <- spatialDT$PixelGroupID
+masterRaster <- ldSpsMap
+masterRaster[species == 0] <- NA
+masterRaster[!species == 0] <- spatialDT$PixelGroupID
+plot(masterRaster)
 
 #6 Add output of SpadesCBM sim run - in this example I use BelowGroundSlowSoil
 #6 i get table from sim run
@@ -85,13 +97,13 @@ setkey(poolsDT, PixelGroupID)
 setkey(spatialDT, PixelGroupID)
 
 #6 iii Join these two tables
-spatialDT$rowOrder <- 1:nrow(spatialDT) #This adds a whole row, but should be faster than dplyr. 
-masterTable <- poolsDT[spatialDT]
+masterTable <- poolsDT[spatialDT, on = c("PixelGroupID")]
+head(masterTable)
 masterTable[order(rowOrder)]
 
 BGSS_Map <- masterRaster
 plot(BGSS_Map)
-masterTable
+
 BGSS_Map[!is.na(BGSS_Map)] <- masterTable$BelowGroundSlowSoil
 
 plot(BGSS_Map)
