@@ -87,23 +87,34 @@ masterRaster[!species == 0] <- spatialDT$PixelGroupID
 plot(masterRaster)
 
 #6 Add output of SpadesCBM sim run - in this example I use BelowGroundSlowSoil
+
+#Line 636 is a problem --- Why? Must get to bottom of this for join to work
+# spadesCBMout@.envir$level3DT[636,]
+# rasterSps RasterValue spatial_unit_id ages growth_curve_component_id species_id
+# 1:         6           1              28    1                        58         76
+# prodClass     species
+# 1:         G White birch
+#age needs to change for some reason
+
+
+
 #6 i get table from sim run
 poolsDT <- as.data.table(spadesCBMout$cbmPools)
-
+poolsDT <- poolsDT[order(standindex)] #order by stand index
+poolsDT$year <- start(spadesCBMout):end(spadesCBMout) #length of simulation, counting initial
 #6 ii subset by age = max age, because sim "grew" stands up to age
-poolsDT <- poolsDT[, .("PixelGroupID" = standindex, BelowGroundSlowSoil, "new.age" = age)] 
-poolsDT <- poolsDT[, max.age := max(new.age), by = .(PixelGroupID)][new.age == max.age, .(BelowGroundSlowSoil, PixelGroupID, new.age)]
+poolsDT <- poolsDT[, .("PixelGroupID" = standindex, BelowGroundSlowSoil, "new.year" = year), ]
+
+poolsDT <- poolsDT[, max.year := max(new.year), by = .(PixelGroupID)][new.year == max.year, .(BelowGroundSlowSoil, PixelGroupID, new.year)]
 setkey(poolsDT, PixelGroupID)
 setkey(spatialDT, PixelGroupID)
 
 #6 iii Join these two tables
 masterTable <- poolsDT[spatialDT, on = c("PixelGroupID")]
-head(masterTable)
-masterTable[order(rowOrder)]
+masterTable <- masterTable[order(rowOrder)]
 
 BGSS_Map <- masterRaster
-plot(BGSS_Map)
-
+masterTable
 BGSS_Map[!is.na(BGSS_Map)] <- masterTable$BelowGroundSlowSoil
 
 plot(BGSS_Map)
