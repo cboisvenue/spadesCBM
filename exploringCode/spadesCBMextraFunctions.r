@@ -5,19 +5,16 @@
 # October, 17, 2018
 #-----------------------------------------------------
 
-### lastDist()-------------------------------------------------------------------
-### historical disturbances in CBM-CFS3 there are default historical
-#disturbances These are mostly fire (all?) and they are used in the
-#disturbe-grow cycles of the spinup spinup is when the above-ground biomass
-#curves are used grow stand which are then disturbed and regrown with turnover,
-#overmature, decay, functioning until the dead organic matter pools biomass
-#values stabilise (+ or - 10% I think but that is in the
-#Rcpp-RCMBGrowthIncrements.cpp so can't check)
+### spuDist()-------------------------------------------------------------------
+#This function identifies the ID number (CBM-CFS3 legacy) that are possible in
+#the specific spatial unit you are in. You give is spatial units you are
+#targetting (mySpu) and it give you the disturbance matrix id that are
+#possible/default in that specific spu and a descriptive name of that disturbance matrix
 
-### figure out which spu you are in
-# Note: can we have a canada-wide spu map and they locate themselves on the map?
-# this needs to be done before simulations are run so the user can provide this
-# info (location info) for the simulations
+## figure out which spu you are in 
+#Note: can we have a canada-wide spu map and they locate themselves on the map?
+#this needs to be done before simulations are run so the user can provide this
+#info (location info) for the simulations - Ian is working on this.
 
 # could be with the rasters
 library(raster)
@@ -30,7 +27,9 @@ mySpu <- unique(spatial_unit_id)
 # or 
 mySpu <- unique(gcIn[,1])
 
-lastDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")){
+# the function has the defaults from the Sk managed forest example. These can my
+# changed by feeing in other spu
+spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")){
 
   library(RSQLite)
   
@@ -49,20 +48,54 @@ lastDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_def
   dmid <- unique(cbmTables[[7]][which(cbmTables[[7]][,1] %in% mySpu),c(1,3)])
   
   # add the descriptive names
-  lastDist <- cbind(dmid,cbmTables[[6]][dmid$disturbance_matrix_id,3])
-  return(lastDist)
+  spuDist <- cbind(dmid,cbmTables[[6]][dmid$disturbance_matrix_id,3])
+  return(spuDist)
 }
 
-###END lastDist------------------------------------------------------------------
+###END spuDist------------------------------------------------------------------
 
-### seeDist-------------------------------------------------------
-### whatever disturbance matrix id, get the descriptive name and the proportions transferred
-# for general purposes, when you want to examine a disturbance matrix
+### histDist()---------------------------------------------
+#Historical disturbances in CBM-CFS3 are used for "filling-up" the soil-related
+#carbon pools. Boudewyn et al. (2007) translate the m3/ha curves into biomass
+#per ha in each of four pools: total biomass for stem wood, total biomass for
+#bark, total biomass for branches and total biomass for foliage. Biomass in
+#coarse and fine roots, in aboveground- and belowground- very-fast, -fast,
+#-slow, in medium-soil, and in snags still needs to be estimated. In all spatial
+#units in Canada, the historical disturbance is set to fire. A stand-replacing
+#fire disturbance is used in a disturbe-grow cycle, where stands are disturbed
+#and regrown with turnover, overmature, decay, functioning until the dead
+#organic matter pools biomass values stabilise (+ or - 10% I think but that is
+#in the Rcpp-RCMBGrowthIncrements.cpp so can't check).
+#This function histDist(), identifies the stand-replacing wildfire disturbance
+#in each spatial unit. By default the most recent is selected, but the user can
+#change that.
+# as per spuDist, you need to specify your spu
+mySpu <- c(27,28)
+histDist<- function(mySpu = c(27,28)){
+  # used the spuDist() function to narrow down the choice
+  a <- spuDist(mySpu)
+  # don't need all the cbm_default tables since coumn 3 of a give you the names
+  # this searches for "wildfire"
+  #a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),]
+  # if there are more then 1 "wildfire" designation, chose the maximum disturbance
+  # matrix id number since that would be the most recent in the database
+  b <- aggregate(disturbance_matrix_id ~ spatial_unit_id, data = a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),], max)
+  c <- merge.data.frame(a,b)
+  }
+
+### END histDist()-----------------------------------------
+
+### seeDist()-------------------------------------------------------
+#You give this function one or more disturbance matrix id, and it will return
+#the descriptive name of the disturbance, the source pools, the sink pools, and
+#the proportions transferred. It returns a list of data frames, on data.frame
+#per disturbance matrix id
+
 
 distId <- c(161,230,313,361)
 
 
-seeDist(distId,dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")) <- {
+seeDist <-function(distId = c(161,230,313,361),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")) {
   # get the defaults
   library(RSQLite)
   
@@ -111,7 +144,7 @@ seeDist(distId,dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db
   # for each matNum, create a data.frame that explains the pool transfers
   for(i in 1:length(matNum)){
     # get the lines specific to the distMatrix in question
-    matD <- as.data.frame(cbmTables[[6]][which(cbmTables[[6]][,1]==matNum[i]),])
+    matD <- as.data.frame(cbmTables[[8]][which(cbmTables[[8]][,1]==matNum[i]),])
     names(poolNames) <- c("sinkName","sink_pool_id")
     sinkNames <- merge.data.frame(poolNames,matD)
     
@@ -120,12 +153,13 @@ seeDist(distId,dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db
     lookDists[[i]] <- sourceNames[,c(5,1:4,6)]
   }
   # each data.frame gets a descriptive name
-  names(lookDists) <- sim@.envir$cbmData@disturbanceMatrix[matNum,3]
+  names(lookDists) <- cbmTables[[6]][matNum,3]
   # description 
   # "Salvage uprooting and burn for Boreal Plains"
   return(lookDists)
   
 }
+### END seeDist()---------------------------------------------------
 
 
 
