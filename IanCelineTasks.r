@@ -47,9 +47,9 @@ gcID <- as.data.table(gcID[,-1])%>%
   .[,.("LeadingSp" = rasterSps,"Productivity" = RasterValue, growth_curve_component_id, spatial_unit_id)]
 setkey(gcID, growth_curve_component_id, LeadingSp, Productivity, spatial_unit_id)
 
-
+level2DT$rowOrder <- 1:nrow(level2DT) #failsafe to make sure rows aren't sorted
 #3 ii filter the spatial data by unique values
-level3DT <- unique(level2DT) # remove row order for unique operation
+level3DT <- unique(level2DT[,-("rowOrder")]) # remove row order for unique operation
 level3DT <- level3DT[level3DT$LeadingSp>0,] # removes values that should be NA
 setkey(level3DT, LeadingSp, Productivity,spatial_unit_id)
 
@@ -63,13 +63,7 @@ level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
 
 #5 Prepare raster that will have location of pixelGroupIds
 #5 i make spatial data table 
-level2DT$rowOrder <- 1:nrow(level2DT) #failsafe to make sure rows aren't sorted
-
-setkey(level2DT, LeadingSp, Productivity, spatial_unit_id)
-
-setkey(gcID, NULL) #apparently you have to unkey before a join
-setkey(level2DT, NULL)
-
+setkey(gcID, NULL) #have to unkey before a join
 spatialDT <- gcID[level2DT, on = c("LeadingSp", "Productivity", "spatial_unit_id")]
 spatialDT <- spatialDT[order(rowOrder)]
 
@@ -77,7 +71,6 @@ spatialDT <- spatialDT[order(rowOrder)]
 spatialDT$PixelGroupID <- as.numeric(as.factor(paste(spatialDT$spatial_unit_id,
                                                      spatialDT$growth_curve_component_id,
                                                      spatialDT$Age)))
-#####TEST####
 
 #5 iii Generate 'master raster' that has location of NAs.
 # use species map because it has NA where there are no trees, unlike productivity
@@ -88,15 +81,7 @@ plot(masterRaster)
 
 #6 Add output of SpadesCBM sim run - in this example I use BelowGroundSlowSoil
 
-#Line 636 is a problem --- Why? Must get to bottom of this for join to work
-# spadesCBMout@.envir$level3DT[636,]
-# rasterSps RasterValue spatial_unit_id ages growth_curve_component_id species_id
-# 1:         6           1              28    1                        58         76
-# prodClass     species
-# 1:         G White birch
-#age needs to change for some reason
-
-
+#assumes standindex from cbmPools matches pixelGroupID
 
 #6 i get table from sim run
 poolsDT <- as.data.table(spadesCBMout$cbmPools)
@@ -130,10 +115,43 @@ plot(BGSS_Map)
 # Next: modifying the level3DT after each disturbance...
 # do we follow what LandR-biomass does?
 # Discussion needed
+#There may be a faster or more memory-efficient way to do this, but this method works for now...
+#1. Load rasters 
+disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
+                                full.names = TRUE) %>%
+  grep(., pattern = ".tif$", value = TRUE)
+  
+#2. pluck out the disturbance at time(sim) e.g. 1995. Note 1995 would be replaced by "time(sim)"
+annualDisturbance <- raster(grep(disturbanceRasters, pattern = paste0("1995", ".tif$"), value = TRUE))
 
 
+#3 i  prepare disturbance values 
+#disturbacne Types: Fire = 1, Harvest =2 , LCondition = 3, Road = 4, 5 = Unclassified
+disturbance <- getValues(annualDisturbance) %>%
+  .[species != 0] #ditch pixels that aren't treed to make same length as level2DT
 
-# Less pressing
+level2DT$disturbance <- disturbance
+#If disturbances change age or species, it needs to happen to level 2DT
+#3 ii assign age 0 where fires happened
+
+level2DT$Fire <- 0
+level2DT$Fire[level2DT$disturbance == 1] <- 1
+level2DT$Age[level2DT$Fire == 1] <- 0
+
+#4 i Make level3DT with updated table (have to remove newly added rows)
+level3DT <- unique(level2DT[,-c("rowOrder", "disturbance", "Fire")]) #now 761 unique rows
+#4 ii join with gcID
+level3DT <- level3DT[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5   
+
+#4 iii add PixelGroupID: 
+level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
+                                                 level3DT$growth_curve_component_id,
+                                                 level3DT$Age)))
+
+#5 To put back in map, have to remake spatialDT with updated pixelGroupIDs. But same steps as in Task 1
+
+
+#3. Less pressing
 # spu locator map
 # create a cbm-default spu map (raster) and give the user the change to manually
 # (on a map) or with coordinates to determine which spu they are in
@@ -173,7 +191,6 @@ require(dplyr)
 spUnits_Can@data <- left_join(spUnits_Can@data, spu, by = c("ProvinceID" = "admin_boundary_id",
                                                                  "EcoBoundar" = "eco_boundary_id"))
 
-#NAs are located in arctic ecoregions
 #spUnits_Can is now a shapefile with spatial units in the spu_id field.
 
 #2.  retrieve spatial units for a hypothetical user study area: 
