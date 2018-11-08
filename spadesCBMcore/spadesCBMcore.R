@@ -486,13 +486,13 @@ Event2 <- function(sim) {
   if(!suppliedElsewhere(sim$disturbanceEvents)){sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
   }
-  dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
+  dataPath <- file.path(modulePath(sim),"data")
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
   if(!suppliedElsewhere(sim$gcurveFileName))
-    sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
+    sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables",
   if(!suppliedElsewhere(sim$gcurveComponentsFileName))
-    sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
+    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
   

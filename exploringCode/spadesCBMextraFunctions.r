@@ -81,6 +81,7 @@ histDist<- function(mySpu = c(27,28)){
   # matrix id number since that would be the most recent in the database
   b <- aggregate(disturbance_matrix_id ~ spatial_unit_id, data = a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),], max)
   c <- merge.data.frame(a,b)
+  return(c)
   }
 
 ### END histDist()-----------------------------------------

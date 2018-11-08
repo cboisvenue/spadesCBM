@@ -171,7 +171,7 @@ Init <- function(sim) {
   setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
   
   # add the gcID	  # add the gcID
-  gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+  gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
   gcID <- as.data.table(gcID[,-1])
   setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
   
@@ -181,7 +181,8 @@ Init <- function(sim) {
   
   
   ############################################################
-  
+  ## can't seem to solve why line 636 will not run with ages=1
+  ## this is a problem to tackle once we have some insight into the cpp code
   sim$level3DT[636,ages:=3]
   sim$ages <- sim$level3DT[,ages]#c(0)#,2,3,140)
   sim$nStands <- length(sim$ages)
@@ -198,12 +199,14 @@ Init <- function(sim) {
   sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
   sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
   sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
-  sim$returnIntervals <- merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9] #c(200)#,110,120,130)
+  retInt <- merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)
+  sim$returnIntervals <- retInt[,"return_interval"]#merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9]# #c(200)#,110,120,130)
   sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
   spu <- as.data.frame(sim$cbmData@spatialUnitIds)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
-  sim$ecozones <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)[,9]#rep(5, sim$nStands)
+  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
+  sim$ecozones <- ecoz[,"ecozones"]
   
   # no change in disturbance for now
   sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2001,sim$nStands),rep(214,sim$nStands))
@@ -232,15 +235,15 @@ Save <- function(sim) {
 
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
-  dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
+  dataPath <- file.path(modulePath(sim),"data")
   if(!suppliedElsewhere(sim$sqlDir))
     sim$sqlDir <- file.path(dataPath,"cbm_defaults")
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
   if(!suppliedElsewhere(sim$gcurveFileName))
-    sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
+    sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
   if(!suppliedElsewhere(sim$gcurveComponentsFileName))
-    sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
+    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
   
   
   if(!suppliedElsewhere(sim$cbmData)){
