@@ -52,7 +52,7 @@ defineModule(sim, list(
     createsOutput(objectName = "opMatrixCBM", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "spinupResult", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "allProcesses", objectClass = "list", desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"),
-    createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: StandIndex, Age, and Pools "),
+    createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: PixelGroupID, Age, and Pools "),
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation")
@@ -85,7 +85,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     saveSpinup = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      colnames(sim$spinupResult) <- c( c("standindex", "age"), pooldef)
+      colnames(sim$spinupResult) <- c( c("PixelGroupID", "age"), sim$pooldef)
       write.csv(file = file.path(outputPath(sim), "spinup.csv"), sim$spinupResult)
       # e.g., call your custom functions/methods here
       # you can define your own methods below this `doEvent` function
@@ -130,7 +130,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     savePools = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      colnames(sim$cbmPools) <- c( c("standindex", "age"), pooldef)
+      colnames(sim$cbmPools) <- c( c("PixelGroupID", "age"), sim$pooldef)
       write.csv(file = file.path(outputPath(sim),"output1stand.csv"), sim$cbmPools)
       
       # e.g., call your custom functions/methods here
@@ -346,12 +346,12 @@ annual <- function(sim) {
   sim$allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
   
   eventDMIDs <- rep(0,sim$nStands)
-  sim$yearEvents <- sim$disturbanceEvents[which(sim$disturbanceEvents[,"Year"]==time(sim)),c("standIndex","DisturbanceMatrixId"),drop=FALSE]
+  sim$yearEvents <- sim$disturbanceEvents[which(sim$disturbanceEvents[,"Year"]==time(sim)),c("PixelGroupID","DisturbanceMatrixId"),drop=FALSE]
   
   if(nrow(sim$yearEvents)>0){
     for(e in 1:nrow(sim$yearEvents)) {
-      eventDMIDs[sim$yearEvents[e,"standIndex"]] <- sim$yearEvents[e,"DisturbanceMatrixId"]
-      sim$ages[sim$yearEvents[e,"standIndex"]] <- 0
+      eventDMIDs[sim$yearEvents[e,"PixelGroupID"]] <- sim$yearEvents[e,"DisturbanceMatrixId"]
+      sim$ages[sim$yearEvents[e,"PixelGroupID"]] <- 0
     }
   }
   
@@ -361,7 +361,7 @@ annual <- function(sim) {
                          opMatrix = sim$opMatrixCBM, 
                          flowMatrices = sim$allProcesses)
   sim$ages <- sim$ages+1
-  sim$cbmPools <- rbind(sim$cbmPools, cbind(1:sim$nStands, sim$ages, sim$pools))
+  sim$cbmPools <- rbind(sim$cbmPools, cbind(level3DT$PixelGroupID, sim$ages, sim$pools))
 
   return(invisible(sim))
 }
@@ -484,7 +484,7 @@ Event2 <- function(sim) {
   if(!suppliedElsewhere(sim$ecozones))
     sim$ecozones <- rep(5, sim$nStands)
   if(!suppliedElsewhere(sim$disturbanceEvents)){sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
-  colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
+  colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
   }
   dataPath <- file.path(modulePath(sim),"data")
   if(!suppliedElsewhere(sim$dbPath))

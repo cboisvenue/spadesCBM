@@ -55,7 +55,9 @@ defineModule(sim, list(
     createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "growth_increments", objectClass = "matrix", desc = "to this later"),
     createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
-    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "tthe table containing one line per pixel group")
+    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table containing one line per pixel group"),
+    createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),
+    createsOutput(objectName = "masterRaster", objectClass = "raster", desc = "Raster indicating which pixels were simulated - used to map results")
   )
 ))
 
@@ -107,7 +109,9 @@ Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
   sim$PoolCount <- length(sim$pooldef)
   
-  growthCurves <- as.matrix(read.csv(sim$gcurveFileName))
+  gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))
+  ## HAVE TO maintain this format
+  growthCurves <- as.matrix(gcID[,c(3,2,5,4,6)])#as.matrix(read.csv(sim$gcurveFileName))
   growthCurveComponents <- as.matrix(read.csv(sim$gcurveComponentsFileName))
   
   sim$growth_increments<-NULL
@@ -140,51 +144,54 @@ Init <- function(sim) {
   rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
   # read-in productivity  levels
   prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
-  RasterValue <- getValues(prodRaster)#1 2 3 0
+  Productivity <- getValues(prodRaster)#1 2 3 0
   # read-in spatial units
   spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
 
-  # level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))
-  # level2DT1 <- level2DT[level2DT$rasterSps>0,]
-  # setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
-  # 
-  # # add the gcID
-  # gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
-  # gcID <- as.data.table(gcID[,-1])
-  # setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
-  # 
-  # level3DTallPixels <- merge(level2DT1, gcID, all.x=TRUE) #1347529       8
-  # # creating the pixel group id
-  # pixelGroupId <- as.numeric(as.factor(paste(level3DTallPixels$spatial_unit_id, 
-  #                                            level3DTallPixels$growth_curve_component_id, 
-  #                                            level3DTallPixels$ages)))
-  # abc <- as.data.table(cbind(level3DTallPixels,pixelGroupId))
-  # 
-  # sim$level3DT <- unique(abc) #[1] 759   9
-  # make it a data.table	
-
-  level2DT <- as.data.table(cbind(ages,rasterSps,RasterValue,spatial_unit_id))	  
-  
-  level2DT1 <- unique(level2DT) # 820 4	  level2DT1 <- level2DT[level2DT$rasterSps>0,]
-  level2DT1 <- level2DT1[level2DT1$rasterSps>0,] # 759   4	
-  setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
+  level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
+  level2DT <- level2DT[level2DT$rasterSps>0]
+  level2DT$rowOrder <- 1:nrow(level2DT)
+  setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
   
   # add the gcID	  # add the gcID
-  gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
-  gcID <- as.data.table(gcID[,-1])
-  setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
+  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
+  gcID <- as.data.table(gcID[,-1]) 
+  gcID <- gcID[,.(rasterSps,Productivity,growth_curve_component_id,spatial_unit_id,growth_curve_id)]
+  setkey(gcID,growth_curve_component_id,rasterSps,Productivity,spatial_unit_id)
   
-  sim$level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
+  # make the data.table that will be used in simulations
+  level3DT <- unique(level2DT[,-("rowOrder")])
+  setkey(level3DT,rasterSps,Productivity,spatial_unit_id)
+  level3DT <- level3DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
+  level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
+                                                   level3DT$growth_curve_component_id,
+                                                   level3DT$ages)))
+  # might have to keep this when we integrate the disturbances
+  sim$level3DT <- level3DT
 
-
+  # spatial data table keeps the pixels number to re-populate for maps
+  #setkey(gcID, NULL) #have to unkey before a join
+  spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]
+  spatialDT <- spatialDT[order(rowOrder)]
+  spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
+                                                       spatialDT$growth_curve_component_id,
+                                                       spatialDT$ages)))
+  sim$spatialDT <- spatialDT
   
+  masterRaster <- ldSpsRaster
+  masterRaster[rasterSps == 0] <- NA
+  masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
+  sim$masterRaster <- masterRaster
+   
   
   ############################################################
-  ## can't seem to solve why line 636 will not run with ages=1
+  ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
   ## this is a problem to tackle once we have some insight into the cpp code
-  sim$level3DT[636,ages:=3]
-  sim$ages <- sim$level3DT[,ages]#c(0)#,2,3,140)
+  ###########################################################
+  # temp fix:
+  sim$level3DT[ages==1 & growth_curve_component_id==58,ages:=3]
+  sim$ages <- sim$level3DT[,ages]
   sim$nStands <- length(sim$ages)
   
   ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
@@ -209,8 +216,8 @@ Init <- function(sim) {
   sim$ecozones <- ecoz[,"ecozones"]
   
   # no change in disturbance for now
-  sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2001,sim$nStands),rep(214,sim$nStands))
-  colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
+  sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
+  colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
   
   
   # ! ----- STOP EDITING ----- ! #
