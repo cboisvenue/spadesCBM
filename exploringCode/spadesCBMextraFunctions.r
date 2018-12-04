@@ -10,6 +10,8 @@
 #the specific spatial unit you are in. You give is spatial units you are
 #targetting (mySpu) and it give you the disturbance matrix id that are
 #possible/default in that specific spu and a descriptive name of that disturbance matrix
+#it creates a data.frame of length number of disturbances, with three columns: spatial_unit_is, 
+#disturbance_matrix_id, and a desciption of the disturbance.
 
 ## figure out which spu you are in 
 #Note: can we have a canada-wide spu map and they locate themselves on the map?
@@ -74,7 +76,7 @@ mySpu <- c(27,28)
 histDist<- function(mySpu = c(27,28)){
   # used the spuDist() function to narrow down the choice
   a <- spuDist(mySpu)
-  # don't need all the cbm_default tables since coumn 3 of a give you the names
+  # don't need all the cbm_default tables since column 3 of a give you the names
   # this searches for "wildfire"
   #a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),]
   # if there are more then 1 "wildfire" designation, chose the maximum disturbance
@@ -89,7 +91,7 @@ histDist<- function(mySpu = c(27,28)){
 ### seeDist()-------------------------------------------------------
 #You give this function one or more disturbance matrix id, and it will return
 #the descriptive name of the disturbance, the source pools, the sink pools, and
-#the proportions transferred. It returns a list of data frames, on data.frame
+#the proportions transferred. It returns a list of data frames, one data.frame
 #per disturbance matrix id
 
 
@@ -217,6 +219,10 @@ sim <- spadesCBMout
 
 ## THIS IS NOT WORKING YET
 carbonRasters <- function(sim,cPool,whichYear){
+  # if(!cPool %in% sim$pooldef){
+  #   stop("The cPool you specified is not contained in the pool definitions. Please select from:")
+  #   print(sim$pooldef)
+  # }
   poolsDT <- as.data.table(sim$cbmPools)
   poolsDT <- poolsDT[order(PixelGroupID)] #order by stand index
   poolsDT$year <- start(sim):end(sim) #length of simulation, counting initial
@@ -246,6 +252,9 @@ carbonRasters <- function(sim,cPool,whichYear){
   # THis works:
   cMapValues <- getValues(masterMap)
   masterMap[!is.na(cMapValues)] <- masterTable$SoftwoodFoliage
+  Plot(masterMap)
+  
+  # how do I do it for each cPool column?
   # This does not:
   cMap <- raster::stack()
   b <- which(names(masterTable) %in% cPool)

@@ -52,12 +52,13 @@ defineModule(sim, list(
     createsOutput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup."),
     createsOutput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData"),
     createsOutput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"),
-    createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup."),
+    createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "growth_increments", objectClass = "matrix", desc = "to this later"),
     createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
     createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table containing one line per pixel group"),
     createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),
-    createsOutput(objectName = "masterRaster", objectClass = "raster", desc = "Raster indicating which pixels were simulated - used to map results")
+    createsOutput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
+    createsOutput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
   )
 ))
 
@@ -179,10 +180,10 @@ Init <- function(sim) {
                                                        spatialDT$ages)))
   sim$spatialDT <- spatialDT
   
-  masterRaster <- ldSpsRaster
-  masterRaster[rasterSps == 0] <- NA
-  masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
-  sim$masterRaster <- masterRaster
+  sim$masterRaster <- ldSpsRaster
+  # masterRaster[rasterSps == 0] <- NA
+  # masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
+  # sim$masterRaster <- masterRaster
    
   
   ############################################################
@@ -218,6 +219,10 @@ Init <- function(sim) {
   # no change in disturbance for now
   sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
   colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
+  # changing them
+  sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
+                                   full.names = TRUE) %>%
+    grep(., pattern = ".tif$", value = TRUE)
   
   
   # ! ----- STOP EDITING ----- ! #
@@ -250,7 +255,7 @@ Save <- function(sim) {
   if(!suppliedElsewhere(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
   if(!suppliedElsewhere(sim$gcurveComponentsFileName))
-    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
+    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   
   
   if(!suppliedElsewhere(sim$cbmData)){

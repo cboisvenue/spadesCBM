@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMcore.Rmd"),
-  reqdPkgs = list("Rcpp"),
+  reqdPkgs = list("Rcpp","raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),    
     defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no ouput of the spinupResult"),
@@ -41,7 +41,8 @@ defineModule(sim, list(
     expectsInput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup.", sourceURL = NA),
     expectsInput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData", sourceURL = NA),
     expectsInput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3", sourceURL = NA),
-    expectsInput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup.", sourceURL = NA),
+    expectsInput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
+    expectsInput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup.", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "level3DT", objectClass = "data.table", desc = NA, sourceURL = NA)
   ),
@@ -53,6 +54,7 @@ defineModule(sim, list(
     createsOutput(objectName = "spinupResult", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "allProcesses", objectClass = "list", desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"),
     createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: PixelGroupID, Age, and Pools "),
+    #createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation")
@@ -346,6 +348,18 @@ annual <- function(sim) {
   sim$allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
   
   eventDMIDs <- rep(0,sim$nStands)
+  #annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(spadesCBMout)[1],".tif$"), value = TRUE))
+  # yearEvents <- getValues(annualDisturbance)
+  # length(which(!is.na(yearEvents)))
+  #pixels <- getValues(spadesCBMout$masterRaster)
+  #yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
+  # now we need the disturbance_matrix_id
+  
+  
+  #aggregate(disturbance_matrix_id ~ spatial_unit_id, data = a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),], max)
+  
+  #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
+  colnames(disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
   sim$yearEvents <- sim$disturbanceEvents[which(sim$disturbanceEvents[,"Year"]==time(sim)),c("PixelGroupID","DisturbanceMatrixId"),drop=FALSE]
   
   if(nrow(sim$yearEvents)>0){
@@ -492,7 +506,7 @@ Event2 <- function(sim) {
   if(!suppliedElsewhere(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables",
   if(!suppliedElsewhere(sim$gcurveComponentsFileName))
-    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
+    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
   
