@@ -1,4 +1,142 @@
-###################
+
+###################################
+# WORKING HERE IN DISTURBANCES
+###################################
+# 
+# 1. Read-in the disturbances
+# this raster is where we get our disturbances 
+annualDisturbance <- raster(grep(spadesCBMout$disturbanceRasters, pattern = paste0(time(spadesCBMout)[1],".tif$"), value = TRUE))
+##Ian: this is not the same dimensions as the masterRaster (3703100 vs 3705000) - why??
+
+# yearEvents <- getValues(annualDisturbance)
+# length(which(!is.na(yearEvents)))
+pixels <- getValues(spadesCBMout$masterRaster)
+yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
+table(yearEvents)
+spatialDT <- spadesCBMout$spatialDT
+spatialDT[,events := yearEvents]
+table(spatialDT[,"events"])
+
+
+# now we need the disturbance_matrix_id (PixelGroupID, Year, DistrubanceMatrixID)
+#this I used in one of my functions...will be usefull to find the right ID
+#this may be better in the inputs module
+spu <- unique(spadesCBMout$spatialDT$spatial_unit_id)
+#raster values 1 to 5
+#GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
+# 1 is Wildfire
+# 2 is Clearcut harvesting with salvage
+# 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
+# 4 Generic 20% mortality
+# 5	Generic 20% mortality
+
+listDist <- spuDist(spu)
+fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
+
+#had to figure this one out by hand...there were 12 clearcut types...took the
+#one that said 50% salvage got that from looking at the published paper Boivenue
+#et al 2016...and the word salvage is misspelled in the database (sigh). In the
+#publication, we said 85% of the merchantable trees and 50% of the snags...
+#there is no "85%" clearcut in the whole data base (cbmTables[[6]][,2])...85% is
+#only used in precommercial thinning Sylva EPC
+clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
+clearCut <- clearCut[7:8,]
+
+# Again, there are 12 deforestation, but only two are not called "Fixed
+# Deforestation-Hydro", so I picked these two
+defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
+defor <- defor1[1:2,]
+
+generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
+
+mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
+#creating a vector of the pixel values to be able to match the disturbance_matrix_id
+events <- c(1,1,2,2,4,4,3,3,5,5)
+mySpuDmids <- cbind(mySpuDmids,events)
+
+#1.5  Keep the pixels from each simulation year (in the postSpinup event)
+# in the end (output1stand.csv), this should be the same length at this vector
+spatialDT <- spatialDT[order(spatialDT$rowOrder),]
+pixelKeep <- spatialDT[,.(rowOrder,PixelGroupID)]
+setnames(pixelKeep,c("rowOrder","PixelGroupID0"))
+
+####HERE####
+# 2. Rebuild the level3DT post disturbances
+level3DT1 <- unique(spatialDT[,-("rowOrder")]) # has 909 lines
+
+#2.5 Changing the PixelGroupID here
+spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
+                                                  spatialDT$growth_curve_component_id,
+                                                  spatialDT$ages,spatialDT$events)))
+# checking
+length(unique(spatialDT$PixelGroupID)) # has 909 lines
+
+# 3. Adding the new unique PixelGroupID to the pixelKeep data.table
+pixelKeep[,newPix := spatialDT$PixelGroupID]
+setnames(pixelKeep,"newPix",paste0("PixelGroupID",time(spadesCBMout)))
+
+
+
+# 4. Changing vectors that need changing
+
+ecozones <- unique(spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
+
+# ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
+# names(ecoToSpu) <- c("spatial_unit_id","ecozones")
+# ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
+# sim$ecozones <- ecoz[,"ecozones"]
+# 
+# sim$ages <- sim$level3DT[,ages]
+# sim$nStands <- length(sim$ages)
+
+## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
+# sim$pools <- matrix(ncol = sim$PoolCount, nrow=sim$nStands, data=0)
+# colnames(sim$pools)<- sim$pooldef
+# sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
+
+#standIdx <- 1:sim$nStands
+# sim$gcids <- sim$level3DT[,growth_curve_component_id]
+# this one too I think
+# sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
+
+# this will need to change after each disturbance...
+#sim$opMatrixCBM
+# sim$opMatrixCBM <- cbind(
+#   rep(0, sim$nStands), #disturbance
+#   1:sim$nStands, #growth 1
+#   sim$ecozones, #domturnover
+#   sim$ecozones, #bioturnover
+#   1:sim$nStands, #overmature
+#   1:sim$nStands, #growth 2
+#   sim$spatialUnits, #domDecay
+#   sim$spatialUnits, #slow decay
+#   rep(1, sim$nStands) #slow mixing
+# )
+# 
+# colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover", 
+#                                "bioturnover", "overmature", "growth 2",
+#                                "domDecay", "slow decay", "slow mixing")
+
+# maybe this too...or maybe not...Growth1 and Growth2 are the ones that relate to the PixelGroupID
+# this has no dimensions related to the lenght of level3DT
+# set up the constant processes, anything NULL is just a 
+# placeholder for dynamic processes
+# sim$allProcesses <- list(
+#   Disturbance=sim$processes$disturbanceMatrices, 
+#   Growth1=NULL, 
+#   DomTurnover=sim$processes$domTurnover,
+#   BioTurnover=sim$processes$bioTurnover,
+#   OvermatureDecline=NULL, 
+#   Growth2=NULL, 
+#   DomDecay=sim$processes$domDecayMatrices,
+#   SlowDecay=sim$processes$slowDecayMatrices,
+#   SlowMixing=sim$processes$slowMixingMatrix
+# )
+
+
+
+
+################### OLD#########################################
 # figuring out what the recliner raters are
 # July 2018
 # CBoisvenue

@@ -211,10 +211,16 @@ Init <- function(sim) {
   sim$returnIntervals <- retInt[,"return_interval"]#merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9]# #c(200)#,110,120,130)
   sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
   spu <- as.data.frame(sim$cbmData@spatialUnitIds)
-  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
+  
+  # change this here so it will be easier to access when disturbances change PixelGroupID
+#  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
+  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
-  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
-  sim$ecozones <- ecoz[,"ecozones"]
+  sim$spatialDT <- merge(sim$spatialDT,ecoToSpu,by="spatial_unit_id")
+  sim$ecozones <- unique(sim$spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
+  
+#  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
+  #sim$ecozones <- ecoz[,"ecozones"]
   
   # no change in disturbance for now
   sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))

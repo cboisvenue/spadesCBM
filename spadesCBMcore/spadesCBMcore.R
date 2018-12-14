@@ -19,6 +19,7 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),    
     defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no ouput of the spinupResult"),
+    defineParameter("noAnnualDisturbances", "logical", FALSE, NA, NA, "If TRUE the sim$allProcesses and sim$opMatrix are created in the postSpinup event, just once. By default, these are recreated everyyear in the annual event"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -269,41 +270,44 @@ postSpinup <- function(sim) {
   
   sim$pools <- sim$spinupResult
   
+  if(P(sim)$noAnnualDisturbances){
   
-  # set up the constant processes, anything NULL is just a 
-  # placeholder for dynamic processes
-  sim$allProcesses <- list(
-    Disturbance=sim$processes$disturbanceMatrices,
-    Growth1=NULL, 
-    DomTurnover=sim$processes$domTurnover,
-    BioTurnover=sim$processes$bioTurnover,
-    OvermatureDecline=NULL, 
-    Growth2=NULL, 
-    DomDecay=sim$processes$domDecayMatrices,
-    SlowDecay=sim$processes$slowDecayMatrices,
-    SlowMixing=sim$processes$slowMixingMatrix
-  )
-  
-  sim$opMatrixCBM <- cbind(
-    rep(0, sim$nStands), #disturbance
-    1:sim$nStands, #growth 1
-    sim$ecozones, #domturnover
-    sim$ecozones, #bioturnover
-    1:sim$nStands, #overmature
-    1:sim$nStands, #growth 2
-    sim$spatialUnits, #domDecay
-    sim$spatialUnits, #slow decay
-    rep(1, sim$nStands) #slow mixing
-  )
-  
-  colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover", 
-                                 "bioturnover", "overmature", "growth 2",
-                                 "domDecay", "slow decay", "slow mixing")
-  
-  
+    sim$allProcesses <- list(
+      Disturbance=sim$processes$disturbanceMatrices,
+      Growth1=NULL, 
+      DomTurnover=sim$processes$domTurnover,
+      BioTurnover=sim$processes$bioTurnover,
+      OvermatureDecline=NULL, 
+      Growth2=NULL, 
+      DomDecay=sim$processes$domDecayMatrices,
+      SlowDecay=sim$processes$slowDecayMatrices,
+      SlowMixing=sim$processes$slowMixingMatrix
+    )
+    
+    sim$opMatrixCBM <- cbind(
+      rep(0, sim$nStands), #disturbance
+      1:sim$nStands, #growth 1
+      sim$ecozones, #domturnover
+      sim$ecozones, #bioturnover
+      1:sim$nStands, #overmature
+      1:sim$nStands, #growth 2
+      sim$spatialUnits, #domDecay
+      sim$spatialUnits, #slow decay
+      rep(1, sim$nStands) #slow mixing
+    )
+    
+    colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover", 
+                                   "bioturnover", "overmature", "growth 2",
+                                   "domDecay", "slow decay", "slow mixing")
+    
+    
+    
+    
+  }
   sim$cbmPools<-NULL
-  
-  
+  ###Start saving the PixelGroupID
+  #pixelKeep <- spadesCBMout$level3DT$PixelGroupID
+
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
@@ -329,8 +333,128 @@ Plot <- function(sim) {
 }
 
 annual <- function(sim) {
+  # not sure if this will be needed once I have figured out the recalculation of the data.table
+  if(!P(sim)$noAnnualDisturbances){
+    # set up the constant processes, anything NULL is just a 
+    # placeholder for dynamic processes
+    sim$allProcesses <- list(
+      Disturbance=sim$processes$disturbanceMatrices,
+      Growth1=NULL, 
+      DomTurnover=sim$processes$domTurnover,
+      BioTurnover=sim$processes$bioTurnover,
+      OvermatureDecline=NULL, 
+      Growth2=NULL, 
+      DomDecay=sim$processes$domDecayMatrices,
+      SlowDecay=sim$processes$slowDecayMatrices,
+      SlowMixing=sim$processes$slowMixingMatrix
+    )
+    
+    sim$opMatrixCBM <- cbind(
+      rep(0, sim$nStands), #disturbance
+      1:sim$nStands, #growth 1
+      sim$ecozones, #domturnover
+      sim$ecozones, #bioturnover
+      1:sim$nStands, #overmature
+      1:sim$nStands, #growth 2
+      sim$spatialUnits, #domDecay
+      sim$spatialUnits, #slow decay
+      rep(1, sim$nStands) #slow mixing
+    )
+    
+    colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover", 
+                                   "bioturnover", "overmature", "growth 2",
+                                   "domDecay", "slow decay", "slow mixing")
+    
+    
+    #sim$cbmPools<-NULL
+  }  
+  
+  ###################################
+  # WORKING HERE IN DISTURBANCES
+  ###################################
+  # 
+  # 1. Read-in the disturbances
+  # this raster is where we get our disturbances 
+  #annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(spadesCBMout)[1],".tif$"), value = TRUE))
+  # yearEvents <- getValues(annualDisturbance)
+  # length(which(!is.na(yearEvents)))
+  #pixels <- getValues(spadesCBMout$masterRaster)
+  #yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
+  
+  # now we need the disturbance_matrix_id (PixelGroupID, Year, DistrubanceMatrixID)
+  #this I used in one of my functions...will be usefull to find the right ID
+  #aggregate(disturbance_matrix_id ~ spatial_unit_id, data = a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),], max)
+  
+  
+  # 2. Rebuild the level3DT post disturbances
+  
+  
+  
+  
+  
+  
+  # these will have to be changed:
+  # ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
+  # names(ecoToSpu) <- c("spatial_unit_id","ecozones")
+  # ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
+  # sim$ecozones <- ecoz[,"ecozones"]
+  # 
+  # sim$ages <- sim$level3DT[,ages]
+  # sim$nStands <- length(sim$ages)
+  
+  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
+  # sim$pools <- matrix(ncol = sim$PoolCount, nrow=sim$nStands, data=0)
+  # colnames(sim$pools)<- sim$pooldef
+  # sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
+  
+  #standIdx <- 1:sim$nStands
+  # sim$gcids <- sim$level3DT[,growth_curve_component_id]
+  # this one too I think
+  # sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
+  
+  # this will need to change after each disturbance...
+  #sim$opMatrixCBM
+  # sim$opMatrixCBM <- cbind(
+  #   rep(0, sim$nStands), #disturbance
+  #   1:sim$nStands, #growth 1
+  #   sim$ecozones, #domturnover
+  #   sim$ecozones, #bioturnover
+  #   1:sim$nStands, #overmature
+  #   1:sim$nStands, #growth 2
+  #   sim$spatialUnits, #domDecay
+  #   sim$spatialUnits, #slow decay
+  #   rep(1, sim$nStands) #slow mixing
+  # )
+  # 
+  # colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover", 
+  #                                "bioturnover", "overmature", "growth 2",
+  #                                "domDecay", "slow decay", "slow mixing")
+  
+  # maybe this too...or maybe not...Growth1 and Growth2 are the ones that relate to the PixelGroupID
+  # this has no dimensions related to the lenght of level3DT
+  # set up the constant processes, anything NULL is just a 
+  # placeholder for dynamic processes
+  # sim$allProcesses <- list(
+  #   Disturbance=sim$processes$disturbanceMatrices, 
+  #   Growth1=NULL, 
+  #   DomTurnover=sim$processes$domTurnover,
+  #   BioTurnover=sim$processes$bioTurnover,
+  #   OvermatureDecline=NULL, 
+  #   Growth2=NULL, 
+  #   DomDecay=sim$processes$domDecayMatrices,
+  #   SlowDecay=sim$processes$slowDecayMatrices,
+  #   SlowMixing=sim$processes$slowMixingMatrix
+  # )
+  
+  
+  
+  
+  #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
+  #colnames(disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
+  
+  
   # ! ----- EDIT BELOW ----- ! #
-  # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
+  # 
   # compute the growth increments
 
     growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
@@ -348,18 +472,6 @@ annual <- function(sim) {
   sim$allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
   
   eventDMIDs <- rep(0,sim$nStands)
-  #annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(spadesCBMout)[1],".tif$"), value = TRUE))
-  # yearEvents <- getValues(annualDisturbance)
-  # length(which(!is.na(yearEvents)))
-  #pixels <- getValues(spadesCBMout$masterRaster)
-  #yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
-  # now we need the disturbance_matrix_id
-  
-  
-  #aggregate(disturbance_matrix_id ~ spatial_unit_id, data = a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),], max)
-  
-  #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
-  colnames(disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
   sim$yearEvents <- sim$disturbanceEvents[which(sim$disturbanceEvents[,"Year"]==time(sim)),c("PixelGroupID","DisturbanceMatrixId"),drop=FALSE]
   
   if(nrow(sim$yearEvents)>0){
