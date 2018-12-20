@@ -60,24 +60,25 @@ spatialDT <- spatialDT[order(spatialDT$rowOrder),]
 pixelKeep <- spatialDT[,.(rowOrder,PixelGroupID)]
 setnames(pixelKeep,c("rowOrder","PixelGroupID0"))
 
-####HERE####
-# 2. Rebuild the level3DT post disturbances
-level3DT1 <- unique(spatialDT[,-("rowOrder")]) # has 909 lines
 
-#2.5 Changing the PixelGroupID here
+
+# 2. Changing the PixelGroupID here
 spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
                                                   spatialDT$growth_curve_component_id,
                                                   spatialDT$ages,spatialDT$events)))
 # checking
-length(unique(spatialDT$PixelGroupID)) # has 909 lines
+length(unique(spatialDT$PixelGroupID)) # has 1066 lines
 
 # 3. Adding the new unique PixelGroupID to the pixelKeep data.table
 pixelKeep[,newPix := spatialDT$PixelGroupID]
 setnames(pixelKeep,"newPix",paste0("PixelGroupID",time(spadesCBMout)))
+### Need to redo this at one point...
+# 4. Rebuild the level3DT post disturbances
+
+level3DT1 <- unique(spatialDT[,-("rowOrder")]) # has 1066 lines
 
 
-
-# 4. Changing vectors that need changing
+# 5. Changing vectors that need changing
 
 ecozones <- unique(spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
 
@@ -85,21 +86,43 @@ ecozones <- unique(spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
 # names(ecoToSpu) <- c("spatial_unit_id","ecozones")
 # ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
 # sim$ecozones <- ecoz[,"ecozones"]
-# 
+
+ages <- level3DT1[,ages]
+
 # sim$ages <- sim$level3DT[,ages]
+nStands <- length(ages)
 # sim$nStands <- length(sim$ages)
 
+pools <- matrix(ncol=spadesCBMout$PoolCount, nrow = nStands, data=0)
 ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
 # sim$pools <- matrix(ncol = sim$PoolCount, nrow=sim$nStands, data=0)
+colnames(pools) <- spadesCBMout$pooldef
 # colnames(sim$pools)<- sim$pooldef
+pools[,"Input"] <- rep(1.0,nrow(pools))
 # sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
 
-#standIdx <- 1:sim$nStands
+gcids <- level3DT1[,growth_curve_component_id]
 # sim$gcids <- sim$level3DT[,growth_curve_component_id]
-# this one too I think
+spatialUnits <- level3DT1[,spatial_unit_id]
 # sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
 
-# this will need to change after each disturbance...
+####HERE####
+
+opMatrixCBM <- cbind(
+    rep(0, nStands), #disturbance
+    1:nStands, #growth 1
+    ecozones, #domturnover
+    ecozones, #bioturnover
+    1:nStands, #overmature
+    1:nStands, #growth 2
+    spatialUnits, #domDecay
+    spatialUnits, #slow decay
+    rep(1, nStands) #slow mixing
+  )
+colnames(opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
+                               "bioturnover", "overmature", "growth 2",
+                               "domDecay", "slow decay", "slow mixing")
+
 #sim$opMatrixCBM
 # sim$opMatrixCBM <- cbind(
 #   rep(0, sim$nStands), #disturbance
@@ -121,6 +144,17 @@ ecozones <- unique(spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
 # this has no dimensions related to the lenght of level3DT
 # set up the constant processes, anything NULL is just a 
 # placeholder for dynamic processes
+allProcesses <- list(
+  Disturbance=spadesCBMout$processes$disturbanceMatrices,
+  Growth1=NULL,
+  DomTurnover=spadesCBMout$processes$domTurnover,
+  BioTurnover=spadesCBMout$processes$bioTurnover,
+  OvermatureDecline=NULL,
+  Growth2=NULL,
+  DomDecay=spadesCBMout$processes$domDecayMatrices,
+  SlowDecay=spadesCBMout$processes$slowDecayMatrices,
+  SlowMixing=spadesCBMout$processes$slowMixingMatrix
+)
 # sim$allProcesses <- list(
 #   Disturbance=sim$processes$disturbanceMatrices, 
 #   Growth1=NULL, 
@@ -133,6 +167,39 @@ ecozones <- unique(spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
 #   SlowMixing=sim$processes$slowMixingMatrix
 # )
 
+
+# this is the rest of the annual event
+
+#eventDMIDs <- rep(0,nStands)
+table(yearEvents, useNA = "always")
+#yearEvents <- spadesCBMout$disturbanceEvents[which(spadesCBMout$disturbanceEvents[,"Year"]==time(spadesCBMout)),c("PixelGroupID","DisturbanceMatrixId"),drop=FALSE]
+#don't need this...
+# if(nrow(sim$yearEvents)>0){
+#   for(e in 1:nrow(sim$yearEvents)) {
+#     eventDMIDs[sim$yearEvents[e,"PixelGroupID"]] <- sim$yearEvents[e,"DisturbanceMatrixId"]
+#     sim$ages[sim$yearEvents[e,"PixelGroupID"]] <- 0
+#   }
+# }
+
+# can just take the column from the newly remade level3DT$events but with NAs replaced by 0
+# this has the raster values (1 to 5), we need the DMIDs
+level3DT2 <- merge(level3DT1,mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)
+
+eventDMIDS <- level3DT2[,disturbance_matrix_id]
+# get the DMIDs fromt the already in sim mySpuDmids
+eventDMIDS[which(is.na(eventDMIDS))] <- 0
+
+opMatrixCBM[,"disturbance"]<-eventDMIDS
+#change the ages vector to disturbed=0
+ages <- level3DT2[,ages]
+ages[which(eventDMIDS>0)] <- 0
+sim$pools <- StepPools(pools=sim$pools, 
+                       opMatrix = sim$opMatrixCBM, 
+                       flowMatrices = sim$allProcesses)
+sim$ages <- sim$ages+1
+sim$cbmPools <- rbind(sim$cbmPools, cbind(level3DT$PixelGroupID, sim$ages, sim$pools))
+
+return(invisible(sim))
 
 
 

@@ -52,11 +52,12 @@ defineModule(sim, list(
     createsOutput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup."),
     createsOutput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData"),
     createsOutput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"),
-    createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
+    #createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "growth_increments", objectClass = "matrix", desc = "to this later"),
     createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
-    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table containing one line per pixel group"),
+    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table linking the spu id, with the disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White"),
     createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),
+    createsOutput(objectName = "mySpuDmids", objectClass = "data.frame", desc = "the table containing one line per pixel"),
     createsOutput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
     createsOutput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
   )
@@ -132,8 +133,8 @@ Init <- function(sim) {
   }
   
   
-  #### Data will have to be provided...short cut for now...
-  ##############################################################
+  #### Data will have to be provided by user in a separated module...short cut for now...
+  #####################################################################################
   library(data.table)
   library(raster)
 
@@ -221,10 +222,50 @@ Init <- function(sim) {
   
 #  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
   #sim$ecozones <- ecoz[,"ecozones"]
+
+  # make the disturbance look-up table to the disturbance_matrix_id(s)
+  # making sim$mySpuDmids
+  #raster values 1 to 5
+  #GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
+  # 1 is Wildfire
+  # 2 is Clearcut harvesting with salvage
+  # 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
+  # 4 Generic 20% mortality
+  # 5	Generic 20% mortality
   
-  # no change in disturbance for now
-  sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
-  colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
+  spu <- unique(sim$spatialDT$spatial_unit_id)
+  # what disturbances in those spu(s)?
+  listDist <- spuDist(spu)
+  
+  #get the right ones
+  fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
+  
+  #had to figure this one out by hand...there were 12 clearcut types...took the
+  #one that said 50% salvage got that from looking at the published paper Boivenue
+  #et al 2016...and the word salvage is misspelled in the database (sigh). In the
+  #publication, we said 85% of the merchantable trees and 50% of the snags...
+  #there is no "85%" clearcut in the whole data base (cbmTables[[6]][,2])...85% is
+  #only used in precommercial thinning Sylva EPC
+  clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
+  clearCut <- clearCut[7:8,]
+  
+  # Again, there are 12 deforestation, but only two are not called "Fixed
+  # Deforestation-Hydro", so I picked these two
+  defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
+  defor <- defor1[1:2,]
+  
+  generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
+  
+  mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
+  #creating a vector of the pixel values to be able to match the disturbance_matrix_id
+  events <- c(1,1,2,2,4,4,3,3,5,5)
+  sim$mySpuDmids <- cbind(mySpuDmids,events)
+  
+  
+  # old bogus disturbance
+  #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
+  #colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
+  
   # changing them
   sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
                                    full.names = TRUE) %>%
