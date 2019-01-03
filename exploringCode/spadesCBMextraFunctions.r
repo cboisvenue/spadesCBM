@@ -10,6 +10,8 @@
 #the specific spatial unit you are in. You give is spatial units you are
 #targetting (mySpu) and it give you the disturbance matrix id that are
 #possible/default in that specific spu and a descriptive name of that disturbance matrix
+#it creates a data.frame of length number of disturbances, with three columns: spatial_unit_is, 
+#disturbance_matrix_id, and a desciption of the disturbance.
 
 ## figure out which spu you are in 
 #Note: can we have a canada-wide spu map and they locate themselves on the map?
@@ -74,13 +76,14 @@ mySpu <- c(27,28)
 histDist<- function(mySpu = c(27,28)){
   # used the spuDist() function to narrow down the choice
   a <- spuDist(mySpu)
-  # don't need all the cbm_default tables since coumn 3 of a give you the names
+  # don't need all the cbm_default tables since column 3 of a give you the names
   # this searches for "wildfire"
   #a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),]
   # if there are more then 1 "wildfire" designation, chose the maximum disturbance
   # matrix id number since that would be the most recent in the database
   b <- aggregate(disturbance_matrix_id ~ spatial_unit_id, data = a[which(grepl("wildfire",a[,3],ignore.case = TRUE)),], max)
   c <- merge.data.frame(a,b)
+  return(c)
   }
 
 ### END histDist()-----------------------------------------
@@ -88,7 +91,7 @@ histDist<- function(mySpu = c(27,28)){
 ### seeDist()-------------------------------------------------------
 #You give this function one or more disturbance matrix id, and it will return
 #the descriptive name of the disturbance, the source pools, the sink pools, and
-#the proportions transferred. It returns a list of data frames, on data.frame
+#the proportions transferred. It returns a list of data frames, one data.frame
 #per disturbance matrix id
 
 
@@ -199,3 +202,89 @@ simDist <- function(sim){
   return(clearDists)
 }
 ### END simDist----------------------------------------
+
+## Plotting pools -----------------------------------------------------------
+# masterRaster is now saved in the sim (sim$masterRaster)
+# and cbmPools is also saved in the sim$
+# this function will eventually be an event in the simulations but for now, this will plot post simulation
+# making the preliminary function here:
+# function called carbonRasters()
+
+# Ian: need help limiting the function arguments to these values
+library(raster)
+cPool <- spadesCBMout$pooldef[3:4]
+whichYear <- 2005#start(spadesCBMout):end(spadesCBMout)
+# ideally, the funcion throws an error if we are out of those vectors
+sim <- spadesCBMout
+
+## THIS IS NOT WORKING YET
+carbonRasters <- function(sim,cPool,whichYear){
+  # if(!cPool %in% sim$pooldef){
+  #   stop("The cPool you specified is not contained in the pool definitions. Please select from:")
+  #   print(sim$pooldef)
+  # }
+  poolsDT <- as.data.table(sim$cbmPools)
+  poolsDT <- poolsDT[order(PixelGroupID)] #order by stand index
+  poolsDT$year <- start(sim):end(sim) #length of simulation, counting initial
+  #create a list of tables, one for each cPool?
+  #poolL
+  #for(i in 1:length(cPool)){}
+  
+  ## could not get the cPool columns with their name in
+  #poolsDT <- poolsDT[, .(PixelGroupID, cPool, "new.year" = year), ]
+  # this does it. It gets all the columns in cPools with the PixelGroupID and all the years
+  a <- c("PixelGroupID",cPool,"year")
+  poolsDT <- poolsDT[,a,with=FALSE]
+  
+  #now you have the columns you want and you need the year you want
+  
+  poolsDT <- poolsDT[, plot.year := whichYear, by = .(PixelGroupID)][year == plot.year, ]
+  setkey(poolsDT, PixelGroupID)
+  setkey(sim$spatialDT, PixelGroupID)
+  
+  #6 iii Join these two tables
+  masterTable <- poolsDT[sim$spatialDT, on = c("PixelGroupID")]
+  masterTable <- masterTable[order(rowOrder)]
+  
+  # stack of rasters? one by cPool X whichYear? with title the name of the list?
+  masterMap <- sim$masterRaster
+  clearPlot()
+  # THis works:
+  cMapValues <- getValues(masterMap)
+  masterMap[!is.na(cMapValues)] <- masterTable$SoftwoodFoliage
+  Plot(masterMap)
+  
+  # how do I do it for each cPool column?
+  # This does not:
+  cMap <- raster::stack()
+  b <- which(names(masterTable) %in% cPool)
+  for(i in 1:length(b)){
+    cMap[i] <- masterMap[!is.na(masterMap)] <- masterTable[,cPool[i],with=FALSE]
+  }
+  BGSS_Map[!is.na(BGSS_Map)] <- masterTable$cPool
+  
+  Plot(BGSS_Map)
+  
+}
+
+# this does work
+poolsDT <- as.data.table(spadesCBMout$cbmPools)
+poolsDT <- poolsDT[order(PixelGroupID)] #order by stand index
+poolsDT$year <- start(spadesCBMout):end(spadesCBMout) #length of simulation, counting initial
+#6 ii subset by age = max age, because sim "grew" stands up to age
+poolsDT <- poolsDT[, .(PixelGroupID, BelowGroundSlowSoil, "new.year" = year), ]
+
+poolsDT <- poolsDT[, max.year := max(new.year), by = .(PixelGroupID)][new.year == max.year, .(BelowGroundSlowSoil, PixelGroupID, new.year)]
+setkey(poolsDT, PixelGroupID)
+setkey(spadesCBMout$spatialDT, PixelGroupID)
+
+#6 iii Join these two tables
+masterTable <- poolsDT[spadesCBMout$spatialDT, on = c("PixelGroupID")]
+masterTable <- masterTable[order(rowOrder)]
+
+BGSS_Map <- spadesCBMout$masterRaster
+setValues(BGSS_Map,masterTable$BelowGroundSlowSoil)
+BGSS_Map[!is.na(BGSS_Map)] <- masterTable$BelowGroundSlowSoil
+
+Plot(BGSS_Map)
+

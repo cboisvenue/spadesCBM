@@ -14,7 +14,7 @@
 #output1stand.csv (in outputs folder) matched the pixel groups. And apparently
 #Ian wrote code about this but Celine can't find it
 
-####Task1####
+####Task1#### COMPLETED####################################
 require(raster)
 require(magrittr)
 require(data.table)
@@ -103,11 +103,11 @@ masterTable
 BGSS_Map[!is.na(BGSS_Map)] <- masterTable$BelowGroundSlowSoil
 
 plot(BGSS_Map)
-
+#########################################################################
 
 
 # Oct.17,2018
-# Disturbances
+# Disturbances###################################################################
 # Status: a bogus table of disturbances where the same disturbance type was applied to
 # each pixel group worked.
 # Next: we need to try one of the rasters from Wulder and White used in Boisvenue et al 2016
@@ -149,7 +149,7 @@ level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
                                                  level3DT$Age)))
 
 #5 To put back in map, have to remake spatialDT with updated pixelGroupIDs. But same steps as in Task 1
-
+######################################################################################################
 
 #3. Less pressing
 # spu locator map

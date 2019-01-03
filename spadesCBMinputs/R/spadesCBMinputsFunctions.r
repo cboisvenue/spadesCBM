@@ -97,3 +97,27 @@ processGrowthCurve <- function(gcid,growthCurves,growthCurveComponents,sim) {
   return (carbonCurve)
 }
 
+### celine's disturbance magic
+spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")){
+  
+  library(RSQLite)
+  
+  sqlite.driver <- dbDriver("SQLite")
+  
+  cbmDefaults <- dbConnect(sqlite.driver,
+                           dbname = dbPath)
+  
+  alltables = dbListTables(cbmDefaults)
+  cbmTables <- list()
+  
+  for(i in 1:length(alltables)){
+    cbmTables[[i]] <- dbReadTable(cbmDefaults,alltables[i])
+  }
+  # match mySpu with the disturbance_matrix_association table
+  dmid <- unique(cbmTables[[7]][which(cbmTables[[7]][,1] %in% mySpu),c(1,3)])
+  
+  # add the descriptive names
+  spuDist <- cbind(dmid,cbmTables[[6]][dmid$disturbance_matrix_id,3])
+  return(spuDist)
+}
+
