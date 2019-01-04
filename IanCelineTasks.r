@@ -208,11 +208,10 @@ spUnits$spu_id
 retrieveSpuRaster <- function(spatialUnitsFile, UserArea, rasterRes = c(250,250)){
   
   if (!identicalCRS(spatialUnitsFile, UserArea)) {
-    crs(spatialUnitsFile) <- crs(UserArea)
+    spatialUnitsFile <- spTransform(x = spatialUnitsFile, CRSobj = crs(UserArea))
   }
-  browser()
+ 
   temp <- crop(spatialUnitsFile, UserArea)
-  
   template <- rasterize(extent(temp), res = rasterRes, crs = crs(UserArea))
   spuRaster <- rasterize(temp, template, field = "spu_id")
   
