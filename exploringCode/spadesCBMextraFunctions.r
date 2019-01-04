@@ -217,7 +217,6 @@ whichYear <- 2005#start(spadesCBMout):end(spadesCBMout)
 # ideally, the funcion throws an error if we are out of those vectors
 sim <- spadesCBMout
 
-## THIS IS NOT WORKING YET
 
 plotCarbonRasters <- function(sim, cPool, years) {
  
@@ -251,6 +250,7 @@ plotCarbonRasters <- function(sim, cPool, years) {
   }
   names(carbonStacks) <- NULL
   temp <- unlist(carbonStacks)
+  clearPlot()
   Plot(temp)
 }
 #plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
