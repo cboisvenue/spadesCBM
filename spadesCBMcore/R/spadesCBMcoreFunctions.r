@@ -16,7 +16,7 @@ library(raster)
 spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
 spatial_unit_id <- getValues(spuRaster) #28 27
 # or with the growth curves
-gcIn <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
+gcIn <- as.matrix(read.csv(file.path(getwd(),"spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")))
 
 mySpu <- unique(spatial_unit_id)
 # or 
