@@ -217,12 +217,49 @@ whichYear <- 2005#start(spadesCBMout):end(spadesCBMout)
 # ideally, the funcion throws an error if we are out of those vectors
 sim <- spadesCBMout
 
-## THIS IS NOT WORKING YET
+
+plotCarbonRasters <- function(sim, cPool, years) {
+ 
+  if (any(!cPool %in% sim$pooldef)) {
+    stop(paste0("The cPool you specified is not contained in the pool definitions. Please select from: ",
+    paste(sim$pooldef, collapse = ", ")))
+  }
+
+  cbmPools <- as.data.table(sim$cbmPools) 
+  
+  #Build rasters for every year and pool
+  carbonStacks <- vector(mode = "list", length = length(cPool))
+  names(carbonStacks) <- cPool
+ 
+  for (pool in cPool) {
+  carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, var = pool) {
+     
+      poolsDT <- poolsDT[order(PixelGroupID)] %>% #order by stand index
+      .[simYear == x, .(PixelGroupID, "var" =  get(pool))]%>%
+      .[sim$spatialDT, on = c("PixelGroupID")] %>%
+      .[order(rowOrder)]
+      
+      masterRaster <- sim$masterRaster 
+      masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
+      masterRaster[!is.na(masterRaster)] <- poolsDT$var
+    
+      names(masterRaster) <- x #name will begin with x if no character assigned
+      return(masterRaster)
+    })
+  names(carbonStacks[[pool]]) <- paste(pool, years, sep = "_")
+  }
+  names(carbonStacks) <- NULL
+  temp <- unlist(carbonStacks)
+  clearPlot()
+  Plot(temp)
+}
+#plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
 carbonRasters <- function(sim,cPool,whichYear){
   # if(!cPool %in% sim$pooldef){
   #   stop("The cPool you specified is not contained in the pool definitions. Please select from:")
   #   print(sim$pooldef)
   # }
+  browser()
   poolsDT <- as.data.table(sim$cbmPools)
   poolsDT <- poolsDT[order(PixelGroupID)] #order by stand index
   poolsDT$year <- start(sim):end(sim) #length of simulation, counting initial
