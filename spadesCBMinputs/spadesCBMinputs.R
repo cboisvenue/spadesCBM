@@ -171,7 +171,7 @@ Init <- function(sim) {
                                                    level3DT$ages)))
   # might have to keep this when we integrate the disturbances
   sim$level3DT <- level3DT
-
+  
   # spatial data table keeps the pixels number to re-populate for maps
   #setkey(gcID, NULL) #have to unkey before a join
   spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]

@@ -392,12 +392,12 @@ annual <- function(sim) {
   sim$spatialDT[,events := yearEvents]
 
   # 2. Rebuild the level3DT post disturbances
-  sim$spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
-                                                    spatialDT$growth_curve_component_id,
-                                                    spatialDT$ages,spatialDT$events)))
+  sim$spatialDT$PixelGroupID <- as.numeric(factor(paste(sim$spatialDT$spatial_unit_id,
+                                                        sim$spatialDT$growth_curve_component_id,
+                                                        sim$spatialDT$ages,sim$spatialDT$events)))
   # adding the new PixelGroupID to the pixelKeep
   sim$pixelKeep[,newPix := sim$spatialDT$PixelGroupID]
-  setnames(pixelKeep,"newPix",paste0("PixelGroupID",time(sim)))
+  setnames(sim$pixelKeep,"newPix",paste0("PixelGroupID",time(sim)))
   
   sim$level3DT <- unique(sim$spatialDT[,-("rowOrder")]) # has 1066 lines
   
@@ -483,7 +483,7 @@ annual <- function(sim) {
                          opMatrix = sim$opMatrixCBM, 
                          flowMatrices = sim$allProcesses)
   sim$ages <- sim$ages+1
-  sim$spatialDT$ages <- spatialDT$ages+1
+  sim$spatialDT$ages <- sim$spatialDT$ages+1
   sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),sim$level3DT$PixelGroupID, sim$ages, sim$pools))
 
   return(invisible(sim))

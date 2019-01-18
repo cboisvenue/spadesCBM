@@ -116,6 +116,22 @@ For now, the stand carbon pools at the end of each simluation year can be found 
 # Links to other modules
 This will be linked to the SpaDES caribou models, to the SpaDES version of LANDIS-II (Land-R-biomass), and to any other available SpaDES modules available (growth and yield?).
 
+# Other important information I don't know where to put yet
+
+MasterRater: this is the raster that we use to show results of simulations. In teh present SK project, It is created in spadesCBMinputs.R (line 184) and for these SK simulations is it the ldSpsRaster, so it has 0 for no-species pixels (we can't model these), and 5 0 3 4 6 7. The species code table is:
+rasterValue	species_code
+0	No_Spp
+1	Abie_Bal
+2	Popu_Bal
+3	Pice_Mar
+4	Pinu_Ban
+5	Popu_Tre
+6	Betu_Pap
+7	Pice_Gla
+ ENTER HERE WHY I CHOSE THIS SPS INSTEAD OF CHANGING THE 0s for NAs...
+
+
+
 
 # Refences
 1.	Kurz, W.A.; Dymond, C.C.; White, T.M.; Stinson, G.; Shaw, C.H.; Rampley, G.J.; Smyth, C.; Simpson, B.N.; Neilson, E.T.; Trofymow, J.A., et al. CBM-CFS3: A model of carbon-dynamics in forestry and land-use change implementing IPCC standards. Ecological Modelling 2009, 220, 480-504.
