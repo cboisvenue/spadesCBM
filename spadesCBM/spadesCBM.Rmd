@@ -128,8 +128,10 @@ rasterValue	species_code
 5	Popu_Tre
 6	Betu_Pap
 7	Pice_Gla
- ENTER HERE WHY I CHOSE THIS SPS INSTEAD OF CHANGING THE 0s for NAs...
 
+stanIndex: this comes out of the cpp functions. It is always on the right-hand side of the of assignments in the R scripts. Presently, to make sure that standIndex matches PixelGroupID, rows are orderd by PixelGroupID before going into cpp functions.
+
+level3DT: this is the data.table on which the operations are done. Each line represents a PixelGroupID, i.e. a group of unique pixels. Post-spin-up, this table is remade because HERE ages,rasterSps,Productivity,spatial_unit_id
 
 
 

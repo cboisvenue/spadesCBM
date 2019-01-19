@@ -203,6 +203,7 @@ simDist <- function(sim){
 }
 ### END simDist----------------------------------------
 
+### plotCarbonRasters ---------------------------------------------------------------------------
 ## Plotting pools -----------------------------------------------------------
 # masterRaster is now saved in the sim (sim$masterRaster)
 # and cbmPools is also saved in the sim$

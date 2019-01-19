@@ -27,4 +27,5 @@ List of SpaDES-related work:
 - expand the CBMVolumeToBiomass library to access all Boudewyn et al parameters, and to be able to skip the double "translation". This probably means a new transparent module for volume to biomass conversion with the capability of skipping directly to the use of biomass (as opposed to m3/ha).
 - documentation of CBMVolumeToBiomass and the whole new module
 - make modules for all the parts of the S4 cbm_default.db so that it is clear what those are and where they come from, so that eventually any part of them could be replaced/tested/data assimilation
+###SEE LOG###
  
