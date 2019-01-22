@@ -12,26 +12,60 @@
 
 # Notes on where/how each of these needs to be calculated.
 
-#### AGES####
+#Ages
 # from a raster 
 # sim$ages <- c(0)#,2,3,140) # this will come from a raster
 # TASK: READ-IN RASTER
 # this should be age in 1984:
 
 library(raster)
-age <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")
-#IE: I will use the recliner files because they are smaller and easier to work with.
+
+####1.  AGES ####
+#Task 1
+age <- raster("C:/Ian/Boisvenue/forIan/SK_data/rasters/age1.tif")
+ageVal <- getValues(age)
+#From here we can treat age as any ordinary vector
+#e.g 1 make histogram of tree age
+onlyTrees <- ageVal[ageVal != 0] #most of the dataset is 0
+hist(onlyTrees, breaks = max(onlyTrees)/10)
+
+#e.g.2 Assign 10 year age classes
+decadalAgeClass <- round(onlyTrees/10, digits = 0)*10
+summary(decadalAgeClass)
+#put back into a raster if we want
+newAge <- age
+newAge <- setValues(decadalAgeClass)
+#sim$ageClass <- decadalAgeClass
+
+#task 2
 casfri <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/age1CASFRI.tif")
 #CB: is this the same? 
-#IE: age1 is 3 years younger than age1casfri, almost everywhere. Likely different years from CASFRI?
+#IE: age1 is 3 years younger than age1casfri, almost everywhere. Likely different years from CASFRI? 
+#The zeros and NAs are a bit mixed as well. When I set zeroes to NA you see casfri has summary stats == age1 + ~3
+age_subset <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")
+age1_subset <- crop(age, age_subset)
+casfri_subset <- crop(casfri, age_subset)
+set1 <- getValues(age1_subset)
+set2 <- getValues(casfri_subset)
+set1[set1 == 0] <- NA
+set2[set2 == 0] <- NA
+summary(set1)
+summary(set2)
+
+#IE: I will use the recliner files because they are smaller and easier to work with for now
+#3.
+age <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")
+#sim$ageVect in a module. 
+ageVect <- getValues(age)
 
 
+####2: NUMBER OF STANDS/PIXELS ####
 
-## TASK1: CALCULATE THESE FROM THE NUMBER OF PIXELS IN THE ABOVE AGE RASTER 
-# sim$nStands ####<- length(sim$ages) # this will come from the number of pixels in the raster above that have ages
-#IE: we can get this from the raster function ncell
-nStands <- raster::ncell(age)
+#task 1: does/do the age raster(s) have the same extent as this rater (Sask30_new.tif)
+Sask30 <- raster("C:/Ian/Boisvenue/forIan/SK_data/cbm_defaults/")
 
+#task 2 write some r code that would assign the number of pixels to sim$nstands <- length(sim$ages)
+nStands <- ncell(age)
 # standIdx ####<- 1:sim$nStands 
 standIDx <- 1:nStands
 
@@ -47,16 +81,26 @@ dom <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/casfri_d
 siteprod <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif")
 
 
-#IE read in spatial units. We will want to rasterize this with prepInputs eventually
-spUnits_Can <- shapefile("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp") 
+#read in spatial unit data
+spUnits_Can <- shapefile("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
+spUnits_Can <- spTransform(spUnits, CRSobj = age@crs)
+#IE Crop to age and compare with Sask data
+spUnits_sask <- raster::crop(spUnits_Can, y = age)
+plot(spUnits_sask)
+#IE PSPU_IDs are 90021 and 90026
 
-#Using just Saskatchewan area for now
+
+#IE explorign the other spatial data
 spUnits <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/pspuRas2.tif")
-spUnits <- raster::crop(spUnits, y = age)
+spUnits <- raster::mask(spUnits, mask = age)
+plot(spUnits)
+#IE raster values are all 9. That seems to be the "EcoBoundar" class value of the spUnits_Can file
 
-
-#Result of running SpadesCBMdefaults
-outSim@.envir$cbmData@disturbanceMatrixAssociation
+#rasterize spUnits_sask so we have a study area raster with proper PSPU ID
+spUnits_ras <- raster(spUnits_sask, res = res(age))
+spUnits_ras <- rasterize(x = spUnits_sask, field = spUnits_sask$PSPU_ID, y = spUnits_ras)
+plot(spUnits_ras) #TADAH
+#End of May work
 
 #get the following from spUnits Raster: gcID, disturbance????
 

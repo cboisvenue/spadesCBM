@@ -22,9 +22,11 @@ Function documentation - RCpp functions are documented in the map of RunSK_new.R
 - ## Known Errors carried over from carb1: Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$processes,  :   Expecting a single value: [extent=0]. This is because the pooldef values are expected to be in the .GlobalEnv due to a function inside RCMBGrowthIncrements.cpp . That file should be changed so it is not looking in .GlobalEnv. Current work around is to place all the pooldef values in .GlobalEnv. This happens inside the ".inputObjects" function.
 
 List of SpaDES-related work:
-- Make this work with spatial data (module?) - first test spot SK data used in Boisvenue et al 2016.
+- Make this work with spatial data (module?) - first test spot SK data used in Boisvenue et al 2016.(almost done - test area running January 2019)
 - check the volume to biomass function with the SK PSP-built growth curves and biomass info
 - expand the CBMVolumeToBiomass library to access all Boudewyn et al parameters, and to be able to skip the double "translation". This probably means a new transparent module for volume to biomass conversion with the capability of skipping directly to the use of biomass (as opposed to m3/ha).
 - documentation of CBMVolumeToBiomass and the whole new module
 - make modules for all the parts of the S4 cbm_default.db so that it is clear what those are and where they come from, so that eventually any part of them could be replaced/tested/data assimilation
+- decayRates: matrix 48X12 - holds the decay rates for all the dom pools (11 of them) per spatial unit. Where is this created? How does it link to the "decay_parameter" table in cbmData?
+###SEE LOG###
  

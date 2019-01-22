@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("CBMVolumeToBiomass"),
+  reqdPkgs = list("RSQLite","data.table","CBMVolumeToBiomass", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -27,6 +27,7 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
+    expectsInput(objectName = "cbmData", objectClass = "dataset", desc = "S4 object created from selective reading in of cbm_default.db in spadesCBMefaults module", sourceURL = NA),
     expectsInput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
@@ -41,6 +42,7 @@ defineModule(sim, list(
     createsOutput(objectName = "PoolCount", objectClass = "numeric", desc = "count of the length of the Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands from the inventory in 1990"),
+    createsOutput(objectName = "nStands", objectClass = "numeric", desc = "not really the number of stands, but the number of pixel groups"),
     createsOutput(objectName = "gcids", objectClass = "numeric", desc = "The identification of which growth curves to use on the specific stands provided by..."),
     createsOutput(objectName = "historicDMIDs", objectClass = "numeric", desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup."),
     createsOutput(objectName = "lastPassDMIDS", objectClass = "numeric", desc = "Vector, one for each stand, indicating final disturbance type, linked to the S4 table called cbmData. Only Spinup."),
@@ -50,10 +52,14 @@ defineModule(sim, list(
     createsOutput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup."),
     createsOutput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData"),
     createsOutput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"),
-    createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, Stand Index, Year, and DisturbanceMatrixId. Not used in Spinup."),
+    #createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "growth_increments", objectClass = "matrix", desc = "to this later"),
-    createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later")
-    
+    createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
+    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table linking the spu id, with the disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White"),
+    createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),
+    createsOutput(objectName = "mySpuDmids", objectClass = "data.frame", desc = "the table containing one line per pixel"),
+    createsOutput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
+    createsOutput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
   )
 ))
 
@@ -105,7 +111,9 @@ Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
   sim$PoolCount <- length(sim$pooldef)
   
-  growthCurves <- as.matrix(read.csv(sim$gcurveFileName))
+  gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))
+  ## HAVE TO maintain this format
+  growthCurves <- as.matrix(gcID[,c(3,2,5,4,6)])#as.matrix(read.csv(sim$gcurveFileName))
   growthCurveComponents <- as.matrix(read.csv(sim$gcurveComponentsFileName))
   
   sim$growth_increments<-NULL
@@ -124,25 +132,144 @@ Init <- function(sim) {
     sim$gcHash[[item]] <- hash(sim$gcHash[[item]])
   }
   
-  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
-  sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
-  colnames(sim$pools)<- sim$pooldef
-  sim$pools[,Input] = rep(1.0, nrow(sim$pools))
   
-  sim$ages <- c(0)#,2,3,140)
+  #### Data will have to be provided by user in a separated module...short cut for now...
+  #####################################################################################
+  library(data.table)
+  library(raster)
+
+  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  #This works
+  ages <- getValues(age)
+  # read-in species
+  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+  rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
+  # read-in productivity  levels
+  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+  Productivity <- getValues(prodRaster)#1 2 3 0
+  # read-in spatial units
+  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+  spatial_unit_id <- getValues(spuRaster) #28 27
+
+  level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
+  level2DT <- level2DT[level2DT$rasterSps>0]
+  level2DT$rowOrder <- 1:nrow(level2DT)
+  setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
+  
+  # add the gcID	  # add the gcID
+  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
+  gcID <- as.data.table(gcID[,-1]) 
+  gcID <- gcID[,.(rasterSps,Productivity,growth_curve_component_id,spatial_unit_id,growth_curve_id)]
+  setkey(gcID,growth_curve_component_id,rasterSps,Productivity,spatial_unit_id)
+  
+  # make the data.table that will be used in simulations
+  level3DT <- unique(level2DT[,-("rowOrder")])
+  setkey(level3DT,rasterSps,Productivity,spatial_unit_id)
+  level3DT <- level3DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
+  level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
+                                                   level3DT$growth_curve_component_id,
+                                                   level3DT$ages)))
+  # might have to keep this when we integrate the disturbances
+  sim$level3DT <- level3DT
+  
+  # spatial data table keeps the pixels number to re-populate for maps
+  #setkey(gcID, NULL) #have to unkey before a join
+  spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]
+  spatialDT <- spatialDT[order(rowOrder)]
+  spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
+                                                       spatialDT$growth_curve_component_id,
+                                                       spatialDT$ages)))
+  sim$spatialDT <- spatialDT
+  
+  sim$masterRaster <- ldSpsRaster
+  # masterRaster[rasterSps == 0] <- NA
+  # masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
+  # sim$masterRaster <- masterRaster
+   
+  
+  ############################################################
+  ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
+  ## this is a problem to tackle once we have some insight into the cpp code
+  ###########################################################
+  # temp fix:
+  sim$level3DT[ages==1 & growth_curve_component_id==58,ages:=3]
+  sim$ages <- sim$level3DT[,ages]
   sim$nStands <- length(sim$ages)
-  standIdx <- 1:sim$nStands
-  sim$gcids <- c(1)#,2,3,101)
-  sim$historicDMIDs <- c(214)#,1,1,1)
-  sim$lastPassDMIDS <- c(214)#,1,1,1)
-  sim$delays <- c(0)#,0,0,0)
-  sim$minRotations <- rep(0, sim$nStands)
-  sim$maxRotations <- rep(100, sim$nStands)
-  sim$returnIntervals <- c(200)#,110,120,130)
-  sim$spatialUnits <- rep(26, sim$nStands)
-  sim$ecozones <- rep(5, sim$nStands)
-  sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
-  colnames(sim$disturbanceEvents)<-c("standIndex", "Year", "DisturbanceMatrixId")
+  
+  ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
+  sim$pools <- matrix(ncol = sim$PoolCount, nrow=sim$nStands, data=0)
+  colnames(sim$pools)<- sim$pooldef
+  sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
+  
+  #standIdx <- 1:sim$nStands
+  sim$gcids <- sim$level3DT[,growth_curve_component_id]#c(1)#,2,3,101)
+  sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
+  sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
+  sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
+  retInt <- merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)
+  sim$returnIntervals <- retInt[,"return_interval"]#merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE)[,9]# #c(200)#,110,120,130)
+  sim$spatialUnits <- sim$level3DT[,spatial_unit_id]#rep(26, sim$nStands)
+  spu <- as.data.frame(sim$cbmData@spatialUnitIds)
+  
+  # change this here so it will be easier to access when disturbances change PixelGroupID
+#  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
+  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
+  names(ecoToSpu) <- c("spatial_unit_id","ecozones")
+  sim$spatialDT <- merge(sim$spatialDT,ecoToSpu,by="spatial_unit_id")
+  sim$ecozones <- unique(sim$spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
+  
+#  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
+  #sim$ecozones <- ecoz[,"ecozones"]
+
+  # make the disturbance look-up table to the disturbance_matrix_id(s)
+  # making sim$mySpuDmids
+  #raster values 1 to 5
+  #GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
+  # 1 is Wildfire
+  # 2 is Clearcut harvesting with salvage
+  # 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
+  # 4 Generic 20% mortality
+  # 5	Generic 20% mortality
+  
+  spu <- unique(sim$spatialDT$spatial_unit_id)
+  # what disturbances in those spu(s)?
+  listDist <- spuDist(spu)
+  
+  #get the right ones
+  fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
+  
+  #had to figure this one out by hand...there were 12 clearcut types...took the
+  #one that said 50% salvage got that from looking at the published paper Boivenue
+  #et al 2016...and the word salvage is misspelled in the database (sigh). In the
+  #publication, we said 85% of the merchantable trees and 50% of the snags...
+  #there is no "85%" clearcut in the whole data base (cbmTables[[6]][,2])...85% is
+  #only used in precommercial thinning Sylva EPC
+  clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
+  clearCut <- clearCut[7:8,]
+  
+  # Again, there are 12 deforestation, but only two are not called "Fixed
+  # Deforestation-Hydro", so I picked these two
+  defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
+  defor <- defor1[1:2,]
+  
+  generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
+  
+  mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
+  #creating a vector of the pixel values to be able to match the disturbance_matrix_id
+  events <- c(1,1,2,2,4,4,3,3,5,5)
+  sim$mySpuDmids <- cbind(mySpuDmids,events)
+  
+  
+  # old bogus disturbance
+  #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
+  #colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
+  
+  # changing them
+  sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
+                                   full.names = TRUE) %>%
+    grep(., pattern = ".tif$", value = TRUE)
   
   
   # ! ----- STOP EDITING ----- ! #
@@ -167,15 +294,40 @@ Save <- function(sim) {
 
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
-  dataPath <- file.path(modulePath(sim),currentModule(sim),"data")
-  if(is.null(sim$dbPath))
+  dataPath <- file.path(modulePath(sim),"data")
+  if(!suppliedElsewhere(sim$sqlDir))
+    sim$sqlDir <- file.path(dataPath,"cbm_defaults")
+  if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  if(is.null(sim$gcurveFileName))
-    sim$gcurveFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldRCBM.csv")
-  if(is.null(sim$gcurveComponentsFileName))
-     sim$gcurveComponentsFileName <- file.path(dataPath, "SK_ReclineRuns30m", "LookupTables", "yieldComponentRCBM.csv")
+  if(!suppliedElsewhere(sim$gcurveFileName))
+    sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
+  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
+    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   
-  if (is.null(sim$pooldef)) {
+  
+  if(!suppliedElsewhere(sim$cbmData)){
+    spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
+    disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
+    sim$cbmData <- new("dataset",
+                       turnoverRates=as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
+                       rootParameters=as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
+                       decayParameters=as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
+                       spinupParameters=as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
+                       climate=as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
+                       spatialUnitIds=spatialUnitIds,
+                       slowAGtoBGTransferRate=as.matrix(0.006),
+                       biomassToCarbonRate=as.matrix(0.5),
+                       stumpParameters=as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
+                       overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrix=disturbanceMatrix,
+                       disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
+                       landclasses=as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
+                       pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
+                       domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
+    ) 
+  }
+  if (!suppliedElsewhere(sim$pooldef)) 
     sim$pooldef = c("Input",
                     "SoftwoodMerch",
                     "SoftwoodFoliage",
@@ -202,16 +354,6 @@ Save <- function(sim) {
                     "CH4",
                     "CO",
                     "Products")
-    
-    # These objects currently are required to be in the .GlobalEnv
-    #   due to cpp code in RCBMGrowthIncrements.cpp. This should be
-    #   changed in the cpp and also here so it is in the sim
-    for(i in 1:length(sim$pooldef)){
-      assign(sim$pooldef[i], i, envir = .GlobalEnv)#?.globals
-    }
-  }
-  
-  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }

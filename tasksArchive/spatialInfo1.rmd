@@ -4,13 +4,16 @@ author: "CBoisvenue"
 date: "June 8, 2018"
 output:
   html_document:
-    df_print: paged
+    theme: spacelab
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "../")   ## THIS IS NOT WORKING - ANNOYING! changed to normal R script
+library(raster)
+library(maptools)
 ```
 
 # Overview
@@ -29,7 +32,7 @@ Here is a table of of the spatial units refered to in the cbm_default.db and the
 library(RSQLite)
 
 
-inputDir <- file.path(getwd(),"data/12_Spades_run")#"C:/Celine/GitHub/data/12_Spades_run") 
+inputDir <- file.path(getwd(),"data/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 
 sqlite.driver <- dbDriver("SQLite")
@@ -61,7 +64,7 @@ spu <- spuNames1[,c(7,4,6,1,3,5,8,9,10)]
 spu <- spu[order(spu$spu_id),]
 ```
 
-These spatial unites are the link to ALL the default parameters to run CBM across Canada.
+These spatial units are the link to ALL the default parameters to run CBM across Canada.
 
 ```{r plotSpu,echo=FALSE}
 spu[,c(1,3,5)]
@@ -97,24 +100,92 @@ Ages should come from a raster. The original values for the Age, dominant
 species and productivity level (the two later variables were used in the development of the growth curves) were extracted from polygon information in Canada’s Forest Resource Inventories. CASFRI is a vector-based spatial forest inventory assembled for forest management and conservation projects (http://www.beaconsproject.ca/documents). Note: eventually, we need to create a module that gets the CASFRI information into the format we need for carbon modelling.
 
 ***TASKS***  
-1.This should be age in 1984, please check this raster to see if it gives ages and calculate how many pixels there are with an age value:
-`C:\Celine\Syndocs\RES_Work\Work\SpaDES\spadesCBM\rasters\age1.tif`  
-2.Please check if this raster is the same as the one above:
-`\SK_ReclineRuns30m\layers\age1CASFRI.tif`  
-3. Use the age raster (in 1) to create a vector of ages that can be assigned to `sim$ages`.  
+a)This should be age in 1984, please check this raster to see if it gives ages and calculate how many pixels there are with an age value:
+`C:\Celine\Syndocs\RES_Work\Work\SpaDES\spadesCBM\rasters\age1.tif` 
+```{r Age raster,echo = FALSE, include=FALSE} 
+library(raster)
+
+age <- raster(file.path(getwd(),"data/forIan/SK_data/rasters/age1.tif"))
+
+ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
+#age is now a vector 
+## 
+# age1CASFRI has equal number of pixels but 483695822 (75%) are NA and age1 has no NAs. Non-zero, non-NA values are 3 years apart 
+#CONLCUSION: we need all the pixels inthe raster age1.tif
+
+```
+b) Please check if this raster is the same as the one above:
+`\SK_ReclineRuns30m\layers\age1CASFRI.tif`
+```{r compare Age, echo=FALSE, include=FALSE}
+library(raster)
+# Firstcrop to a smaller area first for faster comparisons
+small_extent <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")) #This is smaller
+## Ian: yes, it is smaller...but we are not sure this is the same as the age raster above...how can you be sure that it is a cropped version of the age raster above? 
+##Celine: I am just using this extent (which happens to be from an age raster) to crop but keeping the original age raster values to compare. 
+# what if I just get the values and compare the vectors? Celine: You can do this.But "identical"" and "all.equal" will fail over a single difference
+casfri <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1CASFRI.tif")
+casfriAgeVal <- getValues(casfri)
+identical(ageVal,casfriAgeVal)
+# Conclusion: same lenght, not identical
+all.equal(age,casfri)
+#[1] FALSE
+#Warning message:
+#In compareRaster(target, current, ..., values = values, stopiffalse = stopiffalse,  :
+#  not all objects have the same values
+
+age1_subset <- crop(age, small_extent)
+casfri_subset <- crop(casfri, small_extent)
+#Extract values
+age1_values <- getValues(age1_subset)
+casfri_values <- getValues(casfri_subset)
+
+#The NAs are different
+length(casfri_values[is.na(casfri_values)]) #14091
+length(age1_values[is.na(age1_values)]) #0
+
+#But if we set 0 to NA...
+casfri_values[casfri_values == 0] <- NA
+age1_values[age1_values == 0] <- NA 
+summary(casfri_values)
+summary(age1_values)
+
+identical(casfri_values,age1_values)
+## Ian, this is really what I want to know...but how are we to know that the age1CASFRI.tif is a smaller extent of the age raster (age1.tif)?
+#age1 is basically casfri_values - 3. Maybe Age1 has an older reference year?
+rm(age1_values, casfri_values, age1_subset, casfri_subset, small_extent)
+
+```
+c) Use the age raster (in 1) to create a vector of ages that can be assigned to `sim$ages`.  
+```{r age vector, echo=FALSE, include=FALSE}
+library(raster)
+#No sim object in this rmd but replaces ages with sim$ages
+age_ras <- raster("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif") #Using the small subset for speed
+## Ian: again...not sure if we want to use the smaller extent. How do you know it is the same? and the point in doing this is to run all of SK.
+# Celine: Yes I am just trying to make things on a small area before we try SK as a whole, to minimize waiting for functions to run
+ages <- getValues(age_ras)
+#Note there are 61901 NAs and 34027 age 0.
+```
 
 ### 2- Number of stands/pixels
 The number of pixels in the study area of the size that we want (I think this is available in SK30_new.tif - `F:\07_SK_30m\Working\Sask_runs\4_Testing_wallToWall_inputs\SKmask\Sask30_new.tif`). So the number of forested pixels we will be modelling (30m pixels, and something like 66359013 pixels? info from here`F:\07_SK_30m\Working\Sask_runs\Processing_time.xlsx`. The total extent should be 623940100). This should match the number of pixels with ages (from the previous step).  
 
 ***TASKS***  
-1.Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)  
-2. Write some R-code that would assign the number of pixels to `sim$nStands <- length(sim$ages)`  
+a)Does/do the age raster(s) have the same extent as this raster (Sask30_new.tif)  
+b). Write some R-code that would assign the number of pixels to `sim$nStands <- length(sim$ages)`  
+```{r}
+nStands <- length(sim$ages) 
+## Ian: age is one of the values that defines the homegenous groups. I need you to create these homogenous groups from the raster and polygon info we have...
+```
 
 ### 3- Stand index
 This is unique identifier for each stand. I think it will be used to "rebuild" maps at the end of the simulations. Stands/pixels will be "hashed" for simulation...so, somehow a map needs to be remade to show results - right?  
-
+```{r}
+#This will be borrowed from LMBR, and use polygons,
+## Ian: this will be the raster that will be able to apply disturbances to a set of pixels and change the homogenous groups. Reference to cohortData (a data.table) in Land-R and to a function called something like recluster in Land-R
+#Celine: LBMR (or LandR) converts a raster of communityGroup(or leading species for our purposes?) to data.table, matches the code to a table that has both community group, species, and age, and all the magic happens from there. I will try this with age, spUnit, and gcID.  
+```
 ***TASKS***  
-1.discussion to make sure this is the best way of doing this right now
+a) discussion to make sure this is the best way of doing this right now
 
 ### 4- Assign a growth curve id to each stand/pixel  
 Each pixel/stand needs a link to a growth curve. This could be a map, or a table that links all the indices (in 3 above) to a growth curve. These indices are presently needed to link to the function CBMVolumeToBiomass::VolumeToBiomassConvert. The original growth curves were developped from the SK PSP data (as used in the Boisvenue et al 2016 papers).However, the original work resulted in nine growth curves, one per species for five species (BF,BP, JP, TA, WB), and two for each of white and black
@@ -122,16 +193,76 @@ spruce representing a medium and a good productivity level for each spruce speci
 WSMedium, WSGood). The files used the CBM-CFS3 runs have 105 unique GrowthCurveComponentID, and growth_curve_id (slide 13 in the prezi spadesCBM modules overview describes both files in detail). The readInGrowthCurves.r (`GitHub\spadesCBM\exploringCode\readInGrowthCurves.r`) reads-in and describes well two files currently being read-in. Only one curve is being "translated" into biomass (`sim$gcids <- c(1)`) via the CBMVolumeToBiomass::VolumeToBiomassConvert function and used for simulation in the prototype code. **One of the growth and yield files being read-in has a column identifying the spatial units**, a piece of information needed in the CBMVolumeToBiomass translation and useful since we need that info for each pixel also.
 
 ***TASKS***  
-1. figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine's calculation of CASFRI info - site_productivity.tif), both found here `F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers` can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs.  
-2. Better ways of assigning these?  
-3. Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.  
+a) figure out if an overlay of leading species (CASFRI - casfri_dom2.tif) and productivity level (Celine's calculation of CASFRI info - site_productivity.tif), both found here `F:\07_SK_30m\Working\Sask_runs\11_CASFRI\layers` can be used to assign growth curves using the IDs in the presently read-in curves.Note that the gc files contain all the growth curves needed for the SK runs. 
+```{r}
+library(raster)
+##age
+age <- raster('data/forIan/SK_data/CBM_GIS/age_TestArea.tif')
+
+#Species
+species <- raster("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif") #This matches original age
+
+#Productivty
+prod <- raster("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif")
+prodID <- read.csv('data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv')
+
+#SpUnits
+#Join the two datasets together.
+# library(dplyr)
+# spUnits_Can <- shapefile("data/forIan/SK_data/SK_ReclineRuns30m/layers/pspu.shp")
+# spUnits_Can@data <- left_join(spUnits_Can@data, spuNames, by = c("ProvinceID" = "admin_boundary_id", "EcoBoundar" = "eco_boundary_id"))
+# spUnits_Can <- spTransform(spUnits_Can, CRSobj = prod@crs)
+# spUnits_Can <- crop(spUnits_Can, prod)
+# template <- raster(prod)
+# spUnits <- rasterize(spUnits_Can, y = template, field = "id")
+# writeRaster(spUnits, "data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif")
+spUnits <- raster("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif")
+
+#load gcID look up
+gc <- read.csv("data/forIan/SK_data/gcID_ref.csv")
+simgcCompID <- read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv") #enter age and gcID
+
+#reclassify prod and species to gcID
+library(data.table)
+library(magrittr)
+library(dplyr)
+
+LeadingSp <- getValues(species)
+Productivity <- getValues(prod)
+SpUnit <- getValues(spUnits)
+Age <- getValues(age)
+temp <- data.table(LeadingSp, Productivity, SpUnit, Age)
+
+gc <- data.table(gc) %>%
+  .[,.("Productivity" = RasterValue,"LeadingSp" = rasterSps, growth_curve_component_id, "SpUnit" = spatial_unit_id) ]
+
+master <- as.data.table(left_join(temp, gc, by = c("Productivity" ,"LeadingSp", "SpUnit")))
+#MERGE IS ORDERING BUT THEN WE LOSE SPATIAL LOCATIONS)
+#Results in NAs where leading species == 0
+forest <- master[(is.na(growth_curve_component_id) == FALSE)]
+forest$PixelGroupID <- as.numeric(factor(paste(forest$spUVal, forest$growth_curve_component_id, forest$Age)))
+
+testRas <- raster(spUnits)
+testRas[LeadingSp == 0] <- NA
+testRas[LeadingSp != 0] <- forest$PixelGroupID
+plot(testRas)
+forest$PixelGroupID
+#
+
+
+```
+b) Better ways of assigning these?  
+c) Note that a seperate module will have to eventually be developped to make this formatting process clear and transparent.  
 
 ### 5- Historical Disturbance Matrix Identification Number  
 In the cbm_default.db, each spatial unit (admin boundaries X ecozones) have a specific historical disturbance matrix. It is always fire (true at least in the spatial units I have worked in) but the proportions change depending on where you are. So, once a spatial unit identification is assigned to each pixel (which can be via the gcID assignment (in 4) since they have spatial units associated with them also), the last column of the table `spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation` can provide the disturbance_matrix_id needed.   
 
 ***TASKS***  
 1. once each pixel has a spatial unit, assign the Historical Disturbance Matrix Identification Number.  
+```{r}
+disturbanceID <- outSim@.envir$disturbanceEvents
 
+```
 ### 6- Last pass disturbance  
 The user has to identify the last disturbance that happened to the stand/pixel that is at the age in the age raster (in 1). For example, this could be a fire or a clearcut. In each spatial unit across Canada, there are a number of defined matrices for clearcut and fire. So spatial unit needs to be associated with a pixel - as in 5, this can be done via the gcID assignment (in 4) since they have spatial units associated with them. Once the spatial unit per pixels is known, the table `spadesCBMout@.envir$cbmData@disturbanceMatrixAssociation` can provide the disturbance_type_id and the disturbance_matrix_id that are possible for the spatial unit. The cbm_default.db table disturbance_type gives the name and a description of the disturbance (using the disturbance_type_id) from which the user can select..  
 
@@ -168,12 +299,82 @@ The above steps associate a spatial unit and can be linked to an ecozone for eac
 This will come from the Wulder and White work. There is a list for SK here: `SK_ReclineRuns30m\layers\projected_change_type`
 
 ***TASKS***  
-1. get the prototype working with one disturbance  
+1. get the prototype working with one disturbance  ***DONE***
 2. get the prototype working with existing SK data  
 3. Link it to larger work of using disturbance info from that national product.  
 
 
-# Important Notes
 
-Homogeneous polygons are defined by the combination of admin and eco boundaries which form the spatial units, leading species (from CASFRI) and productivity levels (calculated from CASFRI) which together form the gcIDs and with age which defines the boundaries of stands. Ages cannot be currently removed as a homogenizing variable, it is an necessary input to the Rcpp functions Spinup and ComputeGrowrhAndDeclineMatrices2. It would be better if that could be seperated (work for a programmer).
 
+```{r dataTable}
+###################### MAKING A DATA.TABLE FIRST ##########################################
+library(data.table)
+library(raster)
+library(dplyr)
+
+age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+#This works
+ages <- getValues(age)
+# read-in species
+ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
+# read-in productivity  levels
+prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+RasterValue <- getValues(prodRaster)#1 2 3 0
+# read-in spatial units
+spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+spatial_unit_id <- as.integer(getValues(spuRaster)) #28 27
+# make it a data.table
+level2DT <- as.data.table(cbind("LeadingSp" = rasterSps,"Productivity" = RasterValue, spatial_unit_id, "Age" = ages))
+
+#Join to Growth Curves
+# add the gcID
+gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+gcID <- as.data.table(gcID[,-1])%>%
+  .[,.("LeadingSp" = rasterSps,"Productivity" = RasterValue, growth_curve_component_id, spatial_unit_id)]
+setkey(gcID, growth_curve_component_id, LeadingSp, Productivity, spatial_unit_id)
+
+#filter the spatial data by unique values
+level2DT1 <- unique(level2DT) # 820 4
+level2DT1 <- level2DT1[level2DT1$LeadingSp>0,] # 759   4
+setkey(level2DT1, LeadingSp, Productivity,spatial_unit_id)
+
+level3DT <- merge(level2DT1, gcID, all.x=TRUE) #759   8
+level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id, level3DT$growth_curve_component_id, level3DT$Age)))
+
+# all unique combinations
+# dim(unique(level3DT))
+# [1] 759   8
+
+#This sort = FALSE is crucial to preserving spatial data
+spatialDT <- merge(level2DT, gcID, by = c("LeadingSp", "Productivity", "spatial_unit_id"), sort = FALSE)
+
+#This was Eliot's suggestion as an alternative to the LBMR method
+spatialDT$PixelGroupID <- as.numeric(as.factor(paste(spatialDT$spatial_unit_id, spatialDT$growth_curve_component_id, spatialDT$Age)))
+
+#to set back into raster, need Raster (record of what is NA), at least first time. 
+masterRaster <- raster(spuRaster)
+masterRaster[rasterSps != 0] <- spatialDT$PixelGroupID[!is.na(spatialDT$growth_curve_component_id)] #1347529 pixels
+plot(masterRaster)
+
+
+#example linking disturbance
+# fire1987 <- raster("data/forIan/SK_data/CBM_GIS/disturbance/1987.tif")
+# plot(fire1987) #not sure what these values mean, range = 5000-25000. Ask Byron? Anyway lets pretend all pixels are burned
+
+
+#We probably do not want to generate one raster for every pool. Maybe make function that does these steps?
+poolsDT <- as.data.table(spadesCBMout$cbmPools)
+poolsDT <- poolsDT[, .("PixelGroupID" = standindex, BelowGroundSlowSoil, "new.age" = age)] #not sure if we want to join all....
+#The first subset calculates the max age, the second subset selects only rows where age == max.age
+poolsDT <- poolsDT[, max.age := max(new.age), by = .(PixelGroupID)][new.age == max.age, .(BelowGroundSlowSoil, PixelGroupID, new.age)]
+
+#Each stand index has ten values. Need to get the max of each and subset by that. 
+masterTable <- right_join(poolsDT, spatialDT, by = "PixelGroupID", sort = FALSE)  #Need to make this merge
+
+outputBelowGroundSlowSoil <- masterRaster
+outputBelowGroundSlowSoil[!is.na(outputBelowGroundSlowSoil)] <- masterTable$BelowGroundSlowSoil
+
+plot(outputBelowGroundSlowSoil)
+########################### DATA.TABLE COMPLETE #########################################
+```
