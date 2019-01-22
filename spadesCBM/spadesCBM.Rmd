@@ -108,7 +108,7 @@ You give the seeDist() function one or more disturbance matrix id, and it will r
 
 simDist() is an R function that requires a simulation list (from the SpaDES functions simList() or spades()) and returns a list of data.frames. Each data.frame has the descriptive name of a disturbance used in the simulation. Each data.frame has the disturbance matrix identification number from cbm_defaults, the pool from which carbon is taken (source pools) in this specific disturbance, the pools into which carbon goes, and the proportion in which the carbon-transfers are completed.
 
-function to creat carbon maps here
+function to create carbon maps here
 
 # Data dependencies
 These three modules require the cbm_defaults data and user defined inputs. Eventually, some of the inputs may come from other modules (growth and yield modules, biomass dynamics modules, etc.).

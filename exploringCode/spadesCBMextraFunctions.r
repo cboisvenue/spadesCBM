@@ -1,8 +1,9 @@
 #------------------------------------------------------
 # Functions to look at disturbance matrices
 #
-# CBoisvenue
+# CBoisvenue, Ian Eddy
 # October, 17, 2018
+# January 2019
 #-----------------------------------------------------
 
 ### spuDist()-------------------------------------------------------------------
@@ -203,19 +204,16 @@ simDist <- function(sim){
 }
 ### END simDist----------------------------------------
 
-### plotCarbonRasters ---------------------------------------------------------------------------
+### plotCarbonRasters() ---------------------------------------------------------------------------
 ## Plotting pools -----------------------------------------------------------
 # masterRaster is now saved in the sim (sim$masterRaster)
 # and cbmPools is also saved in the sim$
 # this function will eventually be an event in the simulations but for now, this will plot post simulation
 # making the preliminary function here:
-# function called carbonRasters()
 
-# Ian: need help limiting the function arguments to these values
 library(raster)
 cPool <- spadesCBMout$pooldef[3:4]
 whichYear <- 2005#start(spadesCBMout):end(spadesCBMout)
-# ideally, the funcion throws an error if we are out of those vectors
 sim <- spadesCBMout
 
 
@@ -254,4 +252,5 @@ plotCarbonRasters <- function(sim, cPool, years) {
   clearPlot()
   Plot(temp)
 }
-#plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
+# example: plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
+### End plotCarbonRasters -----------------------------------------------------------------------------
