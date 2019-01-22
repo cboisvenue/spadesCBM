@@ -75,7 +75,9 @@ standIDx <- 1:nStands
 # TASK2: intersect the two rasters that determine growth curve:
 #casfri_dom2.tif
 #site_productivity.tif
+#IE: I should put these in the data folder so path names can be relative
 dom <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/casfri_dom2_recliner.tif")
+
 siteprod <- raster("C:/Ian/Boisvenue/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity_recliner.tif")
 
 
