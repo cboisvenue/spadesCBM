@@ -442,6 +442,53 @@ This will be linked to the SpaDES caribou models, to the SpaDES version
 of LANDIS-II (Land-R-biomass), and to any other available SpaDES modules
 available (growth and yield?).
 
+\section{Other important information I don't know where to put
+yet}\label{other-important-information-i-dont-know-where-to-put-yet}
+
+\textbf{MasterRater}: this is the raster that we use to show results of
+simulations. In teh present SK project, It is created in
+spadesCBMinputs.R (line 184) and for these SK simulations is it the
+ldSpsRaster, so it has 0 for no-species pixels (we can't model these),
+and 5 0 3 4 6 7. The species code table is: rasterValue species\_code 0
+No\_Spp 1 Abie\_Bal 2 Popu\_Bal 3 Pice\_Mar 4 Pinu\_Ban 5 Popu\_Tre 6
+Betu\_Pap 7 Pice\_Gla
+
+\textbf{standIndex}: this comes out of the cpp functions. It is always
+on the right-hand side of the of assignments in the R scripts.
+Presently, to make sure that standIndex matches PixelGroupID, rows are
+orderd by PixelGroupID before going into cpp functions.
+
+\textbf{level3DT}: this is the data.table that is fed into the Rcpp
+functions (matrix operations of annual processes and disturbances). Each
+line represents a PixelGroupID, i.e.~a group of unique pixels. It has
+unique combinations of growth\_curve\_component\_id, rasterSps,
+Productivity, spatial\_unit\_id and PixelGroupID, the unique identifier
+for the group. level3DT populates the vectors needed for the Rcpp
+functions (sim\(ages, sim\)gcids, sim\$spatialUnits, etc.).Post-spin-up,
+this table is remade annually because HERE
+ages,rasterSps,Productivity,spatial\_unit\_id
+
+\textbf{spatialDT}: this has all the modelled pixels numbered from 1 to
+npixels (test area 1 347 529 modelled pixels out of 3 705 000 ncells in
+the masterRaster). The
+sim\(pixelKeep, a data.table that has rowOrder from sim\)spatialDT\(rowOrder as the 1st column, and a column for each simulated year starting with the level3DT PixelGroupID our of the spinUp (PixelGroupID0), followed by one per simulated year (e.g., PixelGroupID1990). sim\)pixelKeep
+gets build 1 column at a time for each year of the simulation. spatialDT
+is rebuilt every year because disturbances change ages, one of the
+unique identifiers. spatialDT is used to add a column called events that
+is extractor each year from the disturbance rasters stack
+(sim\$disturbanceRasters).
+
+\textbf{disturbance rasters}: Disturbance rasters, from White and
+Wulder, are use for disturbances in these simulations. Their names are
+read in teh spadesCBMinputs module as a list. In the annual event in
+spadesCBMcore, the raster for that year is read, and an events column is
+added to the spatialDT using just the non-zero pixels from the
+masterRaster (in this case pixels != 0). The PixelGrouID is then
+calculated using unique combinations of sparial\_unit\_id,
+growth\_curve\_component\_id, ages, and events in the spatialDT.
+\emph{NOTE} the first spatialDT, used in the spinUp event does not have
+an events column.
+
 \section{Refences}\label{refences}
 
 \begin{enumerate}
