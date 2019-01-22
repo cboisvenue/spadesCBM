@@ -52,7 +52,7 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
 library(SpaDES)
-
+options("reproducible.useRequire" = FALSE) #Require doesn't seem to work with RSQLite
 moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
 inputDir <- file.path(moduleDir,"data") %>% reproducible::checkPath(create = TRUE) #"C:/Celine/GitHub/spadesCBM/data")
 outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
