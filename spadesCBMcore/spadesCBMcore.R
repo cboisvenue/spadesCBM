@@ -31,7 +31,7 @@ defineModule(sim, list(
     expectsInput(objectName = "cbmData", objectClass = "dataset", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     expectsInput(objectName = "PoolCount", objectClass = "numeric", desc = "Length of pooldef", sourceURL = NA),
-    expectsInput(objectName = "pools", objectClass = "matrix", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "pools", objectClass = "matrix", desc = "empty matrix for storage of spinupResults", sourceURL = NA),
     expectsInput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands from the inventory in 1990", sourceURL = NA),
     expectsInput(objectName = "gcids", objectClass = "numeric", desc = "The identification of which growth curves to use on the specific stands provided by...", sourceURL = NA),
     expectsInput(objectName = "historicDMIDs", objectClass = "numeric", desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup.", sourceURL = NA),
@@ -444,15 +444,15 @@ annual <- function(sim) {
   # compute the growth increments
 
     growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
-    growthIncrements = sim$gcHash,
-    ages = sim$ages,
-    gcids = sim$gcids,
-    pools = sim$pools,
-    rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
-    turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
-    biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
-    swMult = 0.5, hwMult = 0.5)
-  
+                              growthIncrements = sim$gcHash,
+                              ages = sim$ages,
+                              gcids = sim$gcids,
+                              pools = sim$pools,
+                              rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
+                              turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
+                              biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
+                              swMult = 0.5, hwMult = 0.5)
+                            
   sim$allProcesses$Growth1=growthAndDecline$Growth
   sim$allProcesses$Growth2=growthAndDecline$Growth
   sim$allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
