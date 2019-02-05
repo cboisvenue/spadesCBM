@@ -212,10 +212,6 @@ simDist <- function(sim){
 # making the preliminary function here:
 
 library(raster)
-cPool <- spadesCBMout$pooldef[3:4]
-whichYear <- 2005#start(spadesCBMout):end(spadesCBMout)
-sim <- spadesCBMout
-
 
 plotCarbonRasters <- function(sim, cPool, years) {
  
@@ -231,19 +227,25 @@ plotCarbonRasters <- function(sim, cPool, years) {
   names(carbonStacks) <- cPool
  
   for (pool in cPool) {
-  carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, var = pool) {
-     
-      poolsDT <- poolsDT[order(PixelGroupID)] %>% #order by stand index
-      .[simYear == x, .(PixelGroupID, "var" =  get(pool))]%>%
-      .[sim$spatialDT, on = c("PixelGroupID")] %>%
-      .[order(rowOrder)]
-      
-      masterRaster <- sim$masterRaster 
-      masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
-      masterRaster[!is.na(masterRaster)] <- poolsDT$var
     
-      names(masterRaster) <- x #name will begin with x if no character assigned
-      return(masterRaster)
+  carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, var = pool, pixelKeep = sim$pixelKeep) {
+    
+    poolsDT <- poolsDT[order(PixelGroupID)] %>% #order by stand index
+    .[simYear == x, .(PixelGroupID, "var" =  get(pool))] #subset by year
+    
+    #subset sim$pixelKeep
+    colsToKeep <- c("rowOrder", paste0("PixelGroupID", x))
+    pixelKeep <- pixelKeep[, colsToKeep, with = FALSE] %>%
+    setnames(., c("rowOrder", "PixelGroupID")) %>% #with=FALSE tells data.table colsToKeep isn't a column name    
+    .[poolsDT, on = c("PixelGroupID")] %>% #join with pixelKeep
+    .[order(rowOrder)] #order by rowOrder for raster prep
+    
+    masterRaster <- sim$masterRaster 
+    masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
+    masterRaster[!is.na(masterRaster)] <- pixelKeep$var
+    
+    names(masterRaster) <- x #name will begin with x if no character assigned
+    return(masterRaster)
     })
   names(carbonStacks[[pool]]) <- paste(pool, years, sep = "_")
   }
@@ -252,5 +254,6 @@ plotCarbonRasters <- function(sim, cPool, years) {
   clearPlot()
   Plot(temp)
 }
-# example: plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
+# example: 
+plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
 ### End plotCarbonRasters -----------------------------------------------------------------------------
