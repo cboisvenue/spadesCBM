@@ -255,5 +255,5 @@ plotCarbonRasters <- function(sim, cPool, years) {
   Plot(temp)
 }
 # example: 
-plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
+# plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
 ### End plotCarbonRasters -----------------------------------------------------------------------------
