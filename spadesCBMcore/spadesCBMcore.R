@@ -57,7 +57,7 @@ defineModule(sim, list(
     createsOutput(objectName = "allProcesses", objectClass = "list", desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"),
     createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: PixelGroupID, Age, and Pools "),
     #createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
-    createsOutput(objectName = "pixelKeep", objectClass = "data.table", desc = "Keeps the rowOrder from spatialDT with each year's PixelGroupID as a column. This is to enable making maps of yearly output."),
+    createsOutput(objectName = "pixelKeep", objectClass = "data.table", desc = "Keeps the pixelIndex from spatialDT with each year's PixelGroupID as a column. This is to enable making maps of yearly output."),
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation")
@@ -90,7 +90,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     saveSpinup = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      colnames(sim$spinupResult) <- c( c("PixelGroupID", "age"), sim$pooldef)
+      colnames(sim$spinupResult) <- c( c("pixelGroup", "age"), sim$pooldef)
       write.csv(file = file.path(outputPath(sim), "spinup.csv"), sim$spinupResult)
       # e.g., call your custom functions/methods here
       # you can define your own methods below this `doEvent` function
@@ -135,7 +135,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     savePools = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      colnames(sim$cbmPools) <- c( c("simYear","PixelGroupID", "age"), sim$pooldef)
+      colnames(sim$cbmPools) <- c( c("simYear","pixelGroup", "age"), sim$pooldef)
       write.csv(file = file.path(outputPath(sim),"cPoolsPixelYear.csv"), sim$cbmPools)
       
       # e.g., call your custom functions/methods here
@@ -310,9 +310,9 @@ postSpinup <- function(sim) {
   
   # Keep the pixels from each simulation year (in the postSpinup event)
   # in the end (cPoolsPixelYear.csv), this should be the same length at this vector
-  sim$spatialDT <- sim$spatialDT[order(sim$spatialDT$rowOrder),]
-  sim$pixelKeep <- sim$spatialDT[,.(rowOrder,PixelGroupID)]
-  setnames(sim$pixelKeep,c("rowOrder","PixelGroupID0"))
+  sim$spatialDT <- sim$spatialDT[order(sim$spatialDT$pixelIndex),]
+  sim$pixelKeep <- sim$spatialDT[,.(pixelIndex,pixelGroup)]
+  setnames(sim$pixelKeep,c("pixelIndex","pixelGroup0"))
   
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
@@ -388,21 +388,21 @@ annual <- function(sim) {
   yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
   
 # Add this year's events to the spatialDT
-  sim$spatialDT[order(sim$spatialDT$rowOrder),]
+  sim$spatialDT[order(sim$spatialDT$pixelIndex),]
   sim$spatialDT[,events := yearEvents]
 
   # 2. Rebuild the level3DT post disturbances
-  sim$spatialDT$PixelGroupID <- as.numeric(factor(paste(sim$spatialDT$spatial_unit_id,
+  sim$spatialDT$pixelGroup <- as.numeric(factor(paste(sim$spatialDT$spatial_unit_id,
                                                         sim$spatialDT$growth_curve_component_id,
                                                         sim$spatialDT$ages,sim$spatialDT$events)))
-  # adding the new PixelGroupID to the pixelKeep
-  sim$pixelKeep[,newPix := sim$spatialDT$PixelGroupID]
-  setnames(sim$pixelKeep,"newPix",paste0("PixelGroupID",time(sim)))
+  # adding the new pixelGroup to the pixelKeep
+  sim$pixelKeep[,newPix := sim$spatialDT$pixelGroup]
+  setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
   
-  sim$level3DT <- unique(sim$spatialDT[,-("rowOrder")]) # has 1066 lines
+  sim$level3DT <- unique(sim$spatialDT[,-("pixelIndex")]) # has 1066 lines
   
   # 3. Changing the vectors and matrices that need to be changed to process this year's growth
-  sim$ecozones <- unique(sim$spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
+  sim$ecozones <- unique(sim$spatialDT[, .(pixelGroup,ecozones)])[,ecozones]
   sim$ages <- sim$level3DT[,ages]
   sim$nStands <- length(sim$ages)
   sim$pools <- matrix(ncol=sim$PoolCount, nrow = sim$nStands, data=0)
@@ -484,7 +484,7 @@ annual <- function(sim) {
                          flowMatrices = sim$allProcesses)
   sim$ages <- sim$ages+1
   sim$spatialDT$ages <- sim$spatialDT$ages+1
-  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),sim$level3DT$PixelGroupID, sim$ages, sim$pools))
+  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),sim$level3DT$pixelGroup, sim$ages, sim$pools))
 
   return(invisible(sim))
 }
