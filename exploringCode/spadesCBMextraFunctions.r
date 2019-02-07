@@ -269,7 +269,7 @@ retrieveSpuRaster <- function(spatialUnitsFile = NULL, UserArea, rasterRes = c(2
   }
   
   if (is.null(spatialUnitsFile)){
-    spatialUnitsFile <- raster::shapefile("inputs/spUnit_Locator.shp")
+    spatialUnitsFile <- raster::shapefile("data/spUnit_Locator.shp")
   }
   
   if (!identicalCRS(spatialUnitsFile, UserArea)) {
@@ -291,10 +291,10 @@ retrieveSpuRaster <- function(spatialUnitsFile = NULL, UserArea, rasterRes = c(2
 
 ##Some tests that should eventually become actual tests
 # test1 <- shapefile("data/forIan/SK_data/CBM_GIS/SpadesCBM_TestArea.shp")
-# out1 <- retrieveSpuRaster(UserArea = test1, rasterRes = c(0.005,0.005)) #works in degrees
+# out1 <- retrieveSpuRaster(UserArea = test1, rasterRes = c(250, 250))
 # test2 <- shapefile("C:/Ian/Data/BC/BC_EcoProvinces.shp")
 # test2 <- test2[test2$PROVINCE_ == 31,] #this example has two polygons projected in lat long
-# out <- retrieveSpuRaster(UserArea = test2, rasterRes = c(0.005,0.005)) #works in degrees
+# out2 <- retrieveSpuRaster(UserArea = test2, rasterRes = c(0.005,0.005)) #works in degrees
 # plot(out2)
 # test3 <- shapefile("C:/Ian/Campbell/RIA/GIS/RIA_StudyArea/RIA_StudyArea_Valid.shp")
 # out3 <- retrieveSpuRaster(UserArea = test3, rasterRes = c(500, 500), spatialUnitsFile = spUnits_Can)
