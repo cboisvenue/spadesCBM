@@ -211,8 +211,6 @@ simDist <- function(sim){
 # this function will eventually be an event in the simulations but for now, this will plot post simulation
 # making the preliminary function here:
 
-library(raster)
-
 plotCarbonRasters <- function(sim, cPool, years) {
  
   if (any(!cPool %in% sim$pooldef)) {
@@ -257,3 +255,47 @@ plotCarbonRasters <- function(sim, cPool, years) {
 # example: 
 # plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
 ### End plotCarbonRasters -----------------------------------------------------------------------------
+
+###spuLocator() --------------------------------------------------------------------------------------
+library(raster)
+library(fasterize) #We will need this to speed up the rasterize process
+library(sf)#We will need this to speed up the rasterize process
+
+#Make a function that produces a raster with spUnits
+retrieveSpuRaster <- function(spatialUnitsFile = NULL, UserArea, rasterRes = c(250,250)){
+  browser()  
+  if (!(class(UserArea) == "SpatialPolygonsDataFrame" | class(UserArea) == "RasterLayer")) {
+    stop("Please supply UserArea as a SpatialPolygonsDataFrame or RasterLayer")
+  }
+  
+  if (is.null(spatialUnitsFile)){
+    spatialUnitsFile <- raster::shapefile("inputs/spUnit_Locator.shp")
+  }
+  
+  if (!identicalCRS(spatialUnitsFile, UserArea)) {
+    spatialUnitsFile <- spTransform(x = spatialUnitsFile, CRSobj = crs(UserArea))
+  }
+  
+  test <- couldBeLonLat(UserArea)
+  if(test == TRUE & any(rasterRes>1)) {
+    warning("rasterRes is measured in units of the UserArea, which appears to be lat long")
+  }
+  
+  temp <- crop(spatialUnitsFile, UserArea) %>%
+    sf::st_as_sf(.)
+  template <- raster(extent(temp), res = rasterRes, crs = crs(UserArea))
+  spuRaster <- fasterize::fasterize(sf = temp, raster = template, field = "spu_id")
+  
+  return(spuRaster)
+}
+
+##Some tests that should eventually become actual tests
+# test1 <- shapefile("data/forIan/SK_data/CBM_GIS/SpadesCBM_TestArea.shp")
+# out1 <- retrieveSpuRaster(UserArea = test1, rasterRes = c(0.005,0.005)) #works in degrees
+# test2 <- shapefile("C:/Ian/Data/BC/BC_EcoProvinces.shp")
+# test2 <- test2[test2$PROVINCE_ == 31,] #this example has two polygons projected in lat long
+# out <- retrieveSpuRaster(UserArea = test2, rasterRes = c(0.005,0.005)) #works in degrees
+# plot(out2)
+# test3 <- shapefile("C:/Ian/Campbell/RIA/GIS/RIA_StudyArea/RIA_StudyArea_Valid.shp")
+# out3 <- retrieveSpuRaster(UserArea = test3, rasterRes = c(500, 500), spatialUnitsFile = spUnits_Can)
+# plot(out3)
