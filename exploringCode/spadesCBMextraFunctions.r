@@ -263,7 +263,7 @@ library(sf)#We will need this to speed up the rasterize process
 
 #Make a function that produces a raster with spUnits
 retrieveSpuRaster <- function(spatialUnitsFile = NULL, UserArea, rasterRes = c(250,250)){
-  browser()  
+ 
   if (!(class(UserArea) == "SpatialPolygonsDataFrame" | class(UserArea) == "RasterLayer")) {
     stop("Please supply UserArea as a SpatialPolygonsDataFrame or RasterLayer")
   }
