@@ -58,7 +58,7 @@ defineModule(sim, list(
     createsOutput(objectName = "spinupResult", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "allProcesses", objectClass = "list", desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"),
     createsOutput(objectName = "pixelGroupC", objectClass = "data.table", desc = "This is the data table that has all the vectors to create the inputs for the annual processes"),
-    createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: PixelGroupID, Age, and Pools "),
+    createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: pixelGroup, Age, and Pools "),
     #createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
     createsOutput(objectName = "pixelKeep", objectClass = "data.table", desc = "Keeps the pixelIndex from spatialDT with each year's PixelGroupID as a column. This is to enable making maps of yearly output."),
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
@@ -445,7 +445,12 @@ annual <- function(sim) {
   # them seperate pre-C++ processing
   distPixels$newGroup <- LandR::generatePixelGroups(distPixels[,-("pixelGroup")],maxPixelGroup,
                                          columns = c("spatial_unit_id", "growth_curve_component_id", "ages", "events"))
-  
+  # # adding the new pixelGroup to the pixelKeep
+  trackPix <- sim$spatialDT$pixelGroup
+  trackPix[which(!is.na(sim$spatialDT$events))] <- distPixels$newGroup
+    sim$pixelKeep[,newPix := trackPix]
+  setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
+  # 
   # match the pixelGroup of the carbon (groupToAddC) with the pixelGroup of the
   # distPixels. This is to make sure we don't miss a newGroup...since we have
   # events there might be more of these.
