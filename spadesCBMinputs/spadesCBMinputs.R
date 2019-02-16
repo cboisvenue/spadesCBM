@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("RSQLite","data.table","CBMVolumeToBiomass", "raster"),
+  reqdPkgs = list("RSQLite","data.table","CBMVolumeToBiomass", "raster", "LandR"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -135,8 +135,8 @@ Init <- function(sim) {
   
   #### Data will have to be provided by user in a separated module...short cut for now...
   #####################################################################################
-  library(data.table)
-  library(raster)
+  #library(data.table)
+  #library(raster)
 
   age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
   #This works
@@ -153,7 +153,7 @@ Init <- function(sim) {
 
   level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
   level2DT <- level2DT[level2DT$rasterSps>0]
-  level2DT$rowOrder <- 1:nrow(level2DT)
+  level2DT$pixelIndex <- 1:nrow(level2DT)
   setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
   
   # add the gcID	  # add the gcID
@@ -162,23 +162,36 @@ Init <- function(sim) {
   gcID <- gcID[,.(rasterSps,Productivity,growth_curve_component_id,spatial_unit_id,growth_curve_id)]
   setkey(gcID,growth_curve_component_id,rasterSps,Productivity,spatial_unit_id)
   
+  spatialDT <- level2DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
+  spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,0,
+                                     columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
+  ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
+  # why the number starts at the number you are asking for? not logical to me -
+  # max is the max value your groups should have...?
+  spatialDT <- spatialDT[,.(ages, rasterSps, Productivity, spatial_unit_id, pixelIndex,
+                          growth_curve_component_id, growth_curve_id, pixelGroup)]
   # make the data.table that will be used in simulations
-  level3DT <- unique(level2DT[,-("rowOrder")])
-  setkey(level3DT,rasterSps,Productivity,spatial_unit_id)
-  level3DT <- level3DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
-  level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
-                                                   level3DT$growth_curve_component_id,
-                                                   level3DT$ages)))
+  level3DT <- unique(spatialDT[,-("pixelIndex")])
+  # setkey(level3DT,rasterSps,Productivity,spatial_unit_id)
+  # level3DT <- level3DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
+  # 
+  # level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
+  #                                                  level3DT$growth_curve_component_id,
+  #                                                  level3DT$ages)))
+
+  # trying the LandR generatePixelGroup() for consistency in building pixel groups
+  
+  
   # might have to keep this when we integrate the disturbances
   sim$level3DT <- level3DT
   
   # spatial data table keeps the pixels number to re-populate for maps
   #setkey(gcID, NULL) #have to unkey before a join
-  spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]
-  spatialDT <- spatialDT[order(rowOrder)]
-  spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
-                                                       spatialDT$growth_curve_component_id,
-                                                       spatialDT$ages)))
+  # spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]
+  # spatialDT <- spatialDT[order(rowOrder)]
+  # spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
+                                                       # spatialDT$growth_curve_component_id,
+                                                       # spatialDT$ages)))
   sim$spatialDT <- spatialDT
   
   sim$masterRaster <- ldSpsRaster
@@ -218,7 +231,7 @@ Init <- function(sim) {
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
   sim$spatialDT <- merge(sim$spatialDT,ecoToSpu,by="spatial_unit_id")
-  sim$ecozones <- unique(sim$spatialDT[, .(PixelGroupID,ecozones)])[,ecozones]
+  sim$ecozones <- unique(sim$spatialDT[, .(pixelGroup,ecozones)])[,ecozones]
   
 #  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
   #sim$ecozones <- ecoz[,"ecozones"]

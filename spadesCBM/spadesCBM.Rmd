@@ -60,9 +60,9 @@ outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outpu
 cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 2005.00)
 parameters <- list(
-  spadesCBMcore = list(.useCache = TRUE),
-  spadesCBMinputs = list(.useCache = TRUE),
-  spadesCBMdefaults = list(.useCache = TRUE)
+  spadesCBMcore = list(.useCache = FALSE),
+  spadesCBMinputs = list(.useCache = FALSE),
+  spadesCBMdefaults = list(.useCache = FALSE)
 )
 
 modules <- list("spadesCBM")
