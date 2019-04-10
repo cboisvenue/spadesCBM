@@ -167,11 +167,11 @@ Init <- function(sim) {
                                      columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
   ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
   # why the number starts at the number you are asking for? not logical to me -
-  # max is the max value your groups should have...?
+  # max is the max value your groups should have.@..?
   spatialDT <- spatialDT[,.(ages, rasterSps, Productivity, spatial_unit_id, pixelIndex,
                           growth_curve_component_id, growth_curve_id, pixelGroup)]
   # make the data.table that will be used in simulations
-  level3DT <- unique(spatialDT[,-("pixelIndex")])
+  level3DT <- spatialDT[,-("pixelIndex")][,.N,by=pixelGroup] %>% merge(unique(spatialDT[,-("pixelIndex")]))
   # setkey(level3DT,rasterSps,Productivity,spatial_unit_id)
   # level3DT <- level3DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
   # 
