@@ -416,28 +416,23 @@ annual <- function(sim) {
   ## disturbances and presently **all disturbances are stand replacing**. Set
   ## all ages to 0 in the disturbed pixels
   distPixels$ages <- 0
-browser()
+
   # get the carbon info from the old pixelGroup for the disturbed pixels
   groupToAddC <- sim$pixelGroupC[which(sim$pixelGroupC$pixelGroup %in% unique(distPixels$pixelGroup)),-c("ages","rasterSps", "Productivity", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]
+  groupToAddC <- groupToAddC[,c("oldGroup","pixelGroup") := list(pixelGroup,NULL)]
   groupToAddC <- unique(groupToAddC)
-  setkey(groupToAddC,pixelGroup)
-  setkey(sim$pixelGroupC,pixelGroup)
-  
-  #adjust the N (count of pixels per pixelGroup) for the old pixelGroups that
-  #will still be in use for this year's simulations
-  # pixelGroupC2 <- merge(sim$pixelGroupC,count,all=TRUE)
-  # ## checking  n1 <- sum(pixelGroupC2$N.x) #n2 <- sum(pixelGroupC2$N.y)
-  # pixelGroupC2$N.y[which(is.na(pixelGroupC2$N.y))] <- 0
-  # n3 <- pixelGroupC2$N.x-pixelGroupC2$N.y
-  # sim$pixelGroupC$N <- n3
-  
+  setkey(groupToAddC,oldGroup)
+
   #calculate the new pixelGroup values
   maxPixelGroup <- max(sim$spatialDT$pixelGroup)
   # NOTE: different carbon transactions will apply to different events, so, keep
   # them seperate pre-C++ processing
-  distPixels$newGroup <- LandR::generatePixelGroups(distPixels[,-("pixelGroup")],maxPixelGroup,
-                                         columns = c("spatial_unit_id", "growth_curve_component_id", "ages", "events"))
-  # # adding the new pixelGroup to the pixelKeep
+  
+  distPixels[,oldGroup:=pixelGroup]
+  distPixels$newGroup <- LandR::generatePixelGroups(distPixels,maxPixelGroup,
+                                         columns = c("oldGroup","spatial_unit_id", "growth_curve_component_id", "ages", "events"))
+  distPixels <- distPixels[,.(pixelIndex,ages,rasterSps,Productivity,spatial_unit_id, growth_curve_component_id,growth_curve_id, events, oldGroup,newGroup)]
+  #adding the new pixelGroup to the pixelKeep
   trackPix <- sim$spatialDT$pixelGroup
   trackPix[which(!is.na(sim$spatialDT$events))] <- distPixels$newGroup
   sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix]
@@ -453,9 +448,9 @@ browser()
   # distPixels. This is to make sure we don't miss a newGroup...since we have
   # events there might be more of these.
   uniqueNewGroup <- unique(distPixels[,-("pixelIndex")]) #60
-  setkey(uniqueNewGroup,pixelGroup)
+  setkey(uniqueNewGroup,oldGroup)
 
-  if(time(sim)==1995){browser()}
+  
   toAdd <- merge(uniqueNewGroup,groupToAddC,all.x=TRUE)#,on = c("pixelGroup")]
   toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
   ## HERE IS WHERE THE EVENTS GET TAKEN OUT...
@@ -463,7 +458,7 @@ browser()
   DMIDS <- merge(toAdd,sim$mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)[,disturbance_matrix_id]
   # not quite the right length yet
   
-  toAdd <- toAdd[,-("events")]
+  toAdd <- toAdd[,c("oldGroup","events") := NULL]
   # rbind now matches column names for you
   # throws out pixelGroups that are where "emptied" by disturbances
   pixelGroupForAnnual <- rbind(sim$pixelGroupC[!(pixelGroup %in% groupOut),],toAdd)
