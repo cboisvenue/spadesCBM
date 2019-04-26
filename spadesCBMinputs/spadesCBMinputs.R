@@ -171,7 +171,7 @@ Init <- function(sim) {
   spatialDT <- spatialDT[,.(ages, rasterSps, Productivity, spatial_unit_id, pixelIndex,
                           growth_curve_component_id, growth_curve_id, pixelGroup)]
   # make the data.table that will be used in simulations
-  level3DT <- spatialDT[,-("pixelIndex")][,.N,by=pixelGroup] %>% merge(unique(spatialDT[,-("pixelIndex")]))
+  level3DT <- unique(spatialDT[,-("pixelIndex")])#spatialDT[,-("pixelIndex")][,.N,by=pixelGroup] %>% merge( )
   # setkey(level3DT,rasterSps,Productivity,spatial_unit_id)
   # level3DT <- level3DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
   # 
