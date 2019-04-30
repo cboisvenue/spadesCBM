@@ -211,34 +211,37 @@ simDist <- function(sim){
 # this function will eventually be an event in the simulations but for now, this will plot post simulation
 # making the preliminary function here:
 
-plotCarbonRasters <- function(sim, cPool, years) {
- 
-  if (any(!cPool %in% sim$pooldef)) {
-    stop(paste0("The cPool you specified is not contained in the pool definitions. Please select from: ",
-    paste(sim$pooldef, collapse = ", ")))
-  }
-
-  cbmPools <- as.data.table(sim$cbmPools) 
+#When revisiting, change this so it doesnt' use sim, but rather pixelKeep and cbmPools. 
+plotCarbonRasters <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
   
+  if ("totalCarbon" %in% colnames(cbmPools)) {
+    totalCarbon <- apply(cbmPools[,5:25], 1, 'sum')
+    cbmPools <- cbind(cbmPools, totalCarbon)
+  }
+  
+  if (any(!poolsToPlot %in% colnames( cbmPools))) {
+    stop("The carbon pool you specified is not contained in the pool definitions")
+  }
+  
+  cbmPools <- as.data.table( cbmPools) 
   #Build rasters for every year and pool
-  carbonStacks <- vector(mode = "list", length = length(cPool))
-  names(carbonStacks) <- cPool
+  carbonStacks <- vector(mode = "list", length = length(poolsToPlot))
+  names(carbonStacks) <- poolsToPlot
  
-  for (pool in cPool) {
+  for (pool in poolsToPlot) {
+    carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, 
+                                                       var = pool, 
+                                                       pixelKeep =  pixelkeep) {
+    poolsDT <- poolsDT[order(pixelGroup)] %>% #order by stand index
+    .[simYear == x, .(pixelGroup, "var" =  get(pool))] #subset by year
+    #subset  pixelKeep
+    colsToKeep <- c("pixelIndex", paste0("pixelGroup", x))
     
-  carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, var = pool, pixelKeep = sim$pixelKeep) {
-    
-    poolsDT <- poolsDT[order(PixelGroupID)] %>% #order by stand index
-    .[simYear == x, .(PixelGroupID, "var" =  get(pool))] #subset by year
-    
-    #subset sim$pixelKeep
-    colsToKeep <- c("rowOrder", paste0("PixelGroupID", x))
     pixelKeep <- pixelKeep[, colsToKeep, with = FALSE] %>%
-    setnames(., c("rowOrder", "PixelGroupID")) %>% #with=FALSE tells data.table colsToKeep isn't a column name    
-    .[poolsDT, on = c("PixelGroupID")] %>% #join with pixelKeep
-    .[order(rowOrder)] #order by rowOrder for raster prep
+    setnames(., c("pixelIndex", "pixelGroup")) #with=FALSE tells data.table colsToKeep isn't a column name    
+    pixelKeep <- pixelKeep[poolsDT, on = c("pixelGroup")] %>% #join with pixelKeep
+    .[order(pixelIndex)] #order by rowOrder for raster prep
     
-    masterRaster <- sim$masterRaster 
     masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
     masterRaster[!is.na(masterRaster)] <- pixelKeep$var
     
@@ -252,8 +255,14 @@ plotCarbonRasters <- function(sim, cPool, years) {
   clearPlot()
   Plot(temp)
 }
-# example: 
-# plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
+
+dev()
+#include 'totalCarbon' in poolsToPlot to add plot of total carbon
+plotCarbonRasters(cbmPools = cbmPools, 
+                  poolsToPlot = c('totalCarbon', "BelowGroundSlowSoil"), 
+                  masterRaster = spadesCBMout$masterRaster,
+                  pixelkeep = spadesCBMout$pixelKeep, 
+                  years = c(1990, 2000, 2005))
 ### End plotCarbonRasters -----------------------------------------------------------------------------
 
 ###spuLocator() --------------------------------------------------------------------------------------
