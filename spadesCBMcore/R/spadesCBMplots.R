@@ -34,8 +34,8 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
       names(masterRaster) <- x #name will begin with x if no character assigned
       return(masterRaster)
     })
+    names(carbonStacks[[pool]]) <- years
   }
-  names(carbonStacks) <- NULL
   temp <- unlist(carbonStacks)
-  quickPlot::Plot(temp, new = TRUE, title = paste0("Total carbon in ", years))
+  quickPlot::Plot(temp, new = TRUE)
 }
