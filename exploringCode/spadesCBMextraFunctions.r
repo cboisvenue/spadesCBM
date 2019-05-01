@@ -214,7 +214,7 @@ simDist <- function(sim){
 #When revisiting, change this so it doesnt' use sim, but rather pixelKeep and cbmPools. 
 plotCarbonRasters <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
   
-  if ("totalCarbon" %in% colnames(cbmPools)) {
+  if ("totalCarbon" %in% poolsToPlot) {
     totalCarbon <- apply(cbmPools[,5:25], 1, 'sum')
     cbmPools <- cbind(cbmPools, totalCarbon)
   }
@@ -258,7 +258,7 @@ plotCarbonRasters <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRas
 
 dev()
 #include 'totalCarbon' in poolsToPlot to add plot of total carbon
-plotCarbonRasters(cbmPools = cbmPools, 
+plotCarbonRasters(cbmPools = spadesCBMout$cbmPools, 
                   poolsToPlot = c('totalCarbon', "BelowGroundSlowSoil"), 
                   masterRaster = spadesCBMout$masterRaster,
                   pixelkeep = spadesCBMout$pixelKeep, 
@@ -297,6 +297,7 @@ retrieveSpuRaster <- function(spatialUnitsFile = shapefile("data/spUnit_Locator.
 ##Some tests that should eventually become actual tests
 test1 <- shapefile("data/forIan/SK_data/CBM_GIS/SpadesCBM_TestArea.shp")
 out1 <- retrieveSpuRaster(UserArea = test1, rasterRes = c(250, 250))
+Plot(out1)
 test2 <- LandR::randomStudyArea(seed = 100, size = 10000*100*300)
 out2 <- retrieveSpuRaster(UserArea = test2, rasterRes = c(250,250))
 Plot(out2)

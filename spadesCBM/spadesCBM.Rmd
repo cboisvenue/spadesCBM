@@ -34,7 +34,7 @@ This module loads all the CBM-CFS3 default parameters (Canadian defaults that is
 This module reads in information that is expected to be provided by the user similarly to CBM-CFS3: the growth curves, the ages of the stands/pixels, links between each stand and the growth curves, and where these stands are in Canada (which provides a link to the default parameters read-in by the previous module). It translates the m3/ha of the growth curves into the biomass pools for stem wood, bark, branches and foliage using the CBMVolumeToBiomass library (by Scott Morken). This library is based on the stand-level parameters of Boudewyn *et al.*(2007). This library needs to be already built before running this module. The code for this library is on this private github repository (https://github.com/smorken/CBMVolumeToBiomass). The volume to biomass translations will eventually be a separate module to increase transparency of this process and permit the use of other biomass curves (example from LandR-biomass, a SpaDES module of the vegetation dynamics model LANDIS-II). This module reads-in user-provided spatially explicit data (in this case: age, leading species, productivity level, cbm_default spatial unit, growth curve identification for each pixel) which define the unique pixel groups for modelling. It also reads-in min and max rotation lengths, mean fire return interval, and provides a place for regeneration delays. Disturbance events must also be spatially explicit and will redefine the pixel groups post-disturbance. Disturbances information needs to specify the type of disturbance using cbm_default disturbance matrix numbers (see cbmData), the year of disturbance and the pixel or stands disturbed. This module has one event (init) and does not schedule anything else. 
 
 ## spadesCBMcore
-This module completes the simulations of the spadesCBM. It has five SpaDES-events: spinup, postSpinup, saveSpinup, annual, and savePools, with the saveSpinup being optional. The spinup event is the "init" event run by default in SpaDES modules. The event "spinup" runs the traditional spinup of CBM-CFS3: where each stand/pixel is disturbed using the disturbance specified in "historicDMIDs" (usually wildfirefor the ecozone) and re-grown using the provided five aboveground biomass pools, until the dead organic matter (DOM) pools values stabilize. A user can set a minimun and a maximum number of rotations, and the disturbance return interval ("minRotations", "maxRotations", "returnIntervals") for the spinup. Once the DOM pools have stabilized, the spinup event grows the stand (still using the same growth curve) to the user-provided age of that stand/pixel ("ages" created in spadesCBMinputs module). If spinupDebug is set to FALSE, the spinup event provides a line for each stand with the intial pool values to initialize the stands/pixels for the annual simulations. These are assigned in the postSpinup event. In the postSpinup event, matrices are set up for the processes that will happen in the annual event (disturbance, half growth, DOMturnover, BioTurnover, OverMatureDecline, second half of growth, DOMDecay, SloDecay, SlowMixing). The event spinupDebug was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles. Please refer to the next paragraph for warnings about this event. The annual event is where all the processes are applied. These include annual growth, turnover, overmature decline, decay, and disturbances. The event "savePools" is scheduled last. It currently creates a ".csv" file (cPoolsPixelYear.csv) that contains the carbon pool values for each unique stand/pixel type at the end of each simulation year. Outputs can modified as needed.
+This module completes the simulations of the spadesCBM. It has six SpaDES-events: spinup, postSpinup, saveSpinup, annual, plot, and savePools, with saveSpinup and plot being optional. The spinup event is the "init" event run by default in SpaDES modules. The event "spinup" runs the traditional spinup of CBM-CFS3: where each stand/pixel is disturbed using the disturbance specified in "historicDMIDs" (usually wildfirefor the ecozone) and re-grown using the provided five aboveground biomass pools, until the dead organic matter (DOM) pools values stabilize. A user can set a minimun and a maximum number of rotations, and the disturbance return interval ("minRotations", "maxRotations", "returnIntervals") for the spinup. Once the DOM pools have stabilized, the spinup event grows the stand (still using the same growth curve) to the user-provided age of that stand/pixel ("ages" created in spadesCBMinputs module). If spinupDebug is set to FALSE, the spinup event provides a line for each stand with the intial pool values to initialize the stands/pixels for the annual simulations. These are assigned in the postSpinup event. In the postSpinup event, matrices are set up for the processes that will happen in the annual event (disturbance, half growth, DOMturnover, BioTurnover, OverMatureDecline, second half of growth, DOMDecay, SloDecay, SlowMixing). The event spinupDebug was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles. Please refer to the next paragraph for warnings about this event. The annual event is where all the processes are applied. These include annual growth, turnover, overmature decline, decay, and disturbances. The 'plot' event uses three parameters: the initial plot time (.plotInitialTime), the interval to plot (.plotInterval), and the carbon pools to plot (poolsToPlot). The parameter poolsToPlot accepts a character vector consiting of any individual pools in cbmPools as well as 'totalCarbon' for the sum of belowground and aboveground carbon. The event "savePools" is scheduled last. It currently creates a ".csv" file (cPoolsPixelYear.csv) that contains the carbon pool values for each unique stand/pixel type at the end of each simulation year. Outputs can modified as needed.
 
 #### DANGER with the spinupDebug parameter
 The spinupDebug parameter is a logical parameter defined in the metadata of the spadesCBMcore.R module. It determines if the results from the spinup will be saved as an external file. The default is FALSE. If this is set to TRUE, the postSpinup event re-runs the cpp Sinup function because the cpp Spinup function actually uses the sinpupDebug and spits-out all the runs for all the stand/pixels until the stabilization of the DOM pools instead of the DOM for each stand needed to start the annual simulation runs. This could take a long time if you have a lot of stands/pixels. This will be modified once cpp script is modularized.
@@ -52,6 +52,8 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
 library(SpaDES)
+library(CBMVolumeToBiomass)
+library(RSQLite)
 library(magrittr) # this is needed to use "%>%" below
 options("reproducible.useRequire" = FALSE) #Require doesn't seem to work with RSQLite
 moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
@@ -60,7 +62,9 @@ outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outpu
 cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 2005.00)
 parameters <- list(
-  spadesCBMcore = list(.useCache = FALSE),
+  spadesCBMcore = list(.useCache = FALSE,
+                       .plotInterval = 5,
+                       .plotInitialTime = 1995),
   spadesCBMinputs = list(.useCache = FALSE),
   spadesCBMdefaults = list(.useCache = FALSE)
 )
@@ -77,10 +81,12 @@ paths <- list(
   outputPath = outputDir
   )
 
-spadesCBMSim <- simInit(times = times, params = parameters, 
-                    modules = modules,
-                 objects = objects, paths = paths)
-
+spadesCBMSim <- simInit(times = times,
+                        params = parameters,
+                        modules = modules, 
+                        objects = objects, 
+                        paths = paths)
+dev()
 spadesCBMout <- spades(spadesCBMSim,debug=TRUE)
 
 ```

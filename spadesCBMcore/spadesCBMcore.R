@@ -15,11 +15,13 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMcore.Rmd"),
-  reqdPkgs = list("Rcpp","raster"),
+  reqdPkgs = list("Rcpp","raster", "quickPlot"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),    
     defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no ouput of the spinupResult"),
     defineParameter("noAnnualDisturbances", "logical", FALSE, NA, NA, "If TRUE the sim$allProcesses and sim$opMatrix are created in the postSpinup event, just once. By default, these are recreated everyyear in the annual event"),
+    defineParameter("poolsToPlot", "character", "totalCarbon", NA, NA, 
+                    desc = "which carbon pools to plot, if any. Defaults to total carbon"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -87,7 +89,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "postSpinup")
       #sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual")
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMcore", "plot")
+      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMcore", "plot", eventPriority = 9)
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMcore", "save")
     },
     saveSpinup = {
@@ -124,16 +126,13 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # ! ----- STOP EDITING ----- ! #
     },
     plot = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
+      spatialPlot(cbmPools = sim$cbmPools,
+                  poolsToPlot = P(sim)$poolsToPlot,
+                  masterRaster = sim$masterRaster,
+                  pixelkeep = sim$pixelKeep, 
+                  years = time(sim)) # uncomment this, replace with object to plot
 
-      #Plot(objectFromModule) # uncomment this, replace with object to plot
-      # schedule future event(s)
-
-      # e.g.,
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
-
-      # ! ----- STOP EDITING ----- ! #
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
     savePools = {
       # ! ----- EDIT BELOW ----- ! #
