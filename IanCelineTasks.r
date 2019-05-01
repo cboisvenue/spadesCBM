@@ -106,5 +106,7 @@
 # unique(PixelGroupID).
 # - yield components (yieldComponentsSK.csv) cannot change format until we can
 # play with the Rcpp code
+#sim$pools created in the soadesCBMinputs b/c it is needed in the Spinup(cpp)
+
 #--------------------------------------
 
