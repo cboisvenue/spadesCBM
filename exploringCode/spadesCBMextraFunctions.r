@@ -211,34 +211,37 @@ simDist <- function(sim){
 # this function will eventually be an event in the simulations but for now, this will plot post simulation
 # making the preliminary function here:
 
-plotCarbonRasters <- function(sim, cPool, years) {
- 
-  if (any(!cPool %in% sim$pooldef)) {
-    stop(paste0("The cPool you specified is not contained in the pool definitions. Please select from: ",
-    paste(sim$pooldef, collapse = ", ")))
-  }
-
-  cbmPools <- as.data.table(sim$cbmPools) 
+#When revisiting, change this so it doesnt' use sim, but rather pixelKeep and cbmPools. 
+plotCarbonRasters <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
   
+  if ("totalCarbon" %in% poolsToPlot) {
+    totalCarbon <- apply(cbmPools[,5:25], 1, 'sum')
+    cbmPools <- cbind(cbmPools, totalCarbon)
+  }
+  
+  if (any(!poolsToPlot %in% colnames( cbmPools))) {
+    stop("The carbon pool you specified is not contained in the pool definitions")
+  }
+  
+  cbmPools <- as.data.table( cbmPools) 
   #Build rasters for every year and pool
-  carbonStacks <- vector(mode = "list", length = length(cPool))
-  names(carbonStacks) <- cPool
+  carbonStacks <- vector(mode = "list", length = length(poolsToPlot))
+  names(carbonStacks) <- poolsToPlot
  
-  for (pool in cPool) {
+  for (pool in poolsToPlot) {
+    carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, 
+                                                       var = pool, 
+                                                       pixelKeep =  pixelkeep) {
+    poolsDT <- poolsDT[order(pixelGroup)] %>% #order by stand index
+    .[simYear == x, .(pixelGroup, "var" =  get(pool))] #subset by year
+    #subset  pixelKeep
+    colsToKeep <- c("pixelIndex", paste0("pixelGroup", x))
     
-  carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, var = pool, pixelKeep = sim$pixelKeep) {
-    
-    poolsDT <- poolsDT[order(PixelGroupID)] %>% #order by stand index
-    .[simYear == x, .(PixelGroupID, "var" =  get(pool))] #subset by year
-    
-    #subset sim$pixelKeep
-    colsToKeep <- c("rowOrder", paste0("PixelGroupID", x))
     pixelKeep <- pixelKeep[, colsToKeep, with = FALSE] %>%
-    setnames(., c("rowOrder", "PixelGroupID")) %>% #with=FALSE tells data.table colsToKeep isn't a column name    
-    .[poolsDT, on = c("PixelGroupID")] %>% #join with pixelKeep
-    .[order(rowOrder)] #order by rowOrder for raster prep
+    setnames(., c("pixelIndex", "pixelGroup")) #with=FALSE tells data.table colsToKeep isn't a column name    
+    pixelKeep <- pixelKeep[poolsDT, on = c("pixelGroup")] %>% #join with pixelKeep
+    .[order(pixelIndex)] #order by rowOrder for raster prep
     
-    masterRaster <- sim$masterRaster 
     masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
     masterRaster[!is.na(masterRaster)] <- pixelKeep$var
     
@@ -252,8 +255,14 @@ plotCarbonRasters <- function(sim, cPool, years) {
   clearPlot()
   Plot(temp)
 }
-# example: 
-# plotCarbonRasters(spadesCBMout, cPool = c('SoftwoodFineRoots', 'SoftwoodBranchSnag'), years = c(1999, 2000))
+
+dev()
+#include 'totalCarbon' in poolsToPlot to add plot of total carbon
+plotCarbonRasters(cbmPools = spadesCBMout$cbmPools, 
+                  poolsToPlot = c('totalCarbon', "BelowGroundSlowSoil"), 
+                  masterRaster = spadesCBMout$masterRaster,
+                  pixelkeep = spadesCBMout$pixelKeep, 
+                  years = c(1990, 2000, 2005))
 ### End plotCarbonRasters -----------------------------------------------------------------------------
 
 ###spuLocator() --------------------------------------------------------------------------------------
@@ -262,14 +271,10 @@ library(fasterize) #We will need this to speed up the rasterize process
 library(sf)#We will need this to speed up the rasterize process
 
 #Make a function that produces a raster with spUnits
-retrieveSpuRaster <- function(spatialUnitsFile = NULL, UserArea, rasterRes = c(250,250)){
+retrieveSpuRaster <- function(spatialUnitsFile = shapefile("data/spUnit_Locator.shp"), UserArea, rasterRes = c(250,250)){
  
   if (!(class(UserArea) == "SpatialPolygonsDataFrame" | class(UserArea) == "RasterLayer")) {
     stop("Please supply UserArea as a SpatialPolygonsDataFrame or RasterLayer")
-  }
-  
-  if (is.null(spatialUnitsFile)){
-    spatialUnitsFile <- raster::shapefile("data/spUnit_Locator.shp")
   }
   
   if (!identicalCRS(spatialUnitsFile, UserArea)) {
@@ -290,12 +295,9 @@ retrieveSpuRaster <- function(spatialUnitsFile = NULL, UserArea, rasterRes = c(2
 }
 
 ##Some tests that should eventually become actual tests
-# test1 <- shapefile("data/forIan/SK_data/CBM_GIS/SpadesCBM_TestArea.shp")
-# out1 <- retrieveSpuRaster(UserArea = test1, rasterRes = c(250, 250))
-# test2 <- shapefile("C:/Ian/Data/BC/BC_EcoProvinces.shp")
-# test2 <- test2[test2$PROVINCE_ == 31,] #this example has two polygons projected in lat long
-# out2 <- retrieveSpuRaster(UserArea = test2, rasterRes = c(0.005,0.005)) #works in degrees
-# plot(out2)
-# test3 <- shapefile("C:/Ian/Campbell/RIA/GIS/RIA_StudyArea/RIA_StudyArea_Valid.shp")
-# out3 <- retrieveSpuRaster(UserArea = test3, rasterRes = c(500, 500), spatialUnitsFile = spUnits_Can)
-# plot(out3)
+test1 <- shapefile("data/forIan/SK_data/CBM_GIS/SpadesCBM_TestArea.shp")
+out1 <- retrieveSpuRaster(UserArea = test1, rasterRes = c(250, 250))
+Plot(out1)
+test2 <- LandR::randomStudyArea(seed = 100, size = 10000*100*300)
+out2 <- retrieveSpuRaster(UserArea = test2, rasterRes = c(250,250))
+Plot(out2)
