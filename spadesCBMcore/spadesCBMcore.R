@@ -131,7 +131,10 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
                   masterRaster = sim$masterRaster,
                   pixelkeep = sim$pixelKeep, 
                   years = time(sim)) # uncomment this, replace with object to plot
-
+      barPlot(cbmPools = sim$cbmPools,
+              masterRaster = sim$masterRaster,
+              pixelKeep = sim$pixelKeep)
+      
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
     savePools = {

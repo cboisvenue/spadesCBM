@@ -39,3 +39,43 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
   temp <- unlist(carbonStacks)
   quickPlot::Plot(temp, new = TRUE)
 }
+
+barPlot <- function(cbmPools, masterRaster, pixelKeep) {
+  colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
+  #Need to first average values per ha
+  cbmPools <- as.data.table(cbmPools)
+  cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
+  cbmPools$simYear <- as.character(cbmPools$simYear)
+  soilCarbon <- cbmPools[, .(soilCarbon = sum(get(colnames(cbmPools)[15:21])), 
+          livingCarbon = sum(get(colnames(cbmPools)[5:14]))), by = .(pixelGroup, simYear)]
+  
+  pixTable <- pixelKeep[, !"pixelIndex", with = FALSE]
+  freqTable <- as.data.table(lapply(pixTable, tabulate, nbins = max(pixTable)))
+  #Not sure this will always work
+  newNames <- as.character(c(0, unique(soilCarbon$simYear)))
+  colnames(freqTable) <- newNames
+  weights <- freqTable/nrow(pixelKeep)
+  
+  weights$pixelGroup <- row.names(weights)
+  weights <- data.table::melt.data.table(weights, id.vars = 'pixelGroup', value.name = "weight", variable.name = "simYear")
+ 
+  #Need to make this a character
+  weights$simYear <- as.character(weights$simYear)
+ 
+  setkey(weights, pixelGroup, simYear)
+  setkey(soilCarbon, pixelGroup, simYear)
+  outTable <- weights[soilCarbon]
+  outTable <- outTable[, .(soilCarbon = sum(soilCarbon * weight), treeCarbon = sum(weight * livingCarbon)), by = simYear]
+  outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
+                                          measure.vars = c("soilCarbon", "treeCarbon"), 
+                                          variable.name = 'pool', 
+                                          value.name = "carbon")
+  outTable$simYear <- as.numeric(outTable$simYear)
+  outTable$carbon <- as.numeric(outTable$carbon)
+  g <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
+    geom_area(aes(fill = pool))  
+    
+  Plot(g)
+  #plot Units must be multiplied by 10000/prod(res(masterRaster)) to get tonnes/ha 
+  
+}
