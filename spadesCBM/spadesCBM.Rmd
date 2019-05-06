@@ -65,7 +65,7 @@ parameters <- list(
   spadesCBMcore = list(.useCache = FALSE,
                        .plotInterval = 5,
                        .plotInitialTime = 1995,
-                       poolsToPlot = c("totalCarbon", "BelowGroundSlowSoil")),
+                       poolsToPlot = c("totalCarbon")),
   spadesCBMinputs = list(.useCache = FALSE),
   spadesCBMdefaults = list(.useCache = FALSE)
 )
