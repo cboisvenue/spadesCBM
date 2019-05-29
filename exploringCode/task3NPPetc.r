@@ -8,14 +8,18 @@
 #the fluxes are going to be tricky because the most logical way to calculate the
 #fluxes would be in the cpp code. There is even a place holder for that (lines
 #393-398).
+# SO WORKING ON NPP ONLY HERE
 
-#Here, I try to figure out the best way to get NPP. I see three avenues:
-#1. extract the components during processes (like increment and turnover) and
+#I see three avenuesto figure out the best way to get NPP:
+#1. extract the components during processing in the R scripts (like increment and turnover) and
 #cumulate them in another data table (memory intensive)
-#2. calculate either NPP directly, or the components from the cPools outputed in
+#2. calculate the components of NPP directly (increment and biomass turnover) from the cPools outputed in
 #the cPoolsPixelYear.csv
-#3. use a combination of the info we have (like the turnoverRates) and the
-#cPoolsPixelYear.csv to figure out the NPP and/or its components
+#3. calculate all the flux matrices in teh Cpp code (out of my reach rigth now)
+
+# SELECTED #2: will calculate the NPP components from the output
+# cPoolsPixelYear.csv. Note that if we don't output all years this won't work,
+# we will have to calculate it in the yearly processing.
 
 # SORTING OUT A FEW THINGS FIRST
 
@@ -36,37 +40,75 @@
 #--------------------------------------------------------------------
 
 # UNITS-------------------------------------------------------------
-#the $growth_increments are in tonnes of carbon and these MATCH the values if
+#the $growth_increments are in tonnes of carbon per ha and these MATCH the values if
 #you calculate the differences between two years in the cPoolsYears.csv for the
 #Merc, Fol, Other, Froots, Croots.
+#see work\SpaDES\work\workingOutNPP.xls
 #so the carbonCurve ("curve" on line 121 of spadesCBMinputs) returned from the
-#R function processGrowthCurve() is in tonnes of carbon and is the total, not
+#R function processGrowthCurve() is in tonnes of carbon per ha and is the total, not
 #the increment for the Merch, Fol, and Other (not the roots, they are
 #calculated later). For these three pools the "curve" of carbonCurve, match the
-#values in the output (cPoolsYears.csv)
-#CONCLUSION: I can calculate the increment by summing the deltas from the output
+#values in the output (cPoolsPixelYear.csv)
+#CONCLUSION: I can calculate the increment by summing the deltas from the output as per option #2.
 #-----------------------------------------------------------------------
+# creating a map of UNITS ---------------------
+# 1.the growth curves are in m3/ha (cumulative volume over time)
+# 2. the growth curves are fed into the Boudewyn algorithms
+# (library(CBMVOlumeToBiomass)) with its results multiplied by 0.5. That gives us the "curve", line 121 in
+# spadesCBMinputs and that is in tonnes of carbon/ha
+# 3. the differences between the years will be in tonnes of carbon per hectare
+# 4. checking this in workingOutNPP.xlsx IncrementTurnoverManually worksheet:
+# average NPP is 2.5987. If this is in tonnes of C per hectare per year, that
+# would be *100 (1 tonne=1000000g, 1ha=10000) in gC m-2 yr-1, so 259.87 - spot on! i.e., that makes sense
 
-#NOW: TUNROVER?
+
+# calculating increment-------------------------------------------------------------
+# example of this for one stand that does not have disturbances in excel
+# work\SpaDES\work\workingOutNPP.xls
+# the year stands are disturbed, don't calculate NPP (could put a range limit
+# like is "total NPP/yr has to be <5)
+# IncrementTurnoveManually, used cPoolsPixelYear.csv, order by pixelGroup and age, calculate
+# the different between (year+1) and year for
+# SoftwoodMerch	SoftwoodFoliage	SoftwoodOther	SoftwoodCoarseRoots	SoftwoodFineRoots.
+# The sum of that = increment
+## TO DO FOR ALL STANDS in cPoolsPixelYear.csv
+###WORKING ON grossGrowth HERE##
+library(data.table)
+outC <- as.data.table(read.csv(file.path(outputPath(spadesCBMout),"cPoolsPixelYear.csv")))
+
+# sort by pixel group and simYear## HERE FOR INCREMENTS
+grossGrowthAG <- NULL
+grossGrowthAG<- rbind(grossGrowthAG,##HERE## WRONG AFTER THIS
+                               cbind(rep(gcid,(nrow(curve)-1)), cbind(curve[0:(nrow(curve)-1),1], diff(curve[,2:ncol(curve)]))))
+#NOW: TURNOVER?
 # Rates are here: spadesCBMout$cbmData@turnoverRates spadesCBMout$level3DT has
 # spatial_unit_id spadesCBMout$cbmData@spatialUnitIds has the EcoBoundaryID (in
 # rates) that links to the SpatialUnitID (in level3DT)
+
+# there is a tricky part to turnover: there is a flow that occurs on a growth
+# curve decline these involve the "Split" parameter in trates. There are three
+# of these parameters: CoarseRootAGSplit, FineRootAGSplit,
+# OtherToBranchSnagSplit. These spilts only apply to increments when the
+# increments is less then 0. See OverMatureDecline worksheet in work\SpaDES\work\Matrices.xls
 ###HERE
+trates <- spadesCBMout$cbmData@turnoverRates
+level3DT <- spadesCBMout$level3DT #$pixelGroupC after the 1st year of sim
+spuLink <- spadesCBMout$cbmData@spatialUnitIds
+
+ourspu <- unique(level3DT$spatial_unit_id)
+oureco <- spuLink[which(spuLink[,1] %in% ourspu),c(1,3)]
+ourRates <- cbind(oureco[,1],trates[which(trates[,1] %in% oureco[,2]),])
+colnames(ourRates)[1] <- "spatial_unit_id"
+# check if the rates are all equal (?maybe this step is not necessary since we
+# would do it by spu/ecoB anyway...)
+ourRates[1,2:13]==ourRates[2,2:13]
+# only one rate for these two spu
+
+# lining-up rates so that they match the order of the pools in the cPoolsPixelYear.csv
+ratesApply <- ourRates[,c(1,2,5,3,6,9,11,5,4,7,9,11)]
 
 
-# creating a map of ---------------------
-#cbmTables$root_parameter
-# id  hw_a  sw_a  hw_b frp_a frp_b       frp_c
-# 1  1 1.576 0.222 0.615 0.072 0.354 -0.06021195
-
-# the merch foliage and other are maybe in the spadesCBMout$growth_increments, but the
-# roots...where are the increments added??
-
-
-
-
-
-
+# scratch notes-------------------------------------------------------------------------
 #person: Celine
 
 # working with the spadesCBMout object for now
