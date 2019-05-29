@@ -67,13 +67,13 @@
 #of them) per spatial unit. Where is this created? How does it link to the
 #“decay_parameter” table in cbmData?
 
-#13.rewrite teh CBMVolumeToBiomass library for more transparency. carbonCurve:
+#13.rewrite the CBMVolumeToBiomass library for more transparency. carbonCurve:
 #this is the result from using all the growth curves and “translating” them into
 #biomass compartments using SMorken’s CBMVolumeToBiomass library
 
 #14.fix all the warnings so that caching works reliably. 
 
-#15.make a separaterate growth and yield module.
+#15.make a separate growth and yield module.
 
 #16.generic 20% disturbance is currently used for the disturbance Lcondition and
 #Unclassified. The disturbance matrix reduces the biomass by 20% but then
