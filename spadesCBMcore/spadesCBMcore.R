@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMcore.Rmd"),
-  reqdPkgs = list("Rcpp","raster", "quickPlot"),
+  reqdPkgs = list("Rcpp","raster", "quickPlot", "ggplot2"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),    
     defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no ouput of the spinupResult"),
@@ -65,7 +65,8 @@ defineModule(sim, list(
     createsOutput(objectName = "pixelKeep", objectClass = "data.table", desc = "Keeps the pixelIndex from spatialDT with each year's PixelGroupID as a column. This is to enable making maps of yearly output."),
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
-    createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation")
+    createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation"),
+    createsOutput(objectName = "changeInNPP", objectClass = "data.table", desc = "change in NPP for each pixelGroup")
   )
 ))
 
@@ -126,15 +127,21 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # ! ----- STOP EDITING ----- ! #
     },
     plot = {
+      clearPlot()
       spatialPlot(cbmPools = sim$cbmPools,
                   poolsToPlot = P(sim)$poolsToPlot,
                   masterRaster = sim$masterRaster,
                   pixelkeep = sim$pixelKeep, 
                   years = time(sim)) # uncomment this, replace with object to plot
-      barPlot(cbmPools = sim$cbmPools,
-              masterRaster = sim$masterRaster,
-              pixelKeep = sim$pixelKeep)
-      
+      if (!time(sim) == start(sim)) {
+        aNPPPlot(changeInNPP = sim$changeInNPP, 
+                 masterRaster = sim$masterRaster,
+                 spatialDT = sim$spatialDT)
+      }
+      # barPlot(cbmPools = sim$cbmPools,
+      #         masterRaster = sim$masterRaster,
+      #         pixelKeep = sim$pixelKeep)
+      # 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
     savePools = {
@@ -542,7 +549,74 @@ annual <- function(sim) {
   sim$ages <- sim$pixelGroupC$ages
 
   sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools))
-
+  
+  if (time(sim) == start(sim)) {
+    sim$changeInNPP <- sim$pixelGroupC[, .(
+      AGC = sum(
+        SoftwoodMerch,
+        SoftwoodFoliage,
+        SoftwoodOther,
+        HardwoodMerch,
+        HardwoodFoliage,
+        HardwoodOther
+        ),
+      BGC = sum(
+        HardwoodCoarseRoots,
+        HardwoodFineRoots,
+        AboveGroundVeryFastSoil,
+        BelowGroundVeryFastSoil,
+        AboveGroundFastSoil,
+        BelowGroundFastSoil,
+        AboveGroundSlowSoil,
+        BelowGroundSlowSoil
+        )
+      ), by = pixelGroup]
+  } else {
+    changeInNPP <- sim$changeInNPP
+    newCarbon <- sim$pixelGroupC[, .(
+      newAGC = sum(
+        SoftwoodMerch,
+        SoftwoodFoliage,
+        SoftwoodOther,
+        HardwoodMerch,
+        HardwoodFoliage,
+        HardwoodOther
+       ),
+      newBGC = sum(
+        HardwoodCoarseRoots,
+        HardwoodFineRoots,
+        AboveGroundVeryFastSoil,
+        BelowGroundVeryFastSoil,
+        AboveGroundFastSoil,
+        BelowGroundFastSoil,
+        AboveGroundSlowSoil,
+        BelowGroundSlowSoil
+       ),
+      turnover = sum(
+        SoftwoodMerch * 0.005,
+        SoftwoodFoliage * 0.1,
+        SoftwoodOther * 0.04,
+        SoftwoodCoarseRoots * 0.02,
+        SoftwoodFineRoots * 0.641,
+        HardwoodMerch * 0.005,
+        HardwoodFoliage * 0.95,
+        HardwoodOther * 0.04,
+        HardwoodCoarseRoots * 0.02,
+        HardwoodFineRoots * 0.641
+       )
+      ), by = pixelGroup]
+    bothYears <- changeInNPP[newCarbon, on = 'pixelGroup']
+    deltaNPP <- bothYears[, .(
+      AGC = newAGC,
+      BGC = newBGC,
+      bgNPP = newBGC - BGC,
+      agNPP = newAGC - AGC,
+      totalNPP = newBGC + newAGC - BGC - AGC + turnover
+      ), by = pixelGroup]
+    browser()
+    sim$changeInNPP <- deltaNPP
+  }
+  
   return(invisible(sim))
 }
 

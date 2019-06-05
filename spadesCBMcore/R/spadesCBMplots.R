@@ -75,7 +75,18 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
   g <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
     geom_area(aes(fill = pool))  
     
-  Plot(g)
+  plot(g, add = TRUE)
+
   #plot Units must be multiplied by 10000/prod(res(masterRaster)) to get tonnes/ha 
+  
+}
+
+aNPPPlot <- function(spatialDT, changeInNPP, masterRaster){
+  t <- spatialDT[, .(pixelIndex, pixelGroup)]
+  temp <- t[changeInNPP, on = "pixelGroup"]
+  setkey(temp, pixelIndex)
+  masterRaster[!masterRaster == 0] <- temp$totalNPP
+  names(masterRaster) <- "totalNPP"
+  quickPlot::Plot(masterRaster, new = TRUE, title = "total aNPP")
   
 }
