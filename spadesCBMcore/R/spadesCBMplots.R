@@ -61,7 +61,6 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
  
   #Need to make this a character
   weights$simYear <- as.character(weights$simYear)
- 
   setkey(weights, pixelGroup, simYear)
   setkey(soilCarbon, pixelGroup, simYear)
   outTable <- weights[soilCarbon]
@@ -72,10 +71,14 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
                                           value.name = "carbon")
   outTable$simYear <- as.numeric(outTable$simYear)
   outTable$carbon <- as.numeric(outTable$carbon)
-  g <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
-    geom_area(aes(fill = pool))  
+  totalCarbon <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
+    geom_area(aes(fill = pool)) + 
+    scale_fill_discrete(name = "carbon pool",
+                        labels = c("AG", "BG")) + 
+    labs(x = "Year", y = "C (Mg/ha)")
+      
     
-  plot(g, add = TRUE)
+  quickPlot::Plot(totalCarbon, new = TRUE, title = "mean C per pixel")
 
   #plot Units must be multiplied by 10000/prod(res(masterRaster)) to get tonnes/ha 
   
@@ -86,7 +89,7 @@ aNPPPlot <- function(spatialDT, changeInNPP, masterRaster){
   temp <- t[changeInNPP, on = "pixelGroup"]
   setkey(temp, pixelIndex)
   masterRaster[!masterRaster == 0] <- temp$totalNPP
-  names(masterRaster) <- "totalNPP"
-  quickPlot::Plot(masterRaster, new = TRUE, title = "total aNPP")
+  names(masterRaster) <- "total aNPP"
+  quickPlot::Plot(masterRaster, new = TRUE, title = "total ANPP")
   
 }

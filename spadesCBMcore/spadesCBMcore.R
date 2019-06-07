@@ -128,6 +128,10 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     },
     plot = {
       clearPlot()
+      barPlot(cbmPools = sim$cbmPools,
+              masterRaster = sim$masterRaster,
+              pixelKeep = sim$pixelKeep)
+      
       spatialPlot(cbmPools = sim$cbmPools,
                   poolsToPlot = P(sim)$poolsToPlot,
                   masterRaster = sim$masterRaster,
@@ -138,10 +142,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
                  masterRaster = sim$masterRaster,
                  spatialDT = sim$spatialDT)
       }
-      # barPlot(cbmPools = sim$cbmPools,
-      #         masterRaster = sim$masterRaster,
-      #         pixelKeep = sim$pixelKeep)
-      # 
+
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
     savePools = {
@@ -613,7 +614,6 @@ annual <- function(sim) {
       agNPP = newAGC - AGC,
       totalNPP = newBGC + newAGC - BGC - AGC + turnover
       ), by = pixelGroup]
-    browser()
     sim$changeInNPP <- deltaNPP
   }
   
