@@ -37,7 +37,7 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
     names(carbonStacks[[pool]]) <- years
   }
   temp <- unlist(carbonStacks)
-  quickPlot::Plot(temp, new = TRUE)
+  quickPlot::Plot(temp, new = TRUE, title = paste0("Total C in ", years))
 }
 
 barPlot <- function(cbmPools, masterRaster, pixelKeep) {
@@ -64,18 +64,20 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
   setkey(weights, pixelGroup, simYear)
   setkey(soilCarbon, pixelGroup, simYear)
   outTable <- weights[soilCarbon]
-  outTable <- outTable[, .(soilCarbon = sum(soilCarbon * weight), treeCarbon = sum(weight * livingCarbon)), by = simYear]
+  outTable <- outTable[, .(soil = sum(soilCarbon * weight), trees = sum(weight * livingCarbon)), by = simYear]
   outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
-                                          measure.vars = c("soilCarbon", "treeCarbon"), 
+                                          measure.vars = c("soil", "trees"), 
                                           variable.name = 'pool', 
                                           value.name = "carbon")
+  
   outTable$simYear <- as.numeric(outTable$simYear)
   outTable$carbon <- as.numeric(outTable$carbon)
-  totalCarbon <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
-    geom_area(aes(fill = pool)) + 
+  totalCarbon <- ggplot(data = outTable, aes(x = simYear, y = carbon, col = pool)) +
+    geom_line(size = 2) + 
     scale_fill_discrete(name = "carbon pool",
-                        labels = c("AG", "BG")) + 
-    labs(x = "Year", y = "C (Mg/ha)")
+                        labels = c("AG", "BG")) +
+    labs(x = "Year", y = "C (Mg/ha)") + 
+    theme_bw()
       
     
   quickPlot::Plot(totalCarbon, new = TRUE, title = "mean C per pixel")
