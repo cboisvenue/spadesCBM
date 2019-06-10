@@ -98,6 +98,10 @@
 # things but would make it easier if the rasters are provided by other modules 
 # down the line. If not all rasters can be read-in as a stack and looked-up each
 # year.
+
+#20. the bar plotting uses pixelKeep, but we need to move away from this for memory purposes. 
+# instead the values should be calculated for time(sim) and added to a plotting object
+# using rbind 
 #
 # Notes:
 # - in sim$allProcesses (list of 9), only three, the growth (Growth1 and
