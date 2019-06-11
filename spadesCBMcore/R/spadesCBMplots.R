@@ -37,10 +37,11 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
     names(carbonStacks[[pool]]) <- years
   }
   temp <- unlist(carbonStacks)
-  quickPlot::Plot(temp, new = TRUE)
+  quickPlot::Plot(temp, new = TRUE, title = paste0("Total C in ", years))
 }
 
 barPlot <- function(cbmPools, masterRaster, pixelKeep) {
+  #This needs to change to belowground living, aboveground living, soil, snag
   colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
@@ -61,21 +62,37 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
  
   #Need to make this a character
   weights$simYear <- as.character(weights$simYear)
- 
   setkey(weights, pixelGroup, simYear)
   setkey(soilCarbon, pixelGroup, simYear)
   outTable <- weights[soilCarbon]
-  outTable <- outTable[, .(soilCarbon = sum(soilCarbon * weight), treeCarbon = sum(weight * livingCarbon)), by = simYear]
+  outTable <- outTable[, .(soil = sum(soilCarbon * weight), tree = sum(weight * livingCarbon)), by = simYear]
   outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
-                                          measure.vars = c("soilCarbon", "treeCarbon"), 
+                                          measure.vars = c("soil", "tree"), 
                                           variable.name = 'pool', 
                                           value.name = "carbon")
+  
   outTable$simYear <- as.numeric(outTable$simYear)
   outTable$carbon <- as.numeric(outTable$carbon)
-  g <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
-    geom_area(aes(fill = pool))  
+  totalCarbon <- ggplot(data = outTable, aes(x = simYear, y = carbon, col = pool)) +
+    geom_line(size = 2) + 
+    scale_fill_discrete(name = "carbon pool",
+                        labels = c("trees", "soil")) +
+    labs(x = "Year", y = "C (Mg/ha)") + 
+    theme_bw()
+      
     
-  Plot(g)
+  quickPlot::Plot(totalCarbon, new = TRUE, title = "mean C per pixel")
+
   #plot Units must be multiplied by 10000/prod(res(masterRaster)) to get tonnes/ha 
+  
+}
+
+aNPPPlot <- function(spatialDT, changeInNPP, masterRaster){
+  t <- spatialDT[, .(pixelIndex, pixelGroup)]
+  temp <- t[changeInNPP, on = "pixelGroup"]
+  setkey(temp, pixelIndex)
+  masterRaster[!masterRaster == 0] <- temp$totalNPP
+  names(masterRaster) <- "total aNPP"
+  quickPlot::Plot(masterRaster, new = TRUE, title = "total ANPP")
   
 }

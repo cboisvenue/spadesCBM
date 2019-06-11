@@ -52,8 +52,8 @@ This is because the pooldef values are expected to be in the .GlobalEnv due to a
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
 library(SpaDES)
-library(CBMVolumeToBiomass)
-library(RSQLite)
+# library(CBMVolumeToBiomass)
+# library(RSQLite)
 library(magrittr) # this is needed to use "%>%" below
 options("reproducible.useRequire" = FALSE) #Require doesn't seem to work with RSQLite
 moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
@@ -88,6 +88,7 @@ spadesCBMSim <- simInit(times = times,
                         objects = objects, 
                         paths = paths)
 dev()
+clearPlot()
 spadesCBMout <- spades(spadesCBMSim,debug=TRUE)
 
 ```
