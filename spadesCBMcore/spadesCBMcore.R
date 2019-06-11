@@ -562,6 +562,7 @@ annual <- function(sim) {
 
   sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools))
   
+  #Calculate NPP
   if (time(sim) == start(sim)) {
     sim$changeInNPP <- sim$pixelGroupC[, .(
       AGC = sum(
@@ -585,12 +586,16 @@ annual <- function(sim) {
       ), by = pixelGroup]
   } else {
     turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
-    #Figure out how to join these values with table and multiply by them instead of hardcode
-    #Is level3DT updated? 
+    setkey(turnoverRates, spatial_unit_id)
     changeInNPP <- sim$changeInNPP
-    #Need to get SPU of each pixelGroup to track down ecoboundary. Faster way?
-    changeInNPP <- merge(changeInNPP, sim$pixelGroupC, by = c("pixelGroup"))
-    newCarbon <- merge(changeInNPP, turnoverRates, by = "spatial_unit_id")
+    
+    #Need to get SPU of each pixelGroup to track down ecoboundary
+    pixelGroupC <- sim$pixelGroupC
+    setkey(pixelGroupC, pixelGroup, spatial_unit_id)
+    setkey(changeInNPP, pixelGroup)
+    changeInNPP <- changeInNPP[pixelGroupC]
+    setkey(changeInNPP, spatial_unit_id)
+    newCarbon <- turnoverRates[changeInNPP]
     newCarbon <- newCarbon[, .(
       newAGC = sum(
         SoftwoodMerch,

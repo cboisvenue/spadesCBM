@@ -46,9 +46,16 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
+  
   cbmPools$simYear <- as.character(cbmPools$simYear)
-  soilCarbon <- cbmPools[, .(soilCarbon = sum(get(colnames(cbmPools)[15:21])), 
-          livingCarbon = sum(get(colnames(cbmPools)[5:14]))), by = .(pixelGroup, simYear)]
+  soilCarbon <- cbmPools[, .(softwoodShoots = sum(SoftwoodMerch, SoftwoodFoliage, SoftwoodOther),
+                             softwoodRoots = sum(SoftwoodCoarseRoots, SoftwoodFineRoots),
+                             hardwoodShoots = sum(HardwoodFoliage, HardwoodMerch, HardwoodOther),
+                             hardwoodRoots = sum(HardwoodCoarseRoots, HardwoodFineRoots),
+                             soil = sum(BelowGroundVeryFastSoil, BelowGroundFastSoil, BelowGroundSlowSoil,
+                                        AboveGroundVeryFastSoil, AboveGroundFastSoil, AboveGroundSlowSoil),
+                             snags = sum(SoftwoodStemSnag, SoftwoodBranchSnag, HardwoodStemSnag, HardwoodBranchSnag)
+                             ), by = .(pixelGroup, simYear)]
   
   pixTable <- pixelKeep[, !"pixelIndex", with = FALSE]
   freqTable <- as.data.table(lapply(pixTable, tabulate, nbins = max(pixTable)))
@@ -65,16 +72,19 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
   setkey(weights, pixelGroup, simYear)
   setkey(soilCarbon, pixelGroup, simYear)
   outTable <- weights[soilCarbon]
-  outTable <- outTable[, .(soil = sum(soilCarbon * weight), tree = sum(weight * livingCarbon)), by = simYear]
+  outTable <- outTable[, .(SWliveAG = sum(softwoodShoots * weight), SWliveBG = sum(weight * softwoodRoots),
+                           HWliveAG = sum(hardwoodShoots * weight), HWliveBG = sum(weight * hardwoodRoots),
+                           soil = sum(soil*weight), snags = sum(snags * weight)), by = simYear]
   outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
-                                          measure.vars = c("soil", "tree"), 
+                                          measure.vars = c("SWliveAG", "SWliveBG", 'HWliveAG', 
+                                                           'HWliveBG', 'soil', 'snags'), 
                                           variable.name = 'pool', 
                                           value.name = "carbon")
   
   outTable$simYear <- as.numeric(outTable$simYear)
   outTable$carbon <- as.numeric(outTable$carbon)
   totalCarbon <- ggplot(data = outTable, aes(x = simYear, y = carbon, col = pool)) +
-    geom_line(size = 2) + 
+    geom_line(size = 1) + 
     scale_fill_discrete(name = "carbon pool",
                         labels = c("trees", "soil")) +
     labs(x = "Year", y = "C (Mg/ha)") + 
