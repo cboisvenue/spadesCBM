@@ -41,6 +41,7 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
 }
 
 barPlot <- function(cbmPools, masterRaster, pixelKeep) {
+  #This needs to change to belowground living, aboveground living, soil, snag
   colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
@@ -64,9 +65,9 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
   setkey(weights, pixelGroup, simYear)
   setkey(soilCarbon, pixelGroup, simYear)
   outTable <- weights[soilCarbon]
-  outTable <- outTable[, .(soil = sum(soilCarbon * weight), trees = sum(weight * livingCarbon)), by = simYear]
+  outTable <- outTable[, .(soil = sum(soilCarbon * weight), tree = sum(weight * livingCarbon)), by = simYear]
   outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
-                                          measure.vars = c("soil", "trees"), 
+                                          measure.vars = c("soil", "tree"), 
                                           variable.name = 'pool', 
                                           value.name = "carbon")
   
@@ -75,7 +76,7 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
   totalCarbon <- ggplot(data = outTable, aes(x = simYear, y = carbon, col = pool)) +
     geom_line(size = 2) + 
     scale_fill_discrete(name = "carbon pool",
-                        labels = c("AG", "BG")) +
+                        labels = c("trees", "soil")) +
     labs(x = "Year", y = "C (Mg/ha)") + 
     theme_bw()
       

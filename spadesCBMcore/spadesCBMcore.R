@@ -66,7 +66,8 @@ defineModule(sim, list(
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation"),
-    createsOutput(objectName = "changeInNPP", objectClass = "data.table", desc = "change in NPP for each pixelGroup")
+    createsOutput(objectName = "changeInNPP", objectClass = "data.table", desc = "change in NPP for each pixelGroup"),
+    createsOutput(objectName = "turnoverRates", objectClass = "data.table", desc = "table with turnover rates for SPUs")
   )
 ))
 
@@ -122,6 +123,8 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
       sim <- postSpinup(sim)
+      sim$turnoverRates <- calcTurnoverRates(turnoverRates = sim$cbmData@turnoverRates,
+                                             spatialUnitIds = sim$cbmData@spatialUnitIds)
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
       sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual")
       # ! ----- STOP EDITING ----- ! #
@@ -336,6 +339,14 @@ postSpinup <- function(sim) {
   return(invisible(sim))
 }
 
+
+calcTurnoverRates <- function(turnoverRates, spatialUnitIds) {
+  turnoverRates <- as.data.table(turnoverRates)
+  SPU <- as.data.table(spatialUnitIds)
+  SPU <- SPU[SpatialUnitID %in% unique(spatialUnitIds)]
+  SPU <- merge(SPU, turnoverRates, by = "EcoBoundaryID", all.y = FALSE)
+  return(SPU)
+}
 ### template for save events
 Save <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
@@ -573,8 +584,14 @@ annual <- function(sim) {
         )
       ), by = pixelGroup]
   } else {
+    turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
+    #Figure out how to join these values with table and multiply by them instead of hardcode
+    #Is level3DT updated? 
     changeInNPP <- sim$changeInNPP
-    newCarbon <- sim$pixelGroupC[, .(
+    #Need to get SPU of each pixelGroup to track down ecoboundary. Faster way?
+    changeInNPP <- merge(changeInNPP, sim$pixelGroupC, by = c("pixelGroup"))
+    newCarbon <- merge(changeInNPP, turnoverRates, by = "spatial_unit_id")
+    newCarbon <- newCarbon[, .(
       newAGC = sum(
         SoftwoodMerch,
         SoftwoodFoliage,
@@ -594,16 +611,16 @@ annual <- function(sim) {
         BelowGroundSlowSoil
        ),
       turnover = sum(
-        SoftwoodMerch * 0.005,
-        SoftwoodFoliage * 0.1,
-        SoftwoodOther * 0.04,
-        SoftwoodCoarseRoots * 0.02,
-        SoftwoodFineRoots * 0.641,
-        HardwoodMerch * 0.005,
-        HardwoodFoliage * 0.95,
-        HardwoodOther * 0.04,
-        HardwoodCoarseRoots * 0.02,
-        HardwoodFineRoots * 0.641
+        SoftwoodMerch * StemAnnualTurnoverRate,
+        SoftwoodFoliage * SoftwoodFoliageFallRate,
+        SoftwoodOther * SoftwoodBranchTurnoverRate,
+        SoftwoodCoarseRoots * CoarseRootTurnProp,
+        SoftwoodFineRoots * FineRootTurnProp,
+        HardwoodMerch * StemAnnualTurnoverRate,
+        HardwoodFoliage * HardwoodFoliageFallRate,
+        HardwoodOther * HardwoodBranchTurnoverRate,
+        HardwoodCoarseRoots * CoarseRootTurnProp,
+        HardwoodFineRoots * FineRootTurnProp
        )
       ), by = pixelGroup]
     bothYears <- changeInNPP[newCarbon, on = 'pixelGroup']
