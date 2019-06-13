@@ -131,20 +131,27 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     },
     plot = {
       clearPlot()
-      barPlot(cbmPools = sim$cbmPools,
-              masterRaster = sim$masterRaster,
-              pixelKeep = sim$pixelKeep)
-      
+
+
+      if (!time(sim) == start(sim)) {
+        browser()
+        areaPlot(cbmPools = sim$cbmPools,
+                masterRaster = sim$masterRaster,
+                pixelKeep = sim$pixelKeep)
+        
+        barPlot(cbmPools = sim$cbmPools, 
+                masterRaster = sim$masterRaster,
+                pixelKeep = sim$pixelKeep)
+        NPPPlot(changeInNPP = sim$changeInNPP, 
+                masterRaster = sim$masterRaster,
+                spatialDT = sim$spatialDT,
+                time = time(sim))
+      }
       spatialPlot(cbmPools = sim$cbmPools,
                   poolsToPlot = P(sim)$poolsToPlot,
                   masterRaster = sim$masterRaster,
                   pixelkeep = sim$pixelKeep, 
-                  years = time(sim)) # uncomment this, replace with object to plot
-      if (!time(sim) == start(sim)) {
-        aNPPPlot(changeInNPP = sim$changeInNPP, 
-                 masterRaster = sim$masterRaster,
-                 spatialDT = sim$spatialDT)
-      }
+                  years = time(sim))
 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
