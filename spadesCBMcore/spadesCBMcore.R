@@ -131,10 +131,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     },
     plot = {
       clearPlot()
-
-
       if (!time(sim) == start(sim)) {
-        browser()
         areaPlot(cbmPools = sim$cbmPools,
                 masterRaster = sim$masterRaster,
                 pixelKeep = sim$pixelKeep)

@@ -45,7 +45,6 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
 
 areaPlot <- function(cbmPools, masterRaster, pixelKeep) {
   #This needs to change to belowground living, aboveground living, soil, snag
-  browser()
   colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
@@ -142,10 +141,10 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
                                           value.name = "carbon")
   outTable$simYear <- as.numeric(outTable$simYear)
   outTable$carbon <- as.numeric(outTable$carbon)
-  barPlots <- ggplot(data = outTable, aes(x = simYear, y = carbon, fill = pool), position = "fill") +
-    geom_col() + 
+  barPlots <- ggplot(data = outTable, aes(x = simYear, y = carbon, fill = pool)) +
+    geom_col(position = "fill") + 
     scale_fill_discrete(name = "carbon pool") +
-    labs(x = "Year", y = "C (Mg/ha)") + 
+    labs(x = "Year", y = "proportion") + 
     theme_bw()
   
   quickPlot::Plot(barPlots, addTo = 'barPlots', title = "mean C per pixel")
