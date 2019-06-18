@@ -121,6 +121,8 @@ function to create carbon maps is called plotCarbonRasters. It accepts multiple 
 
 function to retrieve spatial Units from any location in Canada is called retrieveSpuRaster. It requires the file spUnit_Locator.shp to be in spadesCBM/data. The function has two arguments, UserArea and rasterRes. UserArea must be a raster or SpatialPolygonsDataFrame. rasterRes refers to the resolution of the output raster, and is measured in the spatial units of UserArea.
 
+calcTurnoverRates()
+
 # Data dependencies
 These three modules require the cbm_defaults data and user defined inputs. Eventually, some of the inputs may come from other modules (growth and yield modules, biomass dynamics modules, etc.).
 

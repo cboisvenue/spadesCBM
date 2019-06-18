@@ -48,3 +48,16 @@ spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defa
 }
 
 ###END spuDist------------------------------------------------------------------
+
+###calcTurnoverRates ------------------------------------------------------------------
+# matching the turnover rates to the spatial unit
+
+calcTurnoverRates <- function(turnoverRates, spatialUnitIds, spatialUnits) {
+  turnoverRates <- as.data.table(turnoverRates)
+  SPU <- as.data.table(spatialUnitIds)
+  SPU <- SPU[SpatialUnitID %in% unique(spatialUnitIds)]
+  SPU <- merge(SPU, turnoverRates, by = "EcoBoundaryID", all.y = FALSE)
+  SPU <- SPU[SpatialUnitID %in% unique(spadesCBMout$spatialUnits),]
+  return(SPU)
+}
+### END calcTurnoverRates ------------------------------------------------------------------
