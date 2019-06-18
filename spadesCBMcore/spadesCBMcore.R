@@ -66,7 +66,7 @@ defineModule(sim, list(
     createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation"),
-    createsOutput(objectName = "changeInNPP", objectClass = "data.table", desc = "change in NPP for each pixelGroup"),
+    createsOutput(objectName = "NPP", objectClass = "data.table", desc = "NPP for each pixelGroup"),
     createsOutput(objectName = "turnoverRates", objectClass = "data.table", desc = "table with turnover rates for SPUs")
   )
 ))
@@ -124,7 +124,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # do stuff for this event
       sim <- postSpinup(sim)
       sim$turnoverRates <- calcTurnoverRates(turnoverRates = sim$cbmData@turnoverRates,
-                                             spatialUnitIds = sim$cbmData@spatialUnitIds, sim$spatialUnits)
+                                             spatialUnitIds = sim$cbmData@spatialUnitIds, spatialUnits = sim$spatialUnits)
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
       sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual")
       # ! ----- STOP EDITING ----- ! #
@@ -328,6 +328,7 @@ postSpinup <- function(sim) {
     
   }
   sim$cbmPools<-NULL
+  sim$NPP <- NULL
   
   # Keep the pixels from each simulation year (in the postSpinup event)
   # in the end (cPoolsPixelYear.csv), this should be the same length at this vector
@@ -547,90 +548,89 @@ annual <- function(sim) {
   sim$pools <- StepPools(pools=sim$pools, 
                          opMatrix = sim$opMatrixCBM, 
                          flowMatrices = sim$allProcesses)
+
 # Calculating NPP for this year using stockt and stockt1
-  # if (time(sim) == start(sim)) {
-  #   sim$changeInNPP <- cbind(sim$level3DT,sim$spinupResult)[,.(
-  #     #pixelGroup,
-  #     grossGrowthAG = sum(SoftwoodMerch,
-  #     SoftwoodFoliage,
-  #     SoftwoodOther,
-  #     SoftwoodCoarseRoots,
-  #     SoftwoodFineRoots,      
-  #     HardwoodMerch,
-  #     HardwoodFoliage,
-  #     HardwoodOther,
-  #     HardwoodCoarseRoots,
-  #     HardwoodFineRoots)
-  #       
-  #     )
-  #     HERE!!
-  #     sim$spinupResult[,2:11]
-  #     #pixelGroupC[, .(
-  #     # AGC = sum(
-  #     #   
-  #     #   ),
-  #     BGC = sum(
-  #       
-  #       AboveGroundVeryFastSoil,
-  #       BelowGroundVeryFastSoil,
-  #       AboveGroundFastSoil,
-  #       BelowGroundFastSoil,
-  #       AboveGroundSlowSoil,
-  #       BelowGroundSlowSoil
-  #       )
-  #     ), by = pixelGroup]
-  # } else {
-  #   turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
-  #   #Figure out how to join these values with table and multiply by them instead of hardcode
-  #   #Is level3DT updated? 
-  #   changeInNPP <- sim$changeInNPP
-  #   #Need to get SPU of each pixelGroup to track down ecoboundary. Faster way?
-  #   changeInNPP <- merge(changeInNPP, sim$pixelGroupC, by = c("pixelGroup"))
-  #   newCarbon <- merge(changeInNPP, turnoverRates, by = "spatial_unit_id")
-  #   newCarbon <- newCarbon[, .(
-  #     newAGC = sum(
-  #       SoftwoodMerch,
-  #       SoftwoodFoliage,
-  #       SoftwoodOther,
-  #       HardwoodMerch,
-  #       HardwoodFoliage,
-  #       HardwoodOther
-  #      ),
-  #     newBGC = sum(
-  #       HardwoodCoarseRoots,
-  #       HardwoodFineRoots,
-  #       AboveGroundVeryFastSoil,
-  #       BelowGroundVeryFastSoil,
-  #       AboveGroundFastSoil,
-  #       BelowGroundFastSoil,
-  #       AboveGroundSlowSoil,
-  #       BelowGroundSlowSoil
-  #      ),
-  #     turnover = sum(
-  #       SoftwoodMerch * StemAnnualTurnoverRate,
-  #       SoftwoodFoliage * SoftwoodFoliageFallRate,
-  #       SoftwoodOther * SoftwoodBranchTurnoverRate,
-  #       SoftwoodCoarseRoots * CoarseRootTurnProp,
-  #       SoftwoodFineRoots * FineRootTurnProp,
-  #       HardwoodMerch * StemAnnualTurnoverRate,
-  #       HardwoodFoliage * HardwoodFoliageFallRate,
-  #       HardwoodOther * HardwoodBranchTurnoverRate,
-  #       HardwoodCoarseRoots * CoarseRootTurnProp,
-  #       HardwoodFineRoots * FineRootTurnProp
-  #      )
-  #     ), by = pixelGroup]
-  #   bothYears <- changeInNPP[newCarbon, on = 'pixelGroup']
-  #   deltaNPP <- bothYears[, .(
-  #     AGC = newAGC,
-  #     BGC = newBGC,
-  #     bgNPP = newBGC - BGC,
-  #     agNPP = newAGC - AGC,
-  #     totalNPP = newBGC + newAGC - BGC - AGC + turnover
-  #     ), by = pixelGroup]
-  #   sim$changeInNPP <- deltaNPP
-  # }
+  stockt <- sim$pixelGroupC[,.(
+    pixelGroup,
+    ages,
+    spatial_unit_id,
+    SoftwoodMerch,
+    SoftwoodFoliage,
+    SoftwoodOther,
+    SoftwoodCoarseRoots,
+    SoftwoodFineRoots,
+    HardwoodMerch,
+    HardwoodFoliage,
+    HardwoodOther,
+    HardwoodCoarseRoots,
+    HardwoodFineRoots 
+  )] 
+  setkey(stockt,pixelGroup)
   
-    
+  stockt1 <- unique(cbind(pixelGroupForAnnual[,!(Input:Products)],sim$pools))[,.(
+    pixelGroup,
+    ages,
+    SoftwoodMerch,
+    SoftwoodFoliage,
+    SoftwoodOther,
+    SoftwoodCoarseRoots,
+    SoftwoodFineRoots,
+    HardwoodMerch,
+    HardwoodFoliage,
+    HardwoodOther,
+    HardwoodCoarseRoots,
+    HardwoodFineRoots 
+  )]
+  setkey(stockt1,pixelGroup)
+  stocks2t <- merge(stockt[,-c("ages","spatial_unit_id")],stockt1[,-"ages"],by = "pixelGroup",sort=TRUE)
+  grossGrowth <- stocks2t[,.(
+    pixelGroup,
+    grossGrowthAG = (
+      (SoftwoodMerch.y-SoftwoodMerch.x)+
+        (SoftwoodFoliage.y-SoftwoodFoliage.x)+
+        (SoftwoodOther.y-SoftwoodOther.x)+
+        (HardwoodMerch.y-HardwoodMerch.x)+
+        (HardwoodFoliage.y-HardwoodFoliage.x)+
+        (HardwoodOther.y-HardwoodOther.x)),
+    grossGrowthBG= (
+      (SoftwoodCoarseRoots.y-SoftwoodCoarseRoots.x)+
+        (SoftwoodFineRoots.y-SoftwoodFineRoots.x)+
+        (HardwoodCoarseRoots.y-HardwoodCoarseRoots.x)+
+        (HardwoodFineRoots.y-HardwoodFineRoots.x))
+  )]
+  
+  turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
+  turnoverComponents <- merge(stockt,turnoverRates,by="spatial_unit_id")
+  turnover <- turnoverComponents[,.(
+    pixelGroup,
+    AGturnover = (
+      (SoftwoodMerch * StemAnnualTurnoverRate)+
+        (SoftwoodFoliage * SoftwoodFoliageFallRate)+
+        (SoftwoodOther * SoftwoodBranchTurnoverRate)+
+        (HardwoodMerch * StemAnnualTurnoverRate)+
+        (HardwoodFoliage * HardwoodFoliageFallRate)+
+        (HardwoodOther * HardwoodBranchTurnoverRate)),
+    BGturnover = (
+      (SoftwoodCoarseRoots * CoarseRootTurnProp)+
+        (SoftwoodFineRoots * FineRootTurnProp)+
+        (HardwoodCoarseRoots * CoarseRootTurnProp)+
+        (HardwoodFineRoots * FineRootTurnProp))
+  )]
+  
+  NPP <- merge(turnover,grossGrowth,by="pixelGroup")[!(pixelGroup %in% groupOut),.(
+    pixelGroup,
+    NPP = (
+      AGturnover+
+        BGturnover+
+        grossGrowthAG+
+        grossGrowthBG)
+  )]
+  
+  sim$NPP <- rbind(sim$NPP, cbind(simYear = rep(time(sim)[1],length(sim$ages)),NPP))
+  
+  
+  
+  
   sim$pixelGroupC <- unique(cbind(pixelGroupForAnnual[,!(Input:Products)],sim$pools))
   #sim$pixelGroupC$N <- sim$spatialDT[,.N,by=pixelGroup]$
   sim$pixelGroupC$ages <- sim$pixelGroupC$ages+1

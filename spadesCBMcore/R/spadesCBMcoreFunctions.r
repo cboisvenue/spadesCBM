@@ -57,7 +57,7 @@ calcTurnoverRates <- function(turnoverRates, spatialUnitIds, spatialUnits) {
   SPU <- as.data.table(spatialUnitIds)
   SPU <- SPU[SpatialUnitID %in% unique(spatialUnitIds)]
   SPU <- merge(SPU, turnoverRates, by = "EcoBoundaryID", all.y = FALSE)
-  SPU <- SPU[SpatialUnitID %in% unique(spadesCBMout$spatialUnits),]
+  SPU <- SPU[SpatialUnitID %in% unique(spatialUnits),]
   return(SPU)
 }
 ### END calcTurnoverRates ------------------------------------------------------------------
