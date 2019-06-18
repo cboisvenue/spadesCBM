@@ -15,11 +15,29 @@
 #1.Plotting: we need to be able to create maps. Two parts: 
 #a) make sure a function in spadesCBMextraFunctions.r that can use whatever is
 #in the cPoolsPixelYear.csv that can create a map from selected pools.
-#b) change the master so that the years that we need to plot can be defeined by
+
+  # TASK 1a) is done. The function is called plotCarbonRasters() and lives in
+  # /spadesCBM/exploringCode/spadesCBMextrafunctions
+  # NEEDS TO BE DONE:
+  # - add text describing what this function does in the "Functions" of the spadesCBM.Rmd
+
+#b) change the master so that the years that we need to plot can be defined by
 #the user and saved in the cPoolsPixelYear.csv or somewhere we can access them.
+
+  #TASK 1b) partially done. 
+  # can't run the function spatialPlot() in spadesCBMplots.r independantly...
+  # the barplot() does not make sense to me...
+  
+  #The plots are not saved? If I change the plotting interval, I see the plots flash by but can't go back to them...
+  # does not work if I change the pools (tried SoftwoodMerch), still defaults to Total C and ANPP
+  # we have NPP not NPP...ANPP
+#
+
 #person: Ian 
 
-#2. Task completed
+#2. Task completed. Use the LandR::generatePixelGroups and the LandR::updateCohort()function to
+#create the PixelGroups. G:\RES_Work\Work\SpaDES\spadesCBM\task2Notes.txt
+# used generatePixelGroups but not updateCohort...too many LandR-specific things to consider.
 
 #3.create pre-calculated values for mapping: total carbon, live carbon, dead
 #carbon, above ground carbon, below ground carbon, NPP. 
@@ -33,6 +51,8 @@
 #litterfall = sum(biomassToSoil)
 #NEP=NPP-sum(DOMpool decomp to atmosphere)
 #person: Celine
+  # TASK NOT DONE
+  #NPP does not match myunderstanding...Review with Ian.
 
 #4.integrate the values in 3  as defaults in the mapping function, plotCarbonRasters
 #person: Ian (but wait until Celine done)

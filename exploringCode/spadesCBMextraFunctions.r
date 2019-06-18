@@ -301,3 +301,94 @@ Plot(out1)
 test2 <- LandR::randomStudyArea(seed = 100, size = 10000*100*300)
 out2 <- retrieveSpuRaster(UserArea = test2, rasterRes = c(250,250))
 Plot(out2)
+###END spuLocator() ----------------------------------------------------------------------------------
+
+# NPP()--------------------------------------
+#calculate NPP post simulation
+NPP <- function(pools = spadesCBMout$cbmPools, pixelGroupSpu=spadesCBMout$pixelGroupC[,.(pixelGroup,spatial_unit_id)],
+                year1=1990, year2=1991, turnoverRates = spadesCBMout$turnoverRates)
+  {
+  a <- as.data.table(pools)[simYear==year1,.(
+    pixelGroup,
+    ages,
+    SoftwoodMerch,
+    SoftwoodFoliage,
+    SoftwoodOther,
+    SoftwoodCoarseRoots,
+    SoftwoodFineRoots,
+    HardwoodMerch,
+    HardwoodFoliage,
+    HardwoodOther,
+    HardwoodCoarseRoots,
+    HardwoodFineRoots 
+  )]
+  b <- pixelGroupSpu[(pixelGroup %in% a$pixelGroup)]
+  stockt <- merge(a,b,by="pixelGroup")
+  setkey(stockt,pixelGroup)
+  
+  stockt1 <- as.data.table(pools)[simYear==year2,.(
+    pixelGroup,
+    ages,
+    SoftwoodMerch,
+    SoftwoodFoliage,
+    SoftwoodOther,
+    SoftwoodCoarseRoots,
+    SoftwoodFineRoots,
+    HardwoodMerch,
+    HardwoodFoliage,
+    HardwoodOther,
+    HardwoodCoarseRoots,
+    HardwoodFineRoots 
+  )]
+  setkey(stockt1,pixelGroup)
+  
+  stocks2t <- merge(stockt[,-c("ages","spatial_unit_id")],stockt1[,-"ages"],by = "pixelGroup",sort=TRUE)
+  
+  grossGrowth <- stocks2t[,.(
+    pixelGroup,
+    grossGrowthAG = (
+      (SoftwoodMerch.y-SoftwoodMerch.x)+
+        (SoftwoodFoliage.y-SoftwoodFoliage.x)+
+        (SoftwoodOther.y-SoftwoodOther.x)+
+        (HardwoodMerch.y-HardwoodMerch.x)+
+        (HardwoodFoliage.y-HardwoodFoliage.x)+
+        (HardwoodOther.y-HardwoodOther.x)),
+    grossGrowthBG= (
+      (SoftwoodCoarseRoots.y-SoftwoodCoarseRoots.x)+
+        (SoftwoodFineRoots.y-SoftwoodFineRoots.x)+
+        (HardwoodCoarseRoots.y-HardwoodCoarseRoots.x)+
+        (HardwoodFineRoots.y-HardwoodFineRoots.x))
+  )]
+  
+  turnoverRates <- turnoverRates[, spatial_unit_id := SpatialUnitID]
+  
+  turnoverComponents <- merge(stockt,turnoverRates,by="spatial_unit_id")
+  
+  turnover <- turnoverComponents[,.(
+    pixelGroup,
+    AGturnover = (
+      (SoftwoodMerch * StemAnnualTurnoverRate)+
+        (SoftwoodFoliage * SoftwoodFoliageFallRate)+
+        (SoftwoodOther * SoftwoodBranchTurnoverRate)+
+        (HardwoodMerch * StemAnnualTurnoverRate)+
+        (HardwoodFoliage * HardwoodFoliageFallRate)+
+        (HardwoodOther * HardwoodBranchTurnoverRate)),
+    BGturnover = (
+      (SoftwoodCoarseRoots * CoarseRootTurnProp)+
+        (SoftwoodFineRoots * FineRootTurnProp)+
+        (HardwoodCoarseRoots * CoarseRootTurnProp)+
+        (HardwoodFineRoots * FineRootTurnProp))
+  )]
+  
+  NPP <- merge(turnover,grossGrowth,by="pixelGroup")[,.(
+    pixelGroup,
+    NPP = (
+      AGturnover+
+        BGturnover+
+        grossGrowthAG+
+        grossGrowthBG)
+  )]
+  
+  return(NPP)  
+  
+}
