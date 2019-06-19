@@ -92,10 +92,12 @@ areaPlot <- function(cbmPools, masterRaster, pixelKeep) {
 }
 
 NPPPlot <- function(spatialDT, changeInNPP, masterRaster, time){
+  #NPP will not have the disturbed pixelGroups in spatialDT
+  changeInNPP <- changeInNPP[simYear == time,]
   t <- spatialDT[, .(pixelIndex, pixelGroup)]
-  temp <- t[changeInNPP, on = "pixelGroup"]
+  temp <- merge(changeInNPP, t, on = "pixelGroup", all = TRUE)
   setkey(temp, pixelIndex)
-  masterRaster[!masterRaster == 0] <- temp$totalNPP
+  masterRaster[!masterRaster == 0] <- temp$NPP
   quickPlot::Plot(masterRaster, new = TRUE, title = paste0("NPP in ", time))
 }
 
