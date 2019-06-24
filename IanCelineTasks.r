@@ -11,12 +11,25 @@
 #---------------------------------
 
 # List---------------------------------
+# To do
 
 #1.Need to add the option of plotting NPP, DOM and Biomass (above + below) using
 #the plotCarbonRasters() function. The NPP() function in spadesCBMextraFunctions
 #can be used to calculate NPP.
 
-# THIS PART IS DONE--------------------
+#4.integrate the values in 3 (NPP, DOM, and Live Biomass) as defaults in the
+#mapping function, plotCarbonRasters
+#person: Ian (but wait until Celine done)
+
+#6.make the user input clearer: clean-up spadesCBMinputs.r...
+#person: either/both 
+
+#8.unit tests on master branch (create separate branch for tests)
+#person: Ian
+
+
+# Tasks completed-----------------------------------------------------------------------------------------
+# 1.THIS PART IS DONE--------------------
 #plotCarbonRasters() and lives in/spadesCBM/exploringCode/spadesCBMextrafunctions
 #b) change the master so that the years that we need to plot can be defined by
 #the user and saved in the cPoolsPixelYear.csv or somewhere we can access them.
@@ -25,17 +38,11 @@
 # we have NPP not NPP...ANPP
 #--------------------------------------
 
-#person: Ian 
-
 #2. Task completed. Use the LandR::generatePixelGroups and the LandR::updateCohort()function to
 #create the PixelGroups. G:\RES_Work\Work\SpaDES\spadesCBM\task2Notes.txt
 # used generatePixelGroups but not updateCohort...too many LandR-specific things to consider.
 
 #3.Task completed. Create pre-calculated values for mapping: NPP. All details are in task3NPPetc.r
-
-#4.integrate the values in 3 (NPP, DOM, and Live Biomass) as defaults in the
-#mapping function, plotCarbonRasters
-#person: Ian (but wait until Celine done)
 
 #4.Taks completed. histogram/bar plot of total carbon etc.
 #person: Ian 
@@ -43,18 +50,17 @@
 #5.Task completed. spu locator needs to be functional for users. For now, make it a separate function.
 #person: Ian 
 
-#6.make the user input clearer: clean-up spadesCBMinputs.r...
-#person: either/both
-
-#7.POSTPONED. run for all of SK, not just the test area. Locate the large rasters and try just 2 years.
-#person: Celine
-
-#8.unit tests on master branch (create separate branch for tests)
-#person: Ian
-
 #9.FIXED. library(RSQLite) and library(CBMVolumeToBiomass), still need to be loaded
 #using options() to fix the pckgs issues (Require vs require) this is problem
 #loading RSQLite and CBMVolumeToBiomass person: either
+
+# END task completed-----------------------------------------------------------------------------------------
+
+
+# Tasks postponed-------------------------------------------------------------------------------------------
+
+#7.POSTPONED. run for all of SK, not just the test area. Locate the large rasters and try just 2 years.
+#person: Celine
 
 #10.POSTPONED. make sure/check that the spinup debug event in the spadesCBMcore works. 
 #person: Celine

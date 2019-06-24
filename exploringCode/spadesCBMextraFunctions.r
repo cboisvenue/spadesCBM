@@ -181,7 +181,7 @@ simDist <- function(sim){
   names(poolNames) <- c("pool","dmPoolId")
   
   # Getting the number of DisturbanceMatrixID
-  matNum <- unique(sim@.envir$disturbanceEvents[,3])
+  matNum <- unique(sim$mySpuDmids[,2])
   # matNum will be the lenght of the list of data.frames
   clearDists <- vector("list", length=length(matNum))
   
