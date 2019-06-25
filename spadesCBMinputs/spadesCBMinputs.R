@@ -216,8 +216,8 @@ Init <- function(sim) {
   
   #standIdx <- 1:sim$nStands
   sim$gcids <- sim$level3DT[,growth_curve_component_id]#c(1)#,2,3,101)
-  sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
-  sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  #sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  #sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
   sim$delays <-  rep.int(0,sim$nStands)#c(0)#,0,0,0)
   sim$minRotations <- rep.int(10,sim$nStands)#rep(0, sim$nStands)
   sim$maxRotations <- rep.int(30,sim$nStands)#rep(100, sim$nStands)
@@ -272,9 +272,24 @@ Init <- function(sim) {
   mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
   #creating a vector of the pixel values to be able to match the disturbance_matrix_id
   events <- c(1,1,2,2,4,4,3,3,5,5)
+  # need to match the historic and last past dist to the spatial unit
+  # DECISION: both the last pass and the historic disturbance will be the same for these runs
+  setkey(sim$level3DT,spatial_unit_id)
+  setkey(as.data.table(fire[,1:2]),spatial_unit_id)
+  histLastDMIDs <- merge(sim$level3DT,fire)
+
+  sim$historicDMIDs <- histLastDMIDs$disturbance_matrix_id
+  sim$lastPassDMIDS <- histLastDMIDs$disturbance_matrix_id
+  # and merge them on the level3DT$spatial_unit_id
+  
+  
+  #sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+  #sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
+   
+  
   sim$mySpuDmids <- cbind(mySpuDmids,events)
   
-  
+ 
   # old bogus disturbance
   #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
   #colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
