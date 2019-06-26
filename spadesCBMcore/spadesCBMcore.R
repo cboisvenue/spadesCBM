@@ -155,7 +155,8 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
     savePools = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      colnames(sim$cbmPools) <- c( c("simYear","pixelGroup", "ages"), sim$pooldef)
+      
+      colnames(sim$cbmPools) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
       write.csv(file = file.path(outputPath(sim),"cPoolsPixelYear.csv"), sim$cbmPools)
       
       # e.g., call your custom functions/methods here
@@ -452,6 +453,9 @@ annual <- function(sim) {
   # change the vector of pixel group in $spatialDT to match trackPix for next annual cycle
   group1 <- sort(unique(sim$spatialDT$pixelGroup))
   sim$spatialDT$pixelGroup <- trackPix
+  # count the pixels in each new pixel group
+  pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
+  
   group2 <- sort(unique(trackPix))
   groupOut <- subset(group1, !(group1 %in% group2))
   # 
@@ -630,7 +634,7 @@ annual <- function(sim) {
   sim$spatialDT$ages <- sim$spatialDT$ages+1
   sim$ages <- sim$pixelGroupC$ages
 
-  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools))
+  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelCount[,2],pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools))
   
 
   return(invisible(sim))
