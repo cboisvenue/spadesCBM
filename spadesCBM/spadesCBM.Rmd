@@ -63,9 +63,9 @@ cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 2005.00)
 parameters <- list(
   spadesCBMcore = list(.useCache = FALSE,
-                       #.plotInterval = 20,
-                       #.plotInitialTime = 1990,
-                       #poolsToPlot = c("totalCarbon")),
+                       .plotInterval = 5,
+                       .plotInitialTime = 1990,
+                       poolsToPlot = c("totalCarbon")),
   spadesCBMinputs = list(.useCache = FALSE),
   spadesCBMdefaults = list(.useCache = FALSE)
 )
