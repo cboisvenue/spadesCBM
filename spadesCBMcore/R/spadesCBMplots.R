@@ -1,5 +1,5 @@
 spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
-  colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
+  colnames(cbmPools)[c(1,3,4)] <- c("simYear", "pixelGroup", "age")
   if ("totalCarbon" %in% poolsToPlot) {
     totalCarbon <- apply(cbmPools[,5:25], 1, 'sum')
     cbmPools <- cbind(cbmPools, totalCarbon)
@@ -43,36 +43,29 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
   quickPlot::Plot(temp, addTo = "temp", title = paste0(poolsToPlot, " in ", years))
 }
 
-areaPlot <- function(cbmPools, masterRaster, pixelKeep) {
+areaPlot <- function(cbmPools, masterRaster) {
   #This needs to change to belowground living, aboveground living, soil, snag
-  colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
+  colnames(cbmPools)[c(1,3,4)] <- c("simYear", "pixelGroup", "age")
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
+  pixelNo <- sum(cbmPools$N/length(unique(cbmPools$simYear))) #Get pixel Sum
   
   cbmPools$simYear <- as.character(cbmPools$simYear)
   soilCarbon <- cbmPools[, .(products = sum(Products),
-                             emissions = sum(CH4, CO, CO2)
-                             ), by = .(pixelGroup, simYear)]
+                             emissions = sum(CH4, CO, CO2),
+                             weight = N/pixelNo), 
+                         by = .(pixelGroup, simYear)]
   
-  pixTable <- pixelKeep[, !"pixelIndex", with = FALSE]
-  freqTable <- as.data.table(lapply(pixTable, tabulate, nbins = max(pixTable)))
-  #Not sure this will always work
-  newNames <- as.character(c(0, unique(soilCarbon$simYear)))
-  colnames(freqTable) <- newNames
-  weights <- freqTable/nrow(pixelKeep)
-  
-  weights$pixelGroup <- row.names(weights)
-  weights <- data.table::melt.data.table(weights, id.vars = 'pixelGroup', value.name = "weight", variable.name = "simYear")
- 
-  #Need to make this a character
-  weights$simYear <- as.character(weights$simYear)
-  setkey(weights, pixelGroup, simYear)
-  setkey(soilCarbon, pixelGroup, simYear)
-  outTable <- weights[soilCarbon]
-  outTable <- outTable[, .(emissions = sum(emissions * weight), 
+
+  outTable <- soilCarbon[, .(emissions = sum(emissions * weight), 
                            products = sum(products * weight)), 
                            by = simYear]
+  
+  #turn average pixel/ha into sum of pixels / pixel-area/ha
+  outTable <- outTable[, .(emissions = emissions * pixelNo * prod(res(masterRaster))/10000,
+                           products = products * pixelNo * prod(res(masterRaster))/10000),
+                       by = simYear]
   outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
                                           measure.vars = c("emissions", "products"), 
                                           variable.name = 'pool', 
@@ -82,7 +75,7 @@ areaPlot <- function(cbmPools, masterRaster, pixelKeep) {
   areaPlots <- ggplot(data = outTable, aes(x = simYear, y = carbon)) +
     geom_area(aes(fill = pool)) + 
     scale_fill_discrete(name = "carbon pool") +
-    labs(x = "Year", y = "C (Mg/ha)") + 
+    labs(x = "Year", y = "Mg C") + 
     theme_bw()
       
   quickPlot::Plot(areaPlots, addTo = 'areaPlots', title = "mean C per pixel")
@@ -101,42 +94,31 @@ NPPPlot <- function(spatialDT, changeInNPP, masterRaster, time){
   quickPlot::Plot(masterRaster, new = TRUE, title = paste0("NPP in ", time))
 }
 
-barPlot <- function(cbmPools, masterRaster, pixelKeep) {
+barPlot <- function(cbmPools, masterRaster) {
   #This needs to change to belowground living, aboveground living, soil, snag
-  colnames(cbmPools)[1:3] <- c("simYear", "pixelGroup", "age")
+  colnames(cbmPools)[c(1,3,4)] <- c("simYear", "pixelGroup", "age")
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
   
-  cbmPools$simYear <- as.character(cbmPools$simYear)
+  pixelNo <- sum(cbmPools$N/length(unique(cbmPools$simYear))) #Get pixel Sum
+    cbmPools$simYear <- as.character(cbmPools$simYear)
   soilCarbon <- cbmPools[, .(DOM = sum(AboveGroundVeryFastSoil, BelowGroundVeryFastSoil,
                                        AboveGroundFastSoil, BelowGroundFastSoil,
                                        AboveGroundSlowSoil, BelowGroundSlowSoil),
                              AGB = sum(SoftwoodMerch, SoftwoodFoliage, SoftwoodOther,
                                        HardwoodMerch, HardwoodFoliage, HardwoodOther),
                              BGB = sum(SoftwoodCoarseRoots, SoftwoodFineRoots, 
-                                       HardwoodCoarseRoots, HardwoodFineRoots)
-  ), by = .(pixelGroup, simYear)]
+                                       HardwoodCoarseRoots, HardwoodFineRoots),
+                             weight = N/pixelNo),
+                         by = .(pixelGroup, simYear)]
   
-  pixTable <- pixelKeep[, !"pixelIndex", with = FALSE]
-  freqTable <- as.data.table(lapply(pixTable, tabulate, nbins = max(pixTable)))
-  #Not sure this will always work
-  newNames <- as.character(c(0, unique(soilCarbon$simYear)))
-  colnames(freqTable) <- newNames
-  weights <- freqTable/nrow(pixelKeep)
   
-  weights$pixelGroup <- row.names(weights)
-  weights <- data.table::melt.data.table(weights, id.vars = 'pixelGroup', value.name = "weight", variable.name = "simYear")
-  
-  #Need to make this a character
-  weights$simYear <- as.character(weights$simYear)
-  setkey(weights, pixelGroup, simYear)
-  setkey(soilCarbon, pixelGroup, simYear)
-  outTable <- weights[soilCarbon]
-  outTable <- outTable[, .(DOM = sum(DOM * weight), 
+  outTable <- soilCarbon[, .(DOM = sum(DOM * weight), 
                            AGB = sum(AGB * weight),
                            BGB = sum(BGB * weight)), 
                        by = simYear]
+  
   outTable <- data.table::melt.data.table(outTable, id.vars = 'simYear', 
                                           measure.vars = c("DOM", "AGB", "BGB"), 
                                           variable.name = 'pool', 
@@ -149,5 +131,5 @@ barPlot <- function(cbmPools, masterRaster, pixelKeep) {
     labs(x = "Year", y = "proportion") + 
     theme_bw()
   
-  quickPlot::Plot(barPlots, addTo = 'barPlots', title = "mean C per pixel")
+  quickPlot::Plot(barPlots, addTo = 'barPlots', title = "total C on landscape")
 }

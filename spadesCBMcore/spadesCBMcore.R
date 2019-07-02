@@ -133,12 +133,10 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       clearPlot()
       if (!time(sim) == start(sim)) {
         areaPlot(cbmPools = sim$cbmPools,
-                masterRaster = sim$masterRaster,
-                pixelKeep = sim$pixelKeep)
+                masterRaster = sim$masterRaster)
         
         barPlot(cbmPools = sim$cbmPools, 
-                masterRaster = sim$masterRaster,
-                pixelKeep = sim$pixelKeep)
+                masterRaster = sim$masterRaster)
         NPPPlot(changeInNPP = sim$NPP, 
                 masterRaster = sim$masterRaster,
                 spatialDT = sim$spatialDT,
