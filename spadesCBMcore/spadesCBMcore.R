@@ -442,19 +442,23 @@ annual <- function(sim) {
   distPixels$newGroup <- LandR::generatePixelGroups(distPixels,maxPixelGroup,
                                          columns = c("oldGroup","spatial_unit_id", "growth_curve_component_id", "ages", "events"))
   distPixels <- distPixels[,.(pixelIndex,ages,rasterSps,Productivity,spatial_unit_id, growth_curve_component_id,growth_curve_id, events, oldGroup,newGroup)]
+  browser()
   #adding the new pixelGroup to the pixelKeep
-  trackPix <- sim$spatialDT$pixelGroup
-  trackPix[which(!is.na(sim$spatialDT$events))] <- distPixels$newGroup
-  sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix]
+  trackPix <- sim$spatialDT[which(!(pixelIndex %in% distPixels$pixelIndex)),.(pixelIndex,pixelGroup)]
+  newGroups <- distPixels[,.(pixelIndex,newGroup)] %>% .[,pixelGroup:=newGroup] %>% .[,newGroup:=NULL]
+  trackPix2 <- rbind(trackPix,newGroups)
+  trackPix2 <- trackPix2[order(pixelIndex),]
+  
+  sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix2$pixelGroup]
   setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
   
   # change the vector of pixel group in $spatialDT to match trackPix for next annual cycle
   group1 <- sort(unique(sim$spatialDT$pixelGroup))
-  sim$spatialDT$pixelGroup <- trackPix
+  sim$spatialDT$pixelGroup <- trackPix2
   # count the pixels in each new pixel group
   pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
   
-  group2 <- sort(unique(trackPix))
+  group2 <- sort(unique(trackPix2))
   groupOut <- subset(group1, !(group1 %in% group2))
   # 
   # match the pixelGroup of the carbon (groupToAddC) with the pixelGroup of the
