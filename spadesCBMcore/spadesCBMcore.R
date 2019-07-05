@@ -443,18 +443,21 @@ annual <- function(sim) {
                                          columns = c("oldGroup","spatial_unit_id", "growth_curve_component_id", "ages", "events"))
   distPixels <- distPixels[,.(pixelIndex,ages,rasterSps,Productivity,spatial_unit_id, growth_curve_component_id,growth_curve_id, events, oldGroup,newGroup)]
   #adding the new pixelGroup to the pixelKeep
-  trackPix <- sim$spatialDT$pixelGroup
-  trackPix[which(!is.na(sim$spatialDT$events))] <- distPixels$newGroup
-  sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix]
+  trackPix <- sim$spatialDT[which(!(pixelIndex %in% distPixels$pixelIndex)),.(pixelIndex,pixelGroup)]
+  newGroups <- distPixels[,.(pixelIndex,newGroup)] %>% .[,pixelGroup:=newGroup] %>% .[,newGroup:=NULL]
+  trackPix2 <- rbind(trackPix,newGroups)
+  trackPix2 <- trackPix2[order(pixelIndex),]
+  
+  sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix2$pixelGroup]
   setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
   
   # change the vector of pixel group in $spatialDT to match trackPix for next annual cycle
   group1 <- sort(unique(sim$spatialDT$pixelGroup))
-  sim$spatialDT$pixelGroup <- trackPix
+  sim$spatialDT$pixelGroup <- trackPix2$pixelGroup
   # count the pixels in each new pixel group
   pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
   
-  group2 <- sort(unique(trackPix))
+  group2 <- sort(unique(trackPix2$pixelGroup))
   groupOut <- subset(group1, !(group1 %in% group2))
   # 
   # match the pixelGroup of the carbon (groupToAddC) with the pixelGroup of the
@@ -468,10 +471,13 @@ annual <- function(sim) {
   toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
   ## HERE IS WHERE THE EVENTS GET TAKEN OUT...
   # BEFORE WE DO...need to figure out eventsDMIDs
-  DMIDS <- merge(toAdd,sim$mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)[,disturbance_matrix_id]
+  DM <- merge(toAdd,sim$mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)
+  DM <- DM[order(pixelGroup),]
+  DMIDS <- DM$disturbance_matrix_id
   # not quite the right length yet
   
   toAdd <- toAdd[,c("oldGroup","events") := NULL]
+  toAdd <- toAdd[order(pixelGroup),]
   # rbind now matches column names for you
   # throws out pixelGroups that are where "emptied" by disturbances
   pixelGroupForAnnual <- rbind(sim$pixelGroupC[!(pixelGroup %in% groupOut),],toAdd)
