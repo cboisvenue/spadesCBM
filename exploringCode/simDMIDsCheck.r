@@ -1,7 +1,7 @@
 # cheking out the DMIDs used in our simulations
 #GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
-# 1 is Wildfire
-# 2 is Clearcut harvesting with salvage
+# 1 is Wildfire DMID 371 and 
+# 2 is Clearcut harvesting with salvage 409
 # 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
 # 4 Generic 20% mortality
 # 5	Generic 20% mortality
@@ -41,28 +41,27 @@ length(burntPixels1)
 
 fire1Pixels1990 <- spadesCBMout$pixelKeep[burntPixels1,]
 fire1Groups <- unique(fire1Pixels1990[,2:16])
-#331,444,482,774,810
+#331,444,482,776,788
 # 12 pixels of the 444 group were burnt in 1990.
-# those 12 pixels become the new group 774 until the end of the simulation
+# those 12 pixels become the new group 776 until the end of the simulation
 # one pixel from group 331 and one pixel from group 482 are burnt in 1990
-# those two pixels become group 810 until the end of the simulation
+# those two pixels become group 764 and 788 until the end of the simulation
 pixelGroup331 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==331)))
 pixelGroup444 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==444)))
 pixelGroup482 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==482)))
-pixelGroup774 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==774)))
-pixelGroup810 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==810)))
-Plot(pixelGroup331)
-Plot(pixelGroup444)
-Plot(pixelGroup482)
-Plot(pixelGroup774)
-Plot(pixelGroup810)
-# conclusion: all pixel groups stay stable or go down
-# pixel group 444 starts with 6318 in the spinup then goes to 6306 from 1990
-# to1992, looses 52, has at 6254 in 1993 and looses 779, has 6133 in 1994, 6132
-# for 1995 to 1997, 6039 in 1998, 5661 in 1999 and 2000, 5962 in 2001, 5872 in
-# 2002, 5784 in 2003, 5782 in 2004 and 5709 in 2005
-# pixel group 810 has 8 pixels in 1990 and 1991 and 7 after that until the end
-# of the simulation
+pixelGroup776 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==776)))
+pixelGroup788 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==788)))
+plot(pixelGroup331)
+plot(pixelGroup444)
+plot(pixelGroup482)
+plot(pixelGroup776)
+plot(pixelGroup788)
+# conclusion: all pixel groups stay stable or go down pixel group 444 starts
+# with 6318 in the spinup then goes to 6306 from 1990 to 1992, looses 52, has at
+# 6254 in 1993 and looses 779, has 6133 in 1994, 6132 for 1995 to 1997, 6039 in
+# 1998, 5661 in 1999 and 2000, 5962 in 2001, 5872 in 2002, 5784 in 2003, 5782 in
+# 2004 and 5709 in 2005. Similarly with group 331 and 482. pixel group 776 (12)
+# 788 (1) maintain their #pix that until the end of the simulation
 
 
 # this is the pixel groups out of the spinup (759)
@@ -70,7 +69,7 @@ group0 <- unique(spadesCBMout$pixelKeep$pixelGroup0)
 #these are the pixel groups that include the pixels disturbed, and the first group in the cPoolsPixelYear.csv
 group1 <- unique(spadesCBMout$pixelKeep$pixelGroup1990)
 
-# take the 12 disturbed pixels in 1990, for group 444 that becomes group 774,
+# take the 12 disturbed pixels in 1990, for group 444 that becomes group 776,
 # disturb it as per fireBS and check values in $cbmPools
 # carbon out of the spinup
 su444 <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==444),-1])
@@ -90,15 +89,34 @@ growth444_2 <- g444c2[,2]-g444c1[,2]
 gc52age4 <- gc52[gc52[,2]==4,]
 gcCheck2 <- growth444_2[1:3]-t(gc52age4[3:5])
 
-# note that the curves are wonky....
+# note that the curves are wonky after beign put through CBMVolumeToBiomass....
 
 # this is substrated from the atmosphere:1.354479
 minusAtm <- sum(growth444[c(1:5)])
 #This is the difference between the spinup and 1990 for the Atm pools (C02,CH4,CO)
 deltaAtm <- sum(growth444[22:24])# right now just in CO2
 
-# group 774 should start out with the carbon in the group444 in the spinup
-g774c1 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==774,6:30])
+# group 776 should start out with the carbon in the group444 in the spinup, get
+# disturbed by fire, and grow age 0 following only the 1st three pools as they
+# are the simplest
+g776c1 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==776,6:30])
+gc52age0 <- gc52[gc52[,2]==0,]
+g7760 <- gc52age0[3:5]
+end776 <- g776c1[1:3,]
+pnames <- as.character(g776c1$variable[1:3])
+ini776 <- su444[1:3,]
+merchOp <- ini776[1]-(ini776[1]*sum(fireBS[grep(pattern=pnames[1],fireBS$sourceName),5])) + g7760[1]
+
+grep(pattern=pnames[2],fireBS$sourceName)
+grep(pattern=pnames[3],fireBS$sourceName)
+
+
+
+
+
+
+gc52age1 <- gc52[gc52[,2]==1,]
+
 ## IT DOES NOT NEED TO FIX THIS
 
 # check the fireBS disturbance anyway
