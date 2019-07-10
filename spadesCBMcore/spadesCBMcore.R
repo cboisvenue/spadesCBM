@@ -400,7 +400,7 @@ annual <- function(sim) {
   # 
   # 1. Read-in the disturbances
   # this raster is where we get our disturbances 
-  annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(sim)[1],".tif$"), value = TRUE))
+  annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(sim)[1],".grd$"), value = TRUE))
   pixels <- getValues(sim$masterRaster)
   yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
   
@@ -412,7 +412,7 @@ annual <- function(sim) {
   ################################
   
   # Trying just adding the lines to groups that are disturbed.
-  distPixels <- sim$spatialDT[!is.na(events),.(pixelIndex, pixelGroup, ages, rasterSps, Productivity, 
+  distPixels <- sim$spatialDT[events>0,.(pixelIndex, pixelGroup, ages, rasterSps, Productivity, 
                                                spatial_unit_id, growth_curve_component_id, growth_curve_id, events)]
   setkey(distPixels,pixelGroup)
   # count the number of disturbed pixels
@@ -471,6 +471,7 @@ annual <- function(sim) {
   toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
   ## HERE IS WHERE THE EVENTS GET TAKEN OUT...
   # BEFORE WE DO...need to figure out eventsDMIDs
+  
   DM <- merge(toAdd,sim$mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)
   DM <- DM[order(pixelGroup),]
   DMIDS <- DM$disturbance_matrix_id
@@ -478,6 +479,7 @@ annual <- function(sim) {
   
   toAdd <- toAdd[,c("oldGroup","events") := NULL]
   toAdd <- toAdd[order(pixelGroup),]
+  
   # rbind now matches column names for you
   # throws out pixelGroups that are where "emptied" by disturbances
   pixelGroupForAnnual <- rbind(sim$pixelGroupC[!(pixelGroup %in% groupOut),],toAdd)
@@ -768,7 +770,7 @@ Event2 <- function(sim) {
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
   if(!suppliedElsewhere(sim$gcurveFileName))
-    sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables",
+    sim$gcurveFileName <- file.path(dataPath, "spadesGCurvesSK.csv")#"SK_ReclineRuns30m", "LookupTables",
   if(!suppliedElsewhere(sim$gcurveComponentsFileName))
     sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   # ! ----- STOP EDITING ----- ! #

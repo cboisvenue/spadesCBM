@@ -111,7 +111,7 @@ Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
   sim$PoolCount <- length(sim$pooldef)
   
-  gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))
+  gcID <- read.csv(sim$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))
   ## HAVE TO maintain this format
   growthCurves <- as.matrix(gcID[,c(3,2,5,4,6)])#as.matrix(read.csv(sim$gcurveFileName))
   growthCurveComponents <- as.matrix(read.csv(sim$gcurveComponentsFileName))
@@ -297,7 +297,7 @@ Init <- function(sim) {
   # changing them
   sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
                                    full.names = TRUE) %>%
-    grep(., pattern = ".tif$", value = TRUE)
+    grep(., pattern = ".grd$", value = TRUE)
   
   
   # ! ----- STOP EDITING ----- ! #
@@ -328,7 +328,7 @@ Save <- function(sim) {
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
   if(!suppliedElsewhere(sim$gcurveFileName))
-    sim$gcurveFileName <- file.path(dataPath, "yieldRCBM.csv")#"SK_ReclineRuns30m", "LookupTables", 
+    sim$gcurveFileName <- file.path(dataPath, "spadesGCurvesSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   if(!suppliedElsewhere(sim$gcurveComponentsFileName))
     sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   
