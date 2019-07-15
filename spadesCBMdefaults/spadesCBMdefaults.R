@@ -142,7 +142,7 @@ sim$cbmData <- new("dataset",
 )
 
 #step 2 create constant matrices from parameter data
-
+# these are the decay rates for all the 48 spatial units
 sim$decayRates <- spatialUnitDecayRates(sim$cbmData@climate, sim$cbmData@decayParameters, sim$cbmData@domPools)
 
 sim$processes <- 

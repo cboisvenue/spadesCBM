@@ -31,6 +31,8 @@ freqTables <- raster::freq(myBigStack)
 # this gives my a frequency table for each of the year in which we have disturbances.
 # our current simulations are freqTable[6] to freqTable[21]
 
+
+########### Ran spadesCBM 1990:1995 with the disturbance rasters###############################
 # what pixels are disturbed in 1990?------------------------------------
 pixels <- getValues(spadesCBMout$masterRaster)
 dist1990 <- getValues(myBigStack[[6]]) %>% .[pixels != 0]
@@ -44,7 +46,193 @@ table(dist1990)
 # 460+136 Generic 20% mortality
 #-----------------------------------------------------------------------
 
+## what do the harvested pixels look like?---------------------------------
+harvPixInd <- which(dist1990==2)
+# from which pixelGroup to which for all these pixels
+trackHarv1990 <- spadesCBMout$pixelKeep[harvPixInd,]
+# what age for these pixelGroups at spinup?
+ageHarv1990 <- spadesCBMout$level3DT[pixelGroup %in% trackHarv1990$pixelGroup0,]
+# picked one
+pg537desc <- spadesCBMout$level3DT[pixelGroup==537,]
+# ages rasterSps Productivity spatial_unit_id growth_curve_component_id growth_curve_id pixelGroup
+#   50         5            1              28                        55              55        537
+# This is a Pop_Tre stand, at age 50, growth curve 55
+# 537 is the pg out of the spinup
 
+# pg537 through time
+pg5371990 <- trackHarv1990[pixelGroup0==537]
+# pg787 if the pixel group after teh 1990 harvest disturbance
+# check the the description is the same...
+spadesCBMout$pixelGroupC[pixelGroup==787]
+# ages rasterSps Productivity spatial_unit_id growth_curve_component_id growth_curve_id pixelGroup
+# 1:    6         5            1              28                        55              55        787
+
+# starting amount of C (both 537 and 787 start with the same amount of C)
+pixelGroupC0.537 <- cbind(spadesCBMout$level3DT,spadesCBMout$spinupResult)%>% .[pixelGroup==537]
+suC537 <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==537),-1])
+# double checked
+
+#check the gc
+gc55 <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1]==55,]
+clearPlot()
+Plot(gc55[,2],gc55[,6])
+Plot(gc55[,2],gc55[,7])
+Plot(gc55[,2],gc55[,8])
+# just as weird as all the others...
+
+# does the 537 correspond to this? (this checks if the overmature decline has kicked in)
+# in 1990, 537 grows by the gc increment
+gc55.50 <- gc55[gc55[,2]==50,]
+# the suC537 + 3 pools growth, should equal
+c537.1990 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==537,6:30])
+growth537.1990 <- c537.1990$value-suC537$value
+gcCheck1 <- growth537.1990[6:8]-gc55.50[6:8]
+# yes, 537 grows by that much
+
+# what happens to 787 in 1990?
+# It should be harvested according to the DMID 409
+c787.1990 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==787,6:30])
+# c787.1990
+# variable        value
+# 1:           SoftwoodMerch    0.0000000
+# 2:         SoftwoodFoliage    0.0000000
+# 3:           SoftwoodOther    0.0000000
+# 4:     SoftwoodCoarseRoots    0.0000000
+# 5:       SoftwoodFineRoots    0.0000000
+# 6:           HardwoodMerch   35.4285142
+# 7:         HardwoodFoliage    1.3234401
+# 8:           HardwoodOther    8.7897469
+# 9:     HardwoodCoarseRoots   10.7487207
+# 10:       HardwoodFineRoots    1.8864570
+# 11: AboveGroundVeryFastSoil   12.5924905
+# 12: BelowGroundVeryFastSoil    2.5071665
+# 13:     AboveGroundFastSoil   17.8466290
+# 14:     BelowGroundFastSoil    6.2491608
+# 15:              MediumSoil   35.6325656
+# 16:     AboveGroundSlowSoil   32.1257725
+# 17:     BelowGroundSlowSoil   97.9476053
+# 18:        SoftwoodStemSnag    0.0000000
+# 19:      SoftwoodBranchSnag    0.0000000
+# 20:        HardwoodStemSnag    9.2256158
+# 21:      HardwoodBranchSnag    0.5625601
+# 22:                     CO2 4975.0270615
+# 23:                     CH4    4.4250473
+# 24:                      CO   39.8238937
+# 25:                Products   37.4208884
+
+# IT GROWS MORE THEN THE pg537...
+########### Ran spadesCBM 1990:1995 with the disturbance rasters###############################
+
+## STEP 2---------------------------------------------------------------------------------
+# 1.change the script in annual for no disturbance - Run 1990:1993
+# does the growth happen as it should?
+# check pixelGroup 101
+checkGrowth <- function(pg=c(101)){
+  pGdesc <- spadesCBMout$level3DT[pixelGroup %in% pg,]
+  pGdesc
+  suCpg <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==pg),-1])
+  pg1990 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==pg,6:30])
+  
+  gCurvePg <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1]==spadesCBMout$level3DT[[which(spadesCBMout$level3DT$pixelGroup==pg),5]],]
+  
+  # need to figure out if it is HW or SW
+  growthC <- pg1990$value - suCpg$value
+  
+  if(gCurvePg[2,3]==0){
+    mFolO <- c(6:8)
+  }else    mFolO <- c(3:5)
+  
+  growthCheck <- growthC[mFolO] - gCurvePg[which(gCurvePg[,2]==pGdesc$ages),mFolO]
+  return(growthCheck)
+
+}
+#select some random pixelGroup to check
+pg=1
+growthCheck
+# swmerch         swfol       swother 
+# -0.0016801097  0.0004728645 -0.0002689583 
+checkGroups <- round(runif(10,min = 0, max=759),0)
+growthChex <- list()
+
+for(i in i:length(checkGroups)){
+  growthChex[[i]] <- checkGrowth(checkGroups[i])
+}
+results1 <- rbind(growthChex[[1]][1],
+                  growthChex[[2]][1],
+                  growthChex[[3]][1],
+                  growthChex[[4]][1],
+                  growthChex[[5]][1],
+                  growthChex[[6]][1],
+                  growthChex[[7]][1],
+                  growthChex[[8]][1],
+                  growthChex[[9]][1],
+                  growthChex[[10]][1])
+
+# add species
+gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))
+# the above shows pixelGroup 101 to be white birch...but the cPoolsPixelYear.csv shows it to be a SW...and it grows?
+gcSpsName <- unique(gcID$species)
+gcSpsID <- unique(gcID$species_id)
+SpsIDMatch <- vector(length=length(gcSpsName))
+for(i in 1: length(gcSpsName)){
+  SpsIDMatch[i] <- gcID[gcID$species==gcSpsName[i],4]%>% .[1]
+}
+
+species <- as.character(gcSpsName)
+gcSpsMatch <- as.data.table(cbind(species,gcSpsName,SpsIDMatch))
+gcSpsName
+
+pGdesc <- cbind(spadesCBMout$level3DT[pixelGroup %in% checkGroups,],results1)
+pGdesc <- merge(pGdesc,gcSpsMatch[,rasterSps:=as.numeric(gcSpsName)], by="rasterSps")
+write.csv(pGdesc,file = "C:/Celine/GitHub/spadesCBM/data/growthChex.csv")
+
+## next steps:
+## check these
+# TA works at age 40(gc55) and 43(gc34) but fails at 13(gc55)...
+# JP works at 0 but fails at 100 (gc52)
+# BS fails at 108(gc28)
+# WS fails at 10113
+# WB has very little...
+
+gc55 <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1]==55,]
+gc34 <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1]==34,]
+write.csv(gc55,file = "C:/Celine/GitHub/spadesCBM/data/TAgrowth1.csv")
+write.csv(gc34,file = "C:/Celine/GitHub/spadesCBM/data/TAgrowth2.csv")
+TAid <- gcID[rasterSps==5,]
+write.csv(TAid,file = "C:/Celine/GitHub/spadesCBM/data/TAid.csv")
+
+## note overmature decline only happens when totoal increment is less than 0.
+
+## THEY DO NOT MATCH...##############################
+
+#checking out the inputs module
+gc1 <- read.csv(spadesCBMout$gcurveFileName)
+growthCurves <- as.matrix(gc1[,c(3,2,5,4,6)])
+gcComp <- as.matrix(read.csv(spadesCBMout$gcurveComponentsFileName))
+growth_increments<-NULL
+for(gcid in unique(growthCurves[,"growth_curve_id"])) { 
+  curve <- processGrowthCurve(gcid, growthCurves, gcComp,sim = spadesCBMout)
+  growth_increments <- rbind(growth_increments,
+                             cbind(rep(gcid,(nrow(curve)-1)), cbind(curve[0:(nrow(curve)-1),1], diff(curve[,2:ncol(curve)]))))
+  
+}
+ginc <- as.data.table(growth_increments)
+names(ginc) <- c("curveNum","ages","swmerch","swfol","swo","hwmerch", "hwfol","hwo")
+
+gcMax <- ginc[,.(Mswmerch=max(swmerch),Mswfol=max(swfol),Mswo=max(swo),
+                 Mhwmerch=max(hwmerch),Mhwfol=max(hwfol),Mhwo=max(hwo)),by=curveNum]
+
+# does this match HW SW species?
+gSpsCheck1 <- as.data.table(gc1[,c(2,9,10,4)])
+names(gSpsCheck1) <- c("curveNum","species","rasterSps","species_cbm")
+
+incSps1 <- merge(gSpsCheck1,gcMax)
+View(incSps1)
+## The increments seem logical
+
+
+# FIRST ATTEMP BELOW###############################################################################
+# first check on DMIDs below---------------------------------------------#############################
 
 
 ### Checking the matrices--------------------------------------------------------------------------
@@ -266,32 +454,37 @@ defor <-  listDists[[4]]
 mort20 <-  listDists[[5]]
 
 
+#######################################################################
+## STOP - side track - the su and pg1990 shows a SW species (3 Black Spruce) bu the GC shows a HW???
+gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))
+# the above shows pixelGroup 101 to be white birch...but the cPoolsPixelYear.csv shows it to be a SW...and it grows?
+gcSpsName <- unique(gcID$species)
+gcSpsID <- unique(gcID$species_id)
+SpsIDMatch <- vector(length=length(gcSpsName))
+for(i in 1: length(gcSpsName)){
+  SpsIDMatch[i] <- gcID[gcID$species==gcSpsName[i],4]%>% .[1]
+}
 
+species <- as.character(gcSpsName)
+gcSpsMatch <- as.data.table(cbind(species,gcSpsName,SpsIDMatch))
+# manually made some checks on the species and growth curves matches ~/outputs/speciesCheckFor101.xlsx
+# there are 105 curves, only 10 distinct curves (as per Boisvenue et al 2016b).
+#here is the match in the gcID file
+gcIDSps <- gcID[,c(2,9,10,4)]
+# the rasterSps match the raster definition
 
-### TOADD
-trackPix3 <- sim$spatialDT[which(!(pixelIndex %in% distPixels$pixelIndex)),.(pixelIndex,pixelGroup)]
-newGroups <- distPixels[,.(pixelIndex,newGroup)] %>% .[,pixelGroup:=newGroup] %>% .[,newGroup:=NULL]
-trackPix4 <- rbind(trackPix3,newGroups)
-trackPix4 <- trackPix4[order(pixelIndex),]
+# Checking in the cbm_defaults if those species ids (SpsIDMatch) are correct 
+# run line 8:48 of readInSQLiteData
+sps
+spsCheck <- sps[sps$species_id %in% gcSpsID,]
+### ALL SPECIES MATCH
 
-#trackPix[which(!is.na(sim$spatialDT$events))] <- distPixels$newGroup
-sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix4$pixelGroup]
-setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
-
-# change the vector of pixel group in $spatialDT to match trackPix for next annual cycle
-group1 <- sort(unique(sim$spatialDT$pixelGroup))
-sim$spatialDT$pixelGroup <- trackPix4
-# count the pixels in each new pixel group
-pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
-
-group2 <- sort(unique(trackPix))
-groupOut <- subset(group1, !(group1 %in% group2))
-# 
-
-
-grep(pattern=pnames[2],fireBS$sourceName)
-grep(pattern=pnames[3],fireBS$sourceName)
-# this is substrated from the atmosphere:1.354479
-minusAtm <- sum(growth321[c(1:5)])
-#This is the difference between the spinup and 1990 for the Atm pools (C02,CH4,CO)
-deltaAtm <- sum(growth321[22:24])# right now just in CO2
+# do the species in the growth_curve_component_id?
+match1 <- read.csv("C:/Celine/GitHub/spadesCBM/data/curveSpsMatch.csv")
+match1 <- match1[order(match1$growth_curve_component_id),]
+checkMatch2 <- which(match1$species!=gcID$species)
+### species match.
+# I was messing up the growth_curve_component_id and teh piXelGroups...:/
+check101 <- which(growthCurveComponents[,1]==101)
+plot(growthCurveComponents[check101,2],growthCurveComponents[check101,3])
+#######################################################################
