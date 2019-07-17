@@ -23,20 +23,28 @@ growth.inc <- spadesCBMout$growth_increments
 # "C:/Celine/GitHub/spadesCBM/data/yieldComponentSK.csv"
 # 
 
-# Following the Boudewyn et al models (p7 and 8 of the 2007 publication), the
-# proportion in stemwood bark branches foliage each have an equation. The
-# equations for each component have the same form. 
-# vol = gross merchantable volume per ha
-# lvol = natural logarithm of (vol+5)
-# 9 model parameters a1, a2, a3,b1,b2,b3,c1,c2,c3 that are specific to the
-# jurisdiction, ecozone and lead tree species
+# Following the Boudewyn et al models (p7 flowchart in 2007 publication)-----------------------------
 
-bparams <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table6_v2.csv"))
-skParams <- bparams[bparams$jur=="SK",]
+# read-in all parameters---------------------------
+# model parameters are specific to the jurisdiction, ecozone and lead tree species
+# can be updated here: https://nfi.nfis.org/en/biomass_models
+table3 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table3.csv"))
+sktable3 <- table3[table3$jur=="SK",]
+table4 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table4.csv"))
+sktable4 <- table4[table4$jur=="SK",]
+# table5 is weird since they did not have enough data for SK. I am selecting AB
+# instead. Another catch is that they don't have the same species match. I
+# manually check and ABIES is genus 3 (used below)
+table5 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table5.csv"))
+sktable5 <- table5[table5$juris_id=="AB",]
+table6 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table6_v2.csv"))
+sktable6 <- table6[table6$jur=="SK",]
+# read-in parameters done---------------------------
 
-#what are the spus in SK? and what ecoboundaries do we have?
+#what are the spus in SK? and what ecoboundaries do we have?-------------
 spu <- as.data.frame(sim$cbmData@spatialUnitIds)
 spu[spu$AdminBoundaryID==9&spu$EcoBoundaryID %in% c(6,9),]
+# end spu and eco--------------------------------------------------------
 
 # what species do we have?--------------------------------------------------------
 gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))
@@ -69,38 +77,91 @@ paramSps[paramSps$genus==genus[7],1:5]# 1303 for White Birch in both ecozones
 names(gcSpsMatch) <- c("speciesName", "gcSpsName","SpsIDMatch","rasterSps")
 species <- c(302,1203,101,203,1201,1303,105)
 spsMatch <- cbind(gcSpsMatch,species)
-#--------------------------------------------------------------------------------
+#End species------------------------------------------------------------------------
 
-# trying with just one species: Balsam fir growth curve id 1 (and
-# 2,3,22,23,24,43,44,45,64,65,66,85,86,87)
+# Balsam fir volume at 100 years old----------------------------------------------------------
+# trying with just one species: Balsam fir growth curve id 1 (Balsam fir is gcID
+# 1 and 2,3,22,23,24,43,44,45,64,65,66,85,86,87)
 # growthComponents
 gComp <- read.csv(spadesCBMout$gcurveComponentsFileName)
 gComp1 <- gComp[gComp$GrowthCurveComponentID==1,]
 # looks like it is upposed to
 plot(gComp1$Age,gComp1$MerchVolume)
-params1 <- skParams[skParams$species==302&skParams$eco==6,]
+
+# one species Balsam fir in one ecozone since the params are the same, read-in all parameters
+params3 <- sktable3[sktable3$canfi_species==302&sktable3$eco==6,]
+params4 <- sktable4[sktable4$canfi_species==302&sktable4$eco==6,]
+# table 5 is different then the others
+params5 <- sktable5[sktable5$canfi_genu==3&sktable5$ecozone==6,]
+params6 <- sktable6[sktable6$species==302&sktable6$eco==6,]
+
 # try one volume at year 100
 vol100 <- gComp1[gComp1$Age==100,3]
 
-# 4 proportions  should be returned
+# eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
+# the gross merchantable volume/ha. Parameters a and b are in table3
+b_m <- function(paramTable1,vol){
+  b_m <- paramTable1$a*vol^paramTable1$b
+  return(b_m)
+}
+eq1 <- b_m(paramTable1,vol100)
+
+# eq2 is for non-merch sized trees.
+nmfac <- function(table4,eq1){
+  nmFac <- table4$k+table4$a*eq1^table4$b
+  b_nm <- nmFac*eq1
+  b_n <- b_nm-eq1
+  return(c(b_n,b_nm))
+}
+eq2 <- nmfac(params4,eq1 = eq1)
+
+# eq3 is for the saplings and it needs b_nm from the previous eq2
+sapfac <- function(table5,eq2){
+  sapFac <- table5$k+table5$a*eq2[2]^table5$b
+  b_snm <- sapFac*eq2[2]
+  b_s <- b_snm-eq2[2]
+  return(b_s)
+}
+eq3 <- sapfac(params5,eq2 = eq2)
+
+# middle box flowchart3
+merch <- eq1+eq2[1]+eq3
+
+# calculate the 4 proportions  should be returned
 # will eventually add species, ecozone
-biomProp <- function(vol){
-  biomVect <- vector(length = 4)
+# vol = gross merchantable volume per ha
+# lvol = natural logarithm of (vol+5)
+biomProp <- function(table6,vol){
   lvol <- log(vol+5)
   a <- c(5:7)
   b <- c(8:10)
   c <- c(11:13)
-  for(i in length(biomVect){
-    stem <- 1/(1+exp(params1[,a[1]]+params1[,a[2]]*vol+params1[,a[3]]*lvol)+
-               exp(params1[,b[1]]+params1[,b[2]]*vol+params1[,b[3]]*lvol)+
-               exp(params1[,c[1]]+params1[,c[2]]*vol+params1[,c[3]]*lvol))
-    
-  })
-  
-}
+  pstem <- 1/(1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+  pbark <- exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)/
+              (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+  pbranches <- exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)/
+              (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+  pfol <- exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol)/
+            (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+  propVect <- cbind(pstem,pbark,pbranches,pfol)    
+  }
+pVect <- biomProp(table6=params6,vol = vol100)  
 
+totbiom <- merch/pVect[1]
+bark <- totbiom*pVect[2]
+branch <- totbiom*pVect[3]
+fol <- totbiom*pVect[4]
+other <- branch+bark
 
-
+# End of one
 
 ### This is background info...in the spadesCBMinputs module, this is how we
 ### "translate" the growth info into biomass - note the function below using the
