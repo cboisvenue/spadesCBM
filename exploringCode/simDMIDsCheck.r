@@ -127,8 +127,8 @@ c787.1990 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==787,6:30])
 # 1.change the script in annual for no disturbance - Run 1990:1993
 # does the growth happen as it should?
 # check pixelGroup 101
-checkGrowth <- function(pg=c(101)){
-  pGdesc <- spadesCBMout$level3DT[pixelGroup %in% pg,]
+checkGrowth <- function(pg){
+  pGdesc <- spadesCBMout$level3DT[pixelGroup %in% pg[[1]],]
   pGdesc
   suCpg <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==pg),-1])
   pg1990 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==pg,6:30])
@@ -146,27 +146,37 @@ checkGrowth <- function(pg=c(101)){
   return(growthCheck)
 
 }
-#select some random pixelGroup to check
-pg=1
-growthCheck
+#I have now mannually calculated the vol to biom conversion for balsam fir
+#select pixelGroup that are balsam fir and check ## NONE DO HAVE BALSAM FIR!
+# reran everything with black spruce medium
+BSid <- c(8,9,29,30,50,51,71,72,92,93)
+#Only need to check 29,30,51
+BScurves <- unique(spadesCBMout$level3DT[pixelGroup %in% pg[[1]],growth_curve_component_id])
+# maje sure those of "my" curves
+gCurvesBS <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1] %in% BScurves,]
+which(gCurvesBS[1:250,3]!=gCurvesBS[251:500,3])
+#integer(0)
+which(gCurvesBS[1:250,3]!=gCurvesBS[501:750,3])
+#integer(0)
+pg <- spadesCBMout$level3DT[rasterSps==3&growth_curve_component_id %in% BSid,7]
+# 64 pixel groups use those curves
+
+# this was to check random pg
+#growthCheck <- checkGrowth(pg=1)
 # swmerch         swfol       swother 
 # -0.0016801097  0.0004728645 -0.0002689583 
-checkGroups <- round(runif(10,min = 0, max=759),0)
+#checkGroups <- round(runif(10,min = 0, max=759),0)
+
 growthChex <- list()
 
-for(i in i:length(checkGroups)){
-  growthChex[[i]] <- checkGrowth(checkGroups[i])
+for(i in i:dim(pg)[1]){
+  growthChex[[i]] <- checkGrowth(pg[[1]][i])
 }
-results1 <- rbind(growthChex[[1]][1],
-                  growthChex[[2]][1],
-                  growthChex[[3]][1],
-                  growthChex[[4]][1],
-                  growthChex[[5]][1],
-                  growthChex[[6]][1],
-                  growthChex[[7]][1],
-                  growthChex[[8]][1],
-                  growthChex[[9]][1],
-                  growthChex[[10]][1])
+resultsBS <- NULL
+for(i in i:dim(pg)[1]){
+  resultsBS <- rbind(resultsBS,growthChex[[i]][1])
+}
+
 
 # add species
 gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))

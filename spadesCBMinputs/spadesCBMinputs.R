@@ -124,6 +124,18 @@ Init <- function(sim) {
   }
   
   colnames(sim$growth_increments)<- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+  ## this is where I will be replacing black spruce increments### THIS IS
+  # ## TEMPORARY TO CHECK IF GROWTH IS OK AND THEN CHECK OF DISTURBANCES ARE OK
+  bSpruceInc <- read.csv(file.path(paths(sim)$inputPath,"blackSpruceInc.csv"))
+  BSid <- c(8,9,29,30,50,51,71,72,92,93)
+  growth.inc <- sim$growth_increments
+  for(i in 1:length(BSid)){
+    growth.inc[growth.inc[,1] == BSid[i],3] <- bSpruceInc[,2]
+    growth.inc[growth.inc[,1] == BSid[i],4] <- bSpruceInc[,3]
+    growth.inc[growth.inc[,1] == BSid[i],5] <- bSpruceInc[,4]
+  }
+  sim$growth_increments <- growth.inc
+
   sim$gcHash <- matrixHash(sim$growth_increments)
   #create a nested hash (by gcid/by age)
   ## used in SpinUp function later...

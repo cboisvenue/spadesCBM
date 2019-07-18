@@ -68,35 +68,39 @@ paramSps <- paramSps[paramSps$prov=="SK"&paramSps$ecozone %in% c(6,9),]
 genus <- unique(paramSps$genus)
 paramSps[paramSps$genus=="ABIE",]# 302 for Balsam Fir in both ecozones
 paramSps[paramSps$genus==genus[6],1:5]# 1203 for Balsam poplar in both ecozones
-                                      # 1201 for Trembling aspen in both ecozones
+# 1201 for Trembling aspen in both ecozones
 paramSps[paramSps$genus==genus[1],1:5]# 101 for Black Spruce in both ecozones
-                                      # 105 for White Spruce in both ecozones
+# 105 for White Spruce in both ecozones
 paramSps[paramSps$genus==genus[2],1:5]# 203 for Jack Pine in both ecozones
 paramSps[paramSps$genus==genus[7],1:5]# 1303 for White Birch in both ecozones
 
-names(gcSpsMatch) <- c("speciesName", "gcSpsName","SpsIDMatch","rasterSps")
+names(gcSpsMatch) <- c("speciesName", "rasterSps","SpsIDMatch")
 species <- c(302,1203,101,203,1201,1303,105)
 spsMatch <- cbind(gcSpsMatch,species)
 #End species------------------------------------------------------------------------
 
-# Balsam fir volume at 100 years old----------------------------------------------------------
-# trying with just one species: Balsam fir growth curve id 1 (Balsam fir is gcID
-# 1 and 2,3,22,23,24,43,44,45,64,65,66,85,86,87)
+# Balsam fir volume at 100 years old: there are no balsam fir leaving in our study area..(sigh)
+## Balsam fir 100 successful
+# trying again but with black spruce med curves----------------------------------------------------------
+# trying with just one species:  growth curve id 8 (black spruce is gcID
+# 8,9,29,30,50,51,71,72,92,93)
+
+# try the whole curve now--------------------------------------------
 # growthComponents
 gComp <- read.csv(spadesCBMout$gcurveComponentsFileName)
-gComp1 <- gComp[gComp$GrowthCurveComponentID==1,]
+gComp8 <- gComp[gComp$GrowthCurveComponentID==8,]
 # looks like it is upposed to
-plot(gComp1$Age,gComp1$MerchVolume)
+plot(gComp8$Age,gComp8$MerchVolume)
 
 # one species Balsam fir in one ecozone since the params are the same, read-in all parameters
-params3 <- sktable3[sktable3$canfi_species==302&sktable3$eco==6,]
-params4 <- sktable4[sktable4$canfi_species==302&sktable4$eco==6,]
-# table 5 is different then the others
+params3 <- sktable3[sktable3$canfi_species==101&sktable3$eco==6,]
+params4 <- sktable4[sktable4$canfi_species==101&sktable4$eco==6,]
+# table 5 is different than the others
 params5 <- sktable5[sktable5$canfi_genu==3&sktable5$ecozone==6,]
-params6 <- sktable6[sktable6$species==302&sktable6$eco==6,]
+params6 <- sktable6[sktable6$species==101&sktable6$eco==6,]
 
 # try one volume at year 100
-vol100 <- gComp1[gComp1$Age==100,3]
+vol100 <- gComp8[,3]
 
 # eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
 # the gross merchantable volume/ha. Parameters a and b are in table3
@@ -104,28 +108,31 @@ b_m <- function(paramTable1,vol){
   b_m <- paramTable1$a*vol^paramTable1$b
   return(b_m)
 }
-eq1 <- b_m(paramTable1,vol100)
+eq1 <- b_m(params3,vol100)
 
 # eq2 is for non-merch sized trees.
 nmfac <- function(table4,eq1){
   nmFac <- table4$k+table4$a*eq1^table4$b
   b_nm <- nmFac*eq1
   b_n <- b_nm-eq1
-  return(c(b_n,b_nm))
+  return(cbind(b_n,b_nm))
 }
 eq2 <- nmfac(params4,eq1 = eq1)
+#some NAs where it was 0s
+eq2[which(is.na(eq2))] <- 0
 
 # eq3 is for the saplings and it needs b_nm from the previous eq2
 sapfac <- function(table5,eq2){
-  sapFac <- table5$k+table5$a*eq2[2]^table5$b
-  b_snm <- sapFac*eq2[2]
-  b_s <- b_snm-eq2[2]
+  sapFac <- table5$k+table5$a*eq2[,2]^table5$b
+  b_snm <- sapFac*eq2[,2]
+  b_s <- b_snm-eq2[,2]
   return(b_s)
 }
 eq3 <- sapfac(params5,eq2 = eq2)
+eq3[which(is.na(eq3))] <- 0
 
 # middle box flowchart3
-merch <- eq1+eq2[1]+eq3
+merch <- eq1+eq2[,1]+eq3
 
 # calculate the 4 proportions  should be returned
 # will eventually add species, ecozone
@@ -137,81 +144,68 @@ biomProp <- function(table6,vol){
   b <- c(8:10)
   c <- c(11:13)
   pstem <- 1/(1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
-               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
-               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+                exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+                exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
   pbark <- exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)/
-              (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
-               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
-               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+    (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+       exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+       exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
   pbranches <- exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)/
-              (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
-               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
-               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+    (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+       exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+       exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
   pfol <- exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol)/
-            (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
-               exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
-               exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
+    (1+exp(table6[,a[1]]+table6[,a[2]]*vol+table6[,a[3]]*lvol)+
+       exp(table6[,b[1]]+table6[,b[2]]*vol+table6[,b[3]]*lvol)+
+       exp(table6[,c[1]]+table6[,c[2]]*vol+table6[,c[3]]*lvol))
   propVect <- cbind(pstem,pbark,pbranches,pfol)    
-  }
+}
 pVect <- biomProp(table6=params6,vol = vol100)  
 
-totbiom <- merch/pVect[1]
-bark <- totbiom*pVect[2]
-branch <- totbiom*pVect[3]
-fol <- totbiom*pVect[4]
+totbiom <- merch/pVect[,1]
+bark <- totbiom*pVect[,2]
+branch <- totbiom*pVect[,3]
+fol <- totbiom*pVect[,4]
 other <- branch+bark
 
-# End of one
+# End of one age for Balsam fir at age 100, biomass seem reasonable-----------------------
+id <- rep(8, length(merch))
+curve <- cbind(id,merch,fol,other)
+# merch, fol, other looks fine once translated for Balsam fir--------------------------------
 
-### This is background info...in the spadesCBMinputs module, this is how we
-### "translate" the growth info into biomass - note the function below using the
-### library CBMVolumeToBiomass
-gcID <- read.csv(sim$gcurveFileName)
-## HAVE TO maintain this format
-growthCurves <- as.matrix(gcID[,c(3,2,5,4,6)])
-growthCurveComponents <- as.matrix(read.csv(sim$gcurveComponentsFileName))
+# calculate the increments for Balsam fir --------------------------------------
 
-sim$growth_increments<-NULL
-for(gcid in unique(growthCurves[,"growth_curve_id"])) { 
-  curve <- processGrowthCurve(gcid, growthCurves, growthCurveComponents,sim = sim)
-  sim$growth_increments <- rbind(sim$growth_increments,
-                                 cbind(rep(gcid,(nrow(curve)-1)), cbind(curve[0:(nrow(curve)-1),1], diff(curve[,2:ncol(curve)]))))
-  
+growth_increments<-NULL
+
+growth_increments <- diff(curve)
+growth_increments[,1] <- id[1:dim(growth_increments)[[1]]]
+
+# growth increments for Balsam fir are calculated...replace in inputs module (before hash)
+# writing this to file, I will replace gcID 1 and 2,3,22,23,24,43,44,45,64,65,66,85,86,87 with this and test
+#write.csv(file = file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv"), growth_increments, row.names = FALSE)
+# now black spruce
+write.csv(file = file.path(paths(spadesCBMout)$inputPath,"blackSpruceInc.csv"), growth_increments, row.names = FALSE)
+
+
+#how I am replacing the balsam fir growth increments with these, this has to
+#happend on line 127 of inputs module
+# balsamInc <- read.csv(file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv"))
+# BFid <- c(1,2,3,22,23,24,43,44,45,64,65,66,85,86,87)
+# growth.inc <- spadesCBMout$growth_increments
+# for(i in 1:length(BFid)){
+#   growth.inc[growth.inc[,1] == BFid[i],3] <- balsamInc[,2]
+#   growth.inc[growth.inc[,1] == BFid[i],4] <- balsamInc[,3]
+#   growth.inc[growth.inc[,1] == BFid[i],5] <- balsamInc[,4]
+#   }
+bSpruceInc <- read.csv(file.path(paths(spadesCBMout)$inputPath,"blackSpruceInc.csv"))
+BSid <- c(8,9,29,30,50,51,71,72,92,93)
+growth.inc <- spadesCBMout$growth_increments
+for(i in 1:length(BSid)){
+  growth.inc[growth.inc[,1] == BSid[i],3] <- bSpruceInc[,2]
+  growth.inc[growth.inc[,1] == BSid[i],4] <- bSpruceInc[,3]
+  growth.inc[growth.inc[,1] == BSid[i],5] <- bSpruceInc[,4]
 }
 
-colnames(sim$growth_increments)<- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-sim$gcHash <- matrixHash(sim$growth_increments)
-#create a nested hash (by gcid/by age)
-## used in SpinUp function later...
-for(item in ls(sim$gcHash)){
-  sim$gcHash[[item]] <- hash(sim$gcHash[[item]])
-}
-
-# this is how the groth curves are processed in spadesCBM now
-processGrowthCurve <- function(gcid,growthCurves,growthCurveComponents,sim) {
-  
-  matchingRows <- t(as.matrix(growthCurves[growthCurves[,"growth_curve_id"]==gcid,]))
-  swSpeciesCode = 0
-  hwSpeciesCode = 0
-  swAgeVolumePairs = as.matrix(0)
-  hwAgeVolumePairs = as.matrix(0)
-  for(row in 1:nrow(matchingRows)){
-    if(matchingRows[row,"forest_type_id"]==1) {
-      swSpeciesCode <- matchingRows[row, "species_id"]
-      swAgeVolumePairs <- growthCurveComponents[growthCurveComponents[,"GrowthCurveComponentID"] == matchingRows[row,"growth_curve_component_id"], c("Age","MerchVolume")]
-    } else {
-      hwSpeciesCode <- matchingRows[row, "species_id"]
-      hwAgeVolumePairs <- growthCurveComponents[growthCurveComponents[,"GrowthCurveComponentID"] == matchingRows[row,"growth_curve_component_id"], c("Age","MerchVolume")]
-    }
-  }
-  carbonCurve <- VolumeToBiomassConvert(dbpath = sim$dbPath, 
-                                        spatial_unit_id = matchingRows[1,"spatial_unit_id"],
-                                        sw_species_code = swSpeciesCode, 
-                                        swAgeVolume = swAgeVolumePairs, 
-                                        hw_species_code = hwSpeciesCode, 
-                                        hwAgeVolume = hwAgeVolumePairs)
-  return (carbonCurve)
-}
 #FYI:
 # cbmTables$forest_type
 # id           name
