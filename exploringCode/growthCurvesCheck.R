@@ -26,7 +26,7 @@ b <- ggplot(data=biomInc, aes(x=age,y=totInc,group=id,colour=id)) +geom_line()
 ## There are WAY more then 10 curves there..?
 
 # Check my conversions of balsam fir and black spruce med-------------------------------------------
-balsamFirInc <- as.data.table(read.csv(file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv")))
+#balsamFirInc <- as.data.table(read.csv(file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv")))
 bSpruceInc <- as.data.table(read.csv(file.path(paths(spadesCBMout)$inputPath,"blackSpruceInc.csv")))
 
 BFtotInc <- balsamFirInc[,.(id, age=1:250,totInc=rowSums(balsamFirInc[,2:4]))]
@@ -97,3 +97,17 @@ checkGrowth(pg)
 # swmerch       swfol     swother 
 # -0.39287095  0.06407009 -0.12866206 
 ## STill not...
+
+#Checking out a fast growing species
+jackPid <- gcID[which(gcID$species==gcSps$species[4]),growth_curve_id]
+jackPrun <- spadesCBMout$level3DT[growth_curve_id %in% jackPid,]
+# yes
+
+i <- ggplot(biomInc[which(biomInc$id %in% jackPid),],
+            aes(x=age,y=totInc,group=id,colour=id)) +geom_line()
+# crap...
+#check again
+j <- ggplot(data=gComp[gComp$GrowthCurveComponentID %in% jackPid,], aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
+  geom_line()
+# looks beautiful
+# plot the 

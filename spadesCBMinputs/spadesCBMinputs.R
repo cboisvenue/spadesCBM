@@ -183,7 +183,7 @@ Init <- function(sim) {
                           growth_curve_component_id, growth_curve_id, pixelGroup)]
   spatialDT <- spatialDT[order(pixelIndex),]
   # make the data.table that will be used in simulations
-  level3DT <- unique(spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup)]
+  level3DT <- unique(spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
   # might have to keep this when we integrate the disturbances
   sim$level3DT <- level3DT
   
@@ -208,6 +208,7 @@ Init <- function(sim) {
   ###########################################################
   # temp fix:
   sim$level3DT[ages==1 & growth_curve_component_id==58,ages:=3]
+  sim$level3DT[order(pixelGroup),]
   sim$ages <- sim$level3DT[,ages]
   sim$nStands <- length(sim$ages)
   

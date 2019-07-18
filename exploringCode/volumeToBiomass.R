@@ -88,19 +88,21 @@ spsMatch <- cbind(gcSpsMatch,species)
 # try the whole curve now--------------------------------------------
 # growthComponents
 gComp <- read.csv(spadesCBMout$gcurveComponentsFileName)
-gComp8 <- gComp[gComp$GrowthCurveComponentID==8,]
+gComp14 <- gComp[gComp$GrowthCurveComponentID==14,]
 # looks like it is upposed to
-plot(gComp8$Age,gComp8$MerchVolume)
+plot(gComp14$Age,gComp14$MerchVolume)
 
 # one species Balsam fir in one ecozone since the params are the same, read-in all parameters
-params3 <- sktable3[sktable3$canfi_species==101&sktable3$eco==6,]
-params4 <- sktable4[sktable4$canfi_species==101&sktable4$eco==6,]
+# black Spruce
+# now Jack PIne 
+params3 <- sktable3[sktable3$canfi_species==1201&sktable3$eco==6,]
+params4 <- sktable4[sktable4$canfi_species==1201&sktable4$eco==6,]
 # table 5 is different than the others
-params5 <- sktable5[sktable5$canfi_genu==3&sktable5$ecozone==6,]
-params6 <- sktable6[sktable6$species==101&sktable6$eco==6,]
+params5 <- sktable5[sktable5$canfi_genu==9&sktable5$ecozone==6,]
+params6 <- sktable6[sktable6$species==1201&sktable6$eco==6,]
 
 # try one volume at year 100
-vol100 <- gComp8[,3]
+vol100 <- gComp14[,3]
 
 # eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
 # the gross merchantable volume/ha. Parameters a and b are in table3
@@ -169,11 +171,13 @@ fol <- totbiom*pVect[,4]
 other <- branch+bark
 
 # End of one age for Balsam fir at age 100, biomass seem reasonable-----------------------
-id <- rep(8, length(merch))
+# then black spruce
+# Jack pine
+id <- rep(14, length(merch))
 curve <- cbind(id,merch,fol,other)
 # merch, fol, other looks fine once translated for Balsam fir--------------------------------
 
-# calculate the increments for Balsam fir --------------------------------------
+# calculate the increments for Balsam fir/Black spruce?jack pine --------------------------------------
 
 growth_increments<-NULL
 
@@ -184,7 +188,9 @@ growth_increments[,1] <- id[1:dim(growth_increments)[[1]]]
 # writing this to file, I will replace gcID 1 and 2,3,22,23,24,43,44,45,64,65,66,85,86,87 with this and test
 #write.csv(file = file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv"), growth_increments, row.names = FALSE)
 # now black spruce
-write.csv(file = file.path(paths(spadesCBMout)$inputPath,"blackSpruceInc.csv"), growth_increments, row.names = FALSE)
+# now jack pine
+# aspen medium
+write.csv(file = file.path(paths(spadesCBMout)$inputPath,"aspenMedInc.csv"), growth_increments, row.names = FALSE)
 
 
 #how I am replacing the balsam fir growth increments with these, this has to
