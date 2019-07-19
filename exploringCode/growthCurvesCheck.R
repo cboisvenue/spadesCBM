@@ -111,3 +111,8 @@ j <- ggplot(data=gComp[gComp$GrowthCurveComponentID %in% jackPid,], aes(x=Age,y=
   geom_line()
 # looks beautiful
 # plot the 
+
+# aspen
+aspInc <- as.data.table(growth_increments)
+aspTotInc <- aspInc[,.(id, age=1:250,totInc=rowSums(bSpruceInc[,2:4]))]
+h <- ggplot(aspTotInc[4:250,],aes(x=age, y=totInc)) +geom_line()
