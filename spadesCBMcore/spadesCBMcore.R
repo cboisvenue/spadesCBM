@@ -132,10 +132,10 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       if (!time(sim) == start(sim)) {
         areaPlot(cbmPools = sim$cbmPools,
                 masterRaster = sim$masterRaster)
-        
-        barPlot(cbmPools = sim$cbmPools, 
+
+        barPlot(cbmPools = sim$cbmPools,
                 masterRaster = sim$masterRaster)
-        NPPPlot(changeInNPP = sim$NPP, 
+        NPPPlot(changeInNPP = sim$NPP,
                 masterRaster = sim$masterRaster,
                 spatialDT = sim$spatialDT,
                 time = time(sim))
@@ -143,7 +143,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       spatialPlot(cbmPools = sim$cbmPools,
                   poolsToPlot = P(sim)$poolsToPlot,
                   masterRaster = sim$masterRaster,
-                  pixelkeep = sim$pixelKeep, 
+                  pixelkeep = sim$pixelKeep,
                   years = time(sim))
 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
@@ -436,7 +436,7 @@ annual <- function(sim) {
   maxPixelGroup <- max(sim$spatialDT$pixelGroup)
   # NOTE: different carbon transactions will apply to different events, so, keep
   # them seperate pre-C++ processing
-browser()
+
 
   distPixels[,oldGroup:=pixelGroup]
   distPixels$newGroup <- LandR::generatePixelGroups(distPixels,maxPixelGroup,
@@ -472,6 +472,7 @@ browser()
 
   toAdd <- merge(uniqueNewGroup,groupToAddC,all.x=TRUE)#,on = c("pixelGroup")]
   toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
+  toAdd <- toAdd[order(pixelGroup),]
   ## HERE IS WHERE THE EVENTS GET TAKEN OUT...
   # BEFORE WE DO...need to figure out eventsDMIDs
 
@@ -484,20 +485,21 @@ browser()
   toAdd <- toAdd[,c("oldGroup","events") := NULL]
   toAdd <- toAdd[order(pixelGroup),]
 
-  # rbind now matches column names for you
+  #rbind now matches column names for you
   # throws out pixelGroups that are where "emptied" by disturbances
   pixelGroupForAnnual <- rbind(sim$pixelGroupC[!(pixelGroup %in% groupOut),],toAdd)
 #  groupOut <- c(0,0,0)
 # ADDED
-  pixelGroupForAnnual <- sim$pixelGroupC
-  
+#  pixelGroupForAnnual <- sim$pixelGroupC
+  pixelGroupForAnnual <- pixelGroupForAnnual[order(pixelGroup),]
   # Changing the vectors and matrices that need to be changed to process this year's growth
   sim$pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
   # eventDMIDS <- c(rep(0,dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
-  sim$ecozones <- merge(pixelGroupForAnnual,ecoToSpu)[,ecozones]
-  
+  ecozones <- merge(pixelGroupForAnnual,ecoToSpu)
+  ecozones <- ecozones[order(pixelGroup),]
+  sim$ecozones <- ecozones[,ecozones]
   ## from here change level3DT to pixelGroupForAnnual
   sim$ages <- pixelGroupForAnnual[,ages]
   sim$nStands <- length(sim$ages)
