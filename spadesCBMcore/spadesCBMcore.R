@@ -292,7 +292,7 @@ postSpinup <- function(sim) {
   # that will be disturbed in seperate lines
   sim$pools <- sim$spinupResult
   ## DO I NEED TO MAKE THIS sim$??
-  sim$level3DT <- sim$leve
+  sim$level3DT <- sim$level3DT[order(pixelGroup),]
   sim$pixelGroupC <- cbind(sim$level3DT,sim$spinupResult)
   
   # if(P(sim)$noAnnualDisturbances){

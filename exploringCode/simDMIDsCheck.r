@@ -127,7 +127,7 @@ c787.1990 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==787,6:30])
 # 1.change the script in annual for no disturbance - Run 1990:1993
 # does the growth happen as it should?
 # check pixelGroup 101
-checkGrowth <- function(pg){
+checkGrowth <- function(pg=c(101)){
   pGdesc <- spadesCBMout$level3DT[pixelGroup %in% pg[[1]],]
   pGdesc
   suCpg <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==pg),-1])
