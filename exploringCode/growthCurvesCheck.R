@@ -1,8 +1,15 @@
+
+
 # My calculations do not seem to improve...
 # Maybe that is NOT how increments work. I say this because the root calculation
 # check done in the workingOutNpp.xls still came out about right. There may be
 # some "mass balance maintenance" that adjust things and I can't see where that
 # happend because I can't see the c++ code.
+
+# currently: we start out with 10 curves. These are merch vol (cumulative m3/ha
+# over time). These 10 become 105 in the "translation" process. This was
+# originally because the runs in the Boisvenue et al 2016 needed one curve per
+# classifier set. 
 
 # trying another tactic
 # just check $growth_increments
@@ -13,20 +20,26 @@ gComp <- as.data.table(read.csv(spadesCBMout$gcurveComponentsFileName))
 
 a <- ggplot(data=gComp, aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
   geom_line()
+# this was also checked in this excel spreadsheet: ~outputs/speciesCheckFor101.xls
+
 
 # Now I will check if any of the conversion from what is supposed to be the same
-# curves are 1) actually the same (I don't think they are), and 2) if they are
-# not, figure out if one is "better behaved" they the rest
+# curves are 1) actually the same (I don't think they are - i.e., there are more
+# than 10 curves), and 2) if they are not, figure out if one is "better behaved"
+# they the rest
 
 growthInc <- as.data.table(spadesCBMout$growth_increments)
 
 biomInc <- growthInc[,.(id,age,totInc = rowSums(growthInc[,3:8]))]
 
+# 1) are the curves actually the same (I don't think they are - i.e., there are
+# more # than 10 curves)
 b <- ggplot(data=biomInc, aes(x=age,y=totInc,group=id,colour=id)) +geom_line()
-## There are WAY more then 10 curves there..?
+## There are WAY more then 10 curves there..
 
-# Check my conversions of balsam fir and black spruce med-------------------------------------------
-#balsamFirInc <- as.data.table(read.csv(file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv")))
+# Ran the balsam fir and black spruce m3/ha curve
+#Check my conversions of balsam fir and black spruce med-------------------------------------------
+balsamFirInc <- as.data.table(read.csv(file.path(paths(spadesCBMout)$inputPath,"balsamFirInc.csv")))
 bSpruceInc <- as.data.table(read.csv(file.path(paths(spadesCBMout)$inputPath,"blackSpruceInc.csv")))
 
 BFtotInc <- balsamFirInc[,.(id, age=1:250,totInc=rowSums(balsamFirInc[,2:4]))]

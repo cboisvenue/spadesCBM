@@ -9,7 +9,7 @@ sktable4 <- table4[table4$jur=="SK",]
 # manually check and ABIES is genus 3 (used below)
 table5 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table5.csv"))
 sktable5 <- table5[table5$juris_id=="AB",]
-table6 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table6.csv"))
+table6 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table6_v2.csv"))
 sktable6 <- table6[table6$jur=="SK",]
 # read-in parameters done---------------------------
 

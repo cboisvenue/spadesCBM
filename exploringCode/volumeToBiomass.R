@@ -1,7 +1,7 @@
 #----------------------------------- Volume to Biomass conversion needed for
 #spadesCBM Context: the CBMVolumeToBiomass Library initially used in spadesCBM
 #runs seem to have some inconsistencies. This is a work around/check to be able
-#to use the BOudewyn st al parameters for conversion from m3/ha to biomass in
+#to use the Boudewyn st al parameters for conversion from m3/ha to biomass in
 #the three main carbon pools that make-up the $growth_increments used to move
 #spadesCBM forward in growth from year to year
 #
@@ -22,6 +22,11 @@ growth.inc <- spadesCBMout$growth_increments
 # total) in the input files data/spadesGCurvesSK.csv and
 # "C:/Celine/GitHub/spadesCBM/data/yieldComponentSK.csv"
 # 
+library(ggplot2)
+gComp <- as.data.table(read.csv(spadesCBMout$gcurveComponentsFileName))
+
+a <- ggplot(data=gComp, aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
+  geom_line()
 
 # Following the Boudewyn et al models (p7 flowchart in 2007 publication)-----------------------------
 
@@ -77,9 +82,10 @@ paramSps[paramSps$genus==genus[7],1:5]# 1303 for White Birch in both ecozones
 names(gcSpsMatch) <- c("speciesName", "rasterSps","SpsIDMatch")
 species <- c(302,1203,101,203,1201,1303,105)
 spsMatch <- cbind(gcSpsMatch,species)
+write.csv(file = file.path(paths(spadesCBMout)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"), spsMatch, row.names = FALSE)
 #End species------------------------------------------------------------------------
 
-# Balsam fir volume at 100 years old: there are no balsam fir leaving in our study area..(sigh)
+# Balsam fir volume at 100 years old: there are no balsam fir in our study area..(sigh)
 ## Balsam fir 100 successful
 # trying again but with black spruce med curves----------------------------------------------------------
 # trying with just one species:  growth curve id 8 (black spruce is gcID

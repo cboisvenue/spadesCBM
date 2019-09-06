@@ -89,7 +89,7 @@ spadesCBMSim <- simInit(times = times,
                         paths = paths)
 dev()
 clearPlot()
-spadesCBMout <- spades(spadesCBMSim,debug=TRUE)
+spadesCBMout1 <- spades(spadesCBMSim,debug=TRUE)
 
 ```
 
