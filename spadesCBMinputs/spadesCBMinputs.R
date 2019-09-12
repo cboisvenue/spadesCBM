@@ -109,32 +109,33 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
 #  sim$PoolCount <- length(sim$pooldef)
-  
+
   gcID <- read.csv(sim$gcurveFileName)
   ## HAVE TO maintain this format
-  growthCurves <- as.matrix(gcID[,c(3,2,5,4,6)])
+  growthCurves <- unique(as.matrix(gcID[,c(3,2,5,4,6)]))
   growthCurveComponents <- as.matrix(read.csv(sim$gcurveComponentsFileName))
   
   sim$growth_increments<-NULL
-  for(gcid in unique(growthCurves[,"growth_curve_id"])) { 
-    curve <- processGrowthCurve(gcid, growthCurves, growthCurveComponents,sim = sim)
+  gcid <- unique(growthCurves[,"growth_curve_id"])
+  for(i in 1:length(gcid)) { 
+    curve <- processGrowthCurve(gcid[i], growthCurves, growthCurveComponents,sim = sim)
     sim$growth_increments <- rbind(sim$growth_increments,
-                                   cbind(rep(gcid,(nrow(curve)-1)), cbind(curve[0:(nrow(curve)-1),1], diff(curve[,2:ncol(curve)]))))
+                                   cbind(rep(gcid[i],(nrow(curve)-1)), cbind(curve[0:(nrow(curve)-1),1], diff(curve[,2:ncol(curve)]))))
     
   }
   
   colnames(sim$growth_increments)<- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   ## this is where I will be replacing black spruce increments### THIS IS
   # ## TEMPORARY TO CHECK IF GROWTH IS OK AND THEN CHECK OF DISTURBANCES ARE OK
-  bSpruceInc <- read.csv(file.path(paths(sim)$inputPath,"blackSpruceInc.csv"))
-  BSid <- c(8,9,29,30,50,51,71,72,92,93)
-  growth.inc <- sim$growth_increments
-  for(i in 1:length(BSid)){
-    growth.inc[growth.inc[,1] == BSid[i],3] <- bSpruceInc[,2]
-    growth.inc[growth.inc[,1] == BSid[i],4] <- bSpruceInc[,3]
-    growth.inc[growth.inc[,1] == BSid[i],5] <- bSpruceInc[,4]
-  }
-  sim$growth_increments <- growth.inc
+  # bSpruceInc <- read.csv(file.path(paths(sim)$inputPath,"blackSpruceInc.csv"))
+  # BSid <- c(8,9,29,30,50,51,71,72,92,93)
+  # growth.inc <- sim$growth_increments
+  # for(i in 1:length(BSid)){
+  #   growth.inc[growth.inc[,1] == BSid[i],3] <- bSpruceInc[,2]
+  #   growth.inc[growth.inc[,1] == BSid[i],4] <- bSpruceInc[,3]
+  #   growth.inc[growth.inc[,1] == BSid[i],5] <- bSpruceInc[,4]
+  # }
+  # sim$growth_increments <- growth.inc
 
   sim$gcHash <- matrixHash(sim$growth_increments)
   #create a nested hash (by gcid/by age)
@@ -156,15 +157,21 @@ Init <- function(sim) {
   # read-in productivity  levels
   prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
   Productivity <- getValues(prodRaster)#1 2 3 0
+  
   # read-in spatial units
   spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
 
   level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
   level2DT <- level2DT[level2DT$rasterSps>0]
+  # not all species have 3 levels of productivity:
+  oneProdlevel <- c(1,2,4,6)
+  Prod2 <- which(level2DT$rasterSps %in% oneProdlevel)
+  level2DT$Productivity[Prod2] <- 1
+  level2DT <- level2DT[level2DT$Productivity==3, Productivity:=2]
   level2DT$pixelIndex <- 1:nrow(level2DT)
   setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
-  level2DT[order(pixelIndex),]
+  level2DT <- level2DT[order(pixelIndex),]
   # add the gcID	  # add the gcID
   #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
   gcID <- as.data.table(gcID[,-1]) 
@@ -172,10 +179,10 @@ Init <- function(sim) {
   setkey(gcID,growth_curve_component_id,rasterSps,Productivity,spatial_unit_id)
   
   spatialDT <- level2DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
-  spatialDT[order(pixelIndex),]
+  spatialDT <- spatialDT[order(pixelIndex),]
   spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,0,
                                      columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
-  spatialDT[order(pixelIndex),]
+  spatialDT <- spatialDT[order(pixelIndex),]
   ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
   # why the number starts at the number you are asking for? not logical to me -
   # max is the max value your groups should have.@..?
@@ -201,7 +208,7 @@ Init <- function(sim) {
   # masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
   # sim$masterRaster <- masterRaster
    
-  
+
   ############################################################
   ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
   ## this is a problem to tackle once we have some insight into the cpp code

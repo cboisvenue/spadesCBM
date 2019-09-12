@@ -111,7 +111,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
       sim <- annual(sim)
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
+      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot",.last())
       sim <- scheduleEvent(sim, time(sim) + 1, "spadesCBMcore", "annual")
       if(time(sim)==end(sim))
         sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last())
@@ -216,19 +216,7 @@ spinup <- function(sim) {
     sim$spatialUnits, #slow decay
     rep(1, sim$nStands) #slow mixing
   )
-  #don't need this...all rootParameters are constant across all spatial units
-  #ourSpus <- unique(sim$level3DT[,3]) 
-  #roots <- sim$cbmData@rootParameters[sim$cbmData@rootParameters[,1] %in% ourSpus$spatial_unit_id,]
-  # for these spatial units, turnover parameters are also the same
-  #ourEcos <- sim$cbmData@spatialUnitIds[sim$cbmData@spatialUnitIds[,1] %in% ourSpus$spatial_unit_id,3]
-  #turn <- sim$cbmData@turnoverRates[sim$cbmData@turnoverRates[,1] %in% ourEcos,]
-  
-    # try making the rootParameter the same length as the rest of the vectors
-  # root1 <- t(sim$cbmData@rootParameters[1,-1])
-  # SpatialUnitID <- sim$level3DT[,3]
-  # root2 <- cbind(SpatialUnitID,root1)
     
-
   sim$spinupResult <- Spinup(pools = sim$pools, 
                              opMatrix = opMatrix,
                              constantProcesses = sim$processes,
@@ -399,6 +387,7 @@ annual <- function(sim) {
   # 
   # 1. Read-in the disturbances
   # this raster is where we get our disturbances 
+  
   annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(sim)[1],".grd$"), value = TRUE))
   pixels <- getValues(sim$masterRaster)
   yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] #same length as spatialDT
