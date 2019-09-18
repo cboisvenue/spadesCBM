@@ -475,12 +475,10 @@ annual <- function(sim) {
   toAdd <- toAdd[order(pixelGroup),]
 
   #rbind now matches column names for you
-  # throws out pixelGroups that are where "emptied" by disturbances
+  #throws out pixelGroups that are where "emptied" by disturbances
   pixelGroupForAnnual <- rbind(sim$pixelGroupC[!(pixelGroup %in% groupOut),],toAdd)
-#  groupOut <- c(0,0,0)
-# ADDED
-#  pixelGroupForAnnual <- sim$pixelGroupC
   pixelGroupForAnnual <- pixelGroupForAnnual[order(pixelGroup),]
+  
   # Changing the vectors and matrices that need to be changed to process this year's growth
   sim$pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
   # eventDMIDS <- c(rep(0,dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)

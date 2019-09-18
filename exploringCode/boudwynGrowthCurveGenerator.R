@@ -20,10 +20,14 @@ spu[spu$AdminBoundaryID==9&spu$EcoBoundaryID %in% c(6,9),]
 
 # what species do we have?--------------------------------------------------------
 gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))
-# the above shows pixelGroup 101 to be white birch...but the cPoolsPixelYear.csv shows it to be a SW...and it grows?
 gcSpsName <- unique(gcID$species)
+# this is cbm-species number
 gcSpsID <- unique(gcID$species_id)
-SpsIDMatch <- vector(length=length(gcSpsName))
+## PROBLEM: Sps
+# now need to associate the growth_curve_component_id to the species
+# there are 10 curves, 
+# unique growth_curve_component_id
+SpsIDMatch <- vector(length=10)
 for(i in 1: length(gcSpsName)){
   SpsIDMatch[i] <- gcID[gcID$species==gcSpsName[i],4]%>% .[1]
 }

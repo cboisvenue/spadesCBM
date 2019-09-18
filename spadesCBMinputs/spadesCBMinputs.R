@@ -108,11 +108,79 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
 ### template initialization
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
-#  sim$PoolCount <- length(sim$pooldef)
-
-  gcID <- read.csv(sim$gcurveFileName)
+  
+  #### Data will have to be provided by user in a separated module...short cut for now...
+  #####################################################################################
+  
+  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  #This works
+  ages <- getValues(age)
+  # read-in species
+  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+  rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
+  # read-in productivity  levels
+  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+  Productivity <- getValues(prodRaster)#1 2 3 0
+  
+  # read-in spatial units
+  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+  spatial_unit_id <- getValues(spuRaster) #28 27
+  
+  level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
+  level2DT <- level2DT[level2DT$rasterSps>0]
+  # not all species have 3 levels of productivity:
+  oneProdlevel <- c(1,2,4,6)
+  Prod2 <- which(level2DT$rasterSps %in% oneProdlevel)
+  level2DT$Productivity[Prod2] <- 1
+  level2DT <- level2DT[level2DT$Productivity==3, Productivity:=2]
+  level2DT$pixelIndex <- 1:nrow(level2DT)
+  setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
+  level2DT <- level2DT[order(pixelIndex),]
+  # add the gcID	  # add the gcID
+  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
+  
+  gcID <- fread(sim$gcurveFileName)
   ## HAVE TO maintain this format
-  growthCurves <- unique(as.matrix(gcID[,c(3,2,5,4,6)]))
+  #growthCurves <- unique(as.matrix(gcID[,c(3,2,5,4,6)]))
+  ##added##
+  
+  #gcID <- as.data.table(gcID[,-1]) 
+  gcID <- unique(gcID[,.(rasterSps,growth_curve_component_id,spatial_unit_id,growth_curve_id)])
+  setkey(gcID,growth_curve_component_id,rasterSps,spatial_unit_id)
+  
+  spatialDT <- level2DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
+  spatialDT <- spatialDT[order(pixelIndex),]
+  spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,0,
+                                                     columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
+  spatialDT <- spatialDT[order(pixelIndex),]
+  ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
+  # why the number starts at the number you are asking for? not logical to me -
+  # max is the max value your groups should have.@..?
+  spatialDT <- spatialDT[,.(ages, rasterSps, spatial_unit_id, pixelIndex,
+                            growth_curve_component_id, growth_curve_id, pixelGroup)]
+  spatialDT <- spatialDT[order(pixelIndex),]
+  # make the data.table that will be used in simulations
+  level3DT <- unique(spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
+  # might have to keep this when we integrate the disturbances
+  sim$level3DT <- level3DT
+  
+  # spatial data table keeps the pixels number to re-populate for maps
+  #setkey(gcID, NULL) #have to unkey before a join
+  # spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]
+  # spatialDT <- spatialDT[order(rowOrder)]
+  # spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
+  # spatialDT$growth_curve_component_id,
+  # spatialDT$ages)))
+  sim$spatialDT <- spatialDT
+  
+  sim$masterRaster <- ldSpsRaster
+  # masterRaster[rasterSps == 0] <- NA
+  # masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
+  # sim$masterRaster <- masterRaster
+  
+
+  ecoToSpu <- as.data.table(sim$cbmData@spatialUnitIds)
+  
   growthCurveComponents <- as.matrix(read.csv(sim$gcurveComponentsFileName))
   
   sim$growth_increments<-NULL
@@ -145,69 +213,7 @@ Init <- function(sim) {
   }
   
   
-  #### Data will have to be provided by user in a separated module...short cut for now...
-  #####################################################################################
-
-  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
-  #This works
-  ages <- getValues(age)
-  # read-in species
-  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
-  rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
-  # read-in productivity  levels
-  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
-  Productivity <- getValues(prodRaster)#1 2 3 0
   
-  # read-in spatial units
-  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
-  spatial_unit_id <- getValues(spuRaster) #28 27
-
-  level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
-  level2DT <- level2DT[level2DT$rasterSps>0]
-  # not all species have 3 levels of productivity:
-  oneProdlevel <- c(1,2,4,6)
-  Prod2 <- which(level2DT$rasterSps %in% oneProdlevel)
-  level2DT$Productivity[Prod2] <- 1
-  level2DT <- level2DT[level2DT$Productivity==3, Productivity:=2]
-  level2DT$pixelIndex <- 1:nrow(level2DT)
-  setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
-  level2DT <- level2DT[order(pixelIndex),]
-  # add the gcID	  # add the gcID
-  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
-  gcID <- as.data.table(gcID[,-1]) 
-  gcID <- gcID[,.(rasterSps,Productivity,growth_curve_component_id,spatial_unit_id,growth_curve_id)]
-  setkey(gcID,growth_curve_component_id,rasterSps,Productivity,spatial_unit_id)
-  
-  spatialDT <- level2DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
-  spatialDT <- spatialDT[order(pixelIndex),]
-  spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,0,
-                                     columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
-  spatialDT <- spatialDT[order(pixelIndex),]
-  ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
-  # why the number starts at the number you are asking for? not logical to me -
-  # max is the max value your groups should have.@..?
-  spatialDT <- spatialDT[,.(ages, rasterSps, Productivity, spatial_unit_id, pixelIndex,
-                          growth_curve_component_id, growth_curve_id, pixelGroup)]
-  spatialDT <- spatialDT[order(pixelIndex),]
-  # make the data.table that will be used in simulations
-  level3DT <- unique(spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
-  # might have to keep this when we integrate the disturbances
-  sim$level3DT <- level3DT
-  
-  # spatial data table keeps the pixels number to re-populate for maps
-  #setkey(gcID, NULL) #have to unkey before a join
-  # spatialDT <- gcID[level2DT, on = c("rasterSps", "Productivity", "spatial_unit_id")]
-  # spatialDT <- spatialDT[order(rowOrder)]
-  # spatialDT$PixelGroupID <- as.numeric(factor(paste(spatialDT$spatial_unit_id,
-                                                       # spatialDT$growth_curve_component_id,
-                                                       # spatialDT$ages)))
-  sim$spatialDT <- spatialDT
-  
-  sim$masterRaster <- ldSpsRaster
-  # masterRaster[rasterSps == 0] <- NA
-  # masterRaster[!rasterSps == 0] <- spatialDT$PixelGroupID
-  # sim$masterRaster <- masterRaster
-   
 
   ############################################################
   ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
