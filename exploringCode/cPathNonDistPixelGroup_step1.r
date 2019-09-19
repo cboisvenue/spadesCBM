@@ -8,14 +8,14 @@
 # 1.growth of AG ok?-----------------------------------------------------------------------------------
 # do the 759 pixelGroups at the beginning still all have pixels in 2005?
 pgSpinup <- spadesCBMout$level3DT$pixelGroup
-nonDistPg <- spadesCBMout$pixelKeep[,.N,by=pixelGroup2005] %>% .[pixelGroup2005 %in% pgSpinup,]
+nonDistPg <- spadesCBMout$pixelKeep[,.N,by=pixelGroup1993] %>% .[pixelGroup1993 %in% pgSpinup,]
 
 summary(nonDistPg$N)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 1.0    91.5   369.0  1662.4  1413.5 48631.0 
 
 #age of those - b/c we don't want to check the overMature decline...need young enough stands
-nonDistPgAges <- spadesCBMout$level3DT[spadesCBMout$level3DT$pixelGroup %in% nonDistPg$pixelGroup2005,c(1,7)]
+nonDistPgAges <- spadesCBMout$level3DT[spadesCBMout$level3DT$pixelGroup %in% nonDistPg$pixelGroup1993,c(1,7)]
 
 # pick one
 # Pixel group 101

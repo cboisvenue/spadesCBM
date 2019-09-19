@@ -4,10 +4,10 @@
 #spadesCBM forward in growth from year to year
 # https://nfi.nfis.org/en/biomass_models
 
-table3 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table3.csv"))
-table4 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table4.csv"))
-table5 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table5.csv"))
-table6 <- read.csv(file.path(paths(spadesCBMout)$inputPath,"appendix2_table6_v2.csv"))
+table3 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table3.csv")#)file.path(paths(spadesCBMout)$inputPath,"
+table4 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table4.csv")
+table5 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table5.csv")
+table6 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table6_v2.csv")
 
 ### needs
 library(data.table)
@@ -100,7 +100,7 @@ increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
 increments[is.na(increments)] <- 0
 growth_increments <- as.matrix(increments)
   
-## FUNCTIONS HERE
+## FUNCTIONS to process growth curves into growth increments--------------------------------------------
   # eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
   # the gross merchantable volume/ha. Parameters a and b are in table3
   b_m <- function(paramTable1, vol){
@@ -193,5 +193,5 @@ convertM3biom <- function(meta,gCvalues){
   return(biomCumulative)
 
 }
-  
+# END process growth curve functions-------------------------------------------------------------  
   
