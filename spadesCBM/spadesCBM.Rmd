@@ -159,7 +159,7 @@ This will be linked to the SpaDES caribou models and to the SpaDES version of LA
 
 # UNITS
 
-The user provides growth curves in m3/ha of cumulative m3/ha over time. Those curves are fed into the Boudewyn algorithms (library(CBMVolumeToBiomass) in inputs module) with its results multiplied by 0.5. That gives us the "curve", line 121 in spadesCBMinputs and that is in tonnes of carbon/ha. The $growth_increments are in tonnes of carbon per ha and these MATCH the values if you calculate the differences between two years in the cPoolsYears.csv (output of $cbmPools). Root increments are calculated later and the details of that are in Matrices.xlm and workingOutNPP.xlsx. average NPP is 2.5987. If this is in tonnes of C per hectare per year.
+The user provides growth curves in m3/ha of cumulative m3/ha over time. Those curves are fed into the Boudewyn algorithms (spadesCBMinputs module) with its results multiplied by 0.5 to give carbon. That gives us the cumBiom, line 240 in spadesCBMinputs, that is the cumulative biomass for the three above-ground live pools in tonnes of carbon/ha. The $growth_increments then calculated by the difference between two years on the cumBiom*0.5 curve. These are in tonnes of carbon per ha and these MATCH the values if you calculate the differences between two years in the cPoolsYears.csv (output of $cbmPools, assuming no overmature decline). Root increments are calculated later and the details of that are in Matrices.xlm and workingOutNPP.xlsx. average NPP is 2.5987. If this is in tonnes of C per hectare per year.
 
 
 # Refences

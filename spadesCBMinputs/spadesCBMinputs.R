@@ -342,7 +342,7 @@ Init <- function(sim) {
   
   mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
   #creating a vector of the pixel values to be able to match the disturbance_matrix_id
-  events <- c(1,1,2,2,4,4,3,3,5,5)
+  events <- c(1,1,2,2,3,3,4,4,5,5)
   # need to match the historic and last past dist to the spatial unit
   # DECISION: both the last pass and the historic disturbance will be the same for these runs
   setkey(sim$level3DT,spatial_unit_id)
