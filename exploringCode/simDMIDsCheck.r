@@ -40,6 +40,13 @@ table(dist1990)
 # dist1990
 # 0             1       2       3       4       5 
 # 1346168       6     682     136      77     460 
+#GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
+# 1 is Wildfire
+# 2 is Clearcut harvesting with salvage
+# 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
+# 4 Generic 20% mortality
+# 5	Generic 20% mortality
+
 # 6 burnt pixels
 # 682 harvested pixels
 # 44 deforested pixels

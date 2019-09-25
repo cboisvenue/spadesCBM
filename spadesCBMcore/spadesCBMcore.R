@@ -217,7 +217,7 @@ spinup <- function(sim) {
     rep(1, sim$nStands) #slow mixing
   )
     
-  sim$spinupResult <- Spinup(pools = sim$pools, 
+  spinupResult <- Spinup(pools = sim$pools, 
                              opMatrix = opMatrix,
                              constantProcesses = sim$processes,
                              growthIncrements = sim$gcHash, 
@@ -234,8 +234,9 @@ spinup <- function(sim) {
                              biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
                              debug=P(sim)$spinupDebug)
   
-  
-  
+  # setting CO2, CH4, CO to 0 before starting the simulations
+  spinupResult[,23:25] <- 0
+  sim$spinupResult <- spinupResult
   return(invisible(sim))
 }
 

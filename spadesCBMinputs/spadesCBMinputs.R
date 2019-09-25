@@ -240,6 +240,8 @@ Init <- function(sim) {
       cumBiom <- as.matrix(convertM3biom(meta = meta,gCvalues = growthCurveComponents,spsMatch=spsMatch, 
                                          ecozones = ecozones,params3=sktable3, params4=sktable4, 
                                          params5=sktable5,params6=sktable6))
+      # going from tonnes of biomass/ha to tonnes of carbon/ha here
+      cumBiom <- cumBiom*0.5
       inc <- diff(cumBiom)
       if(meta$forest_type_id==1){
         incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
@@ -296,17 +298,13 @@ Init <- function(sim) {
   sim$spatialUnits <- sim$level3DT[,spatial_unit_id]
   spu <- as.data.frame(sim$cbmData@spatialUnitIds)
   
-  # change this here so it will be easier to access when disturbances change PixelGroupID
-#  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[which(spu$SpatialUnitID %in% unique(gcID$spatial_unit_id)),c(1,3)])
-#  ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
+  # need an ecozone vector
   names(ecoToSpu) <- c("spatial_unit_id","admin","ecozones")
   sim$spatialDT <- merge(sim$spatialDT,ecoToSpu,by="spatial_unit_id") %>% .[order(pixelIndex),]
   ecozones <- unique(sim$spatialDT[, .(pixelGroup,ecozones)]) %>% .[order(pixelGroup),]
   sim$ecozones <- ecozones[,ecozones]
   
-#  ecoz <- merge.data.frame(sim$level3DT[,],ecoToSpu,by="spatial_unit_id", all.x=TRUE)
-  #sim$ecozones <- ecoz[,"ecozones"]
-
+  # Matching disturbances to CBM disturbance matrix id---------------------------------
   # make the disturbance look-up table to the disturbance_matrix_id(s)
   # making sim$mySpuDmids
   #raster values 1 to 5
