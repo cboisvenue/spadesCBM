@@ -234,8 +234,8 @@ spinup <- function(sim) {
                              biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
                              debug=P(sim)$spinupDebug)
   
-  # setting CO2, CH4, CO to 0 before starting the simulations
-  spinupResult[,23:25] <- 0
+  # setting CO2, CH4, CO and products to 0 before starting the simulations
+  spinupResult[,23:dim(spadesCBMout$spinupResult)[2]] <- 0
   sim$spinupResult <- spinupResult
   return(invisible(sim))
 }
@@ -448,7 +448,7 @@ annual <- function(sim) {
   group1 <- sort(unique(sim$spatialDT$pixelGroup))
   sim$spatialDT$pixelGroup <- trackPix2$pixelGroup
   # count the pixels in each new pixel group
-   pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
+  pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
 
   group2 <- sort(unique(trackPix2$pixelGroup))
   groupOut <- subset(group1, !(group1 %in% group2))
@@ -459,14 +459,14 @@ annual <- function(sim) {
   uniqueNewGroup <- unique(distPixels[,-("pixelIndex")]) #60
   setkey(uniqueNewGroup,oldGroup)
 
-
+  # this is where the equivalent of sim$level3DT and C pools for new groups are
+  # put together
   toAdd <- merge(uniqueNewGroup,groupToAddC,all.x=TRUE)#,on = c("pixelGroup")]
   toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
   toAdd <- toAdd[order(pixelGroup),]
   ## HERE IS WHERE THE EVENTS GET TAKEN OUT...
   # BEFORE WE DO...need to figure out eventsDMIDs
 
-## IT WILL BE HERE
   DM <- merge(toAdd,sim$mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)
   DM <- DM[order(pixelGroup),]
   DMIDS <- DM$disturbance_matrix_id
@@ -482,22 +482,19 @@ annual <- function(sim) {
   
   # Changing the vectors and matrices that need to be changed to process this year's growth
   sim$pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
-  # eventDMIDS <- c(rep(0,dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
+  eventDMIDs <- c(rep(0,dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
   ecozones <- merge(pixelGroupForAnnual,ecoToSpu)
   ecozones <- ecozones[order(pixelGroup),]
   sim$ecozones <- ecozones[,ecozones]
-  ## from here change level3DT to pixelGroupForAnnual
   sim$ages <- pixelGroupForAnnual[,ages]
   sim$nStands <- length(sim$ages)
-  
-
   sim$gcids <- pixelGroupForAnnual[,growth_curve_component_id]
   sim$spatialUnits <- pixelGroupForAnnual[,spatial_unit_id]
-
+  
   sim$opMatrixCBM <- cbind(
-    rep(0, sim$nStands), #disturbance
+    rep(0,sim$nStands), #disturbance
     1:sim$nStands, #growth 1
     sim$ecozones, #domturnover
     sim$ecozones, #bioturnover
@@ -510,7 +507,9 @@ annual <- function(sim) {
   colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
                              "bioturnover", "overmature", "growth 2",
                              "domDecay", "slow decay", "slow mixing")
-
+  
+  sim$opMatrixCBM[,"disturbance"]<-eventDMIDs
+  
   sim$allProcesses <- list(
     Disturbance=sim$processes$disturbanceMatrices,
     Growth1=NULL,
@@ -633,7 +632,7 @@ annual <- function(sim) {
   #sim$pixelGroupC$N <- sim$spatialDT[,.N,by=pixelGroup]$
   sim$pixelGroupC$ages <- sim$pixelGroupC$ages+1
   sim$spatialDT$ages <- sim$spatialDT$ages+1
-  sim$ages <- sim$pixelGroupC$ages
+
 
   sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelCount[,2],pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools))
   
