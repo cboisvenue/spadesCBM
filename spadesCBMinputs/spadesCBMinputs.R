@@ -308,12 +308,12 @@ Init <- function(sim) {
   # make the disturbance look-up table to the disturbance_matrix_id(s)
   # making sim$mySpuDmids
   #raster values 1 to 5
-  #GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
-  # 1 is Wildfire
-  # 2 is Clearcut harvesting with salvage
-  # 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
-  # 4 Generic 20% mortality
-  # 5	Generic 20% mortality
+  #C:\Celine\GitHub\spadesCBM\data\forIan\SK_data\disturbance_Sask\ReadMe.txt
+  # Fire =  1
+  # Harvest = 2
+  # Lcondition = 3
+  # Road = 4
+  # Unclass = 5
   
   spu <- unique(sim$spatialDT$spatial_unit_id)
   # what disturbances in those spu(s)?
@@ -340,7 +340,7 @@ Init <- function(sim) {
   
   mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
   #creating a vector of the pixel values to be able to match the disturbance_matrix_id
-  events <- c(1,1,2,2,3,3,4,4,5,5)
+  events <- c(1,1,2,2,4,4,3,3,5,5)
   # need to match the historic and last past dist to the spatial unit
   # DECISION: both the last pass and the historic disturbance will be the same for these runs
   setkey(sim$level3DT,spatial_unit_id)

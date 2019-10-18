@@ -29,29 +29,51 @@ myBigList <- lapply(myBigList, raster::raster)
 myBigStack <- raster::stack(myBigList)
 freqTables <- raster::freq(myBigStack)
 # this gives my a frequency table for each of the year in which we have disturbances.
+length(myBigList)
+#[1] 27
+#goes from 1985:2011
+length(1985:2011)
 # our current simulations are freqTable[6] to freqTable[21]
 
 
-########### Ran spadesCBM 1990:1995 with the disturbance rasters###############################
-# what pixels are disturbed in 1990?------------------------------------
+########### Ran spadesCBM 1990:1993 with the disturbance rasters, so [[6]] to [[9]]#############
+# this is what comes out of the spinup, 739 pixel groups
+spinupOut <- as.data.table(spadesCBMout$spinupResult)
+# these are all the pools for all the pixels groups throughout the simulations
+cbmPools <- as.data.table(spadesCBMout$cbmPools)
+# each year, the disturbed pixels get regrouped into new pixel groups and added with their carbon as new pixel groups. Their age is set to 0 at that time
+# to the number of pixel groups. Example 739 in the first year (1990, which is [[6]])
+cbmPools[736:800,]
+freqTables[[6]] # shows all disturbed pixels
+# what pixels are simluated AND disturbed in 1990?------------------------------------
 pixels <- getValues(spadesCBMout$masterRaster)
 dist1990 <- getValues(myBigStack[[6]]) %>% .[pixels != 0]
 table(dist1990)
 # dist1990
 # 0             1       2       3       4       5 
 # 1346168       6     682     136      77     460 
-#GitHub\spadesCBM\data\forIan\SK_data\SK_ReclineRuns30m\LookupTables\DisturbanceTypeLookup.csv
-# 1 is Wildfire
-# 2 is Clearcut harvesting with salvage
-# 3 is Deforestation â€” Transportation â€” Salvage, uprooting and burn
-# 4 Generic 20% mortality
-# 5	Generic 20% mortality
 
+# we have these spatial units in our sim
+unique(spadesCBMout$spatialUnits)
+#27 28
+#C:\Celine\GitHub\spadesCBM\data\forIan\SK_data\disturbance_Sask\ReadMe.txt
+# Fire =  1
+# Harvest = 2
+# Lcondition = 3
+# Road = 4
+# Unclass = 5
 # 6 burnt pixels
 # 682 harvested pixels
-# 44 deforested pixels
+# 77 deforested pixels
 # 460+136 Generic 20% mortality
 #-----------------------------------------------------------------------
+
+# are the fire disturbances different?-----------------------------------
+d378 <- as.data.table(listDists[[5]])
+d371 <- as.data.table(listDists[[4]])
+# YES: treat them as seperate disturbances-------------------------------
+
+#HERE
 
 ## what do the harvested pixels look like?---------------------------------
 harvPixInd <- which(dist1990==2)
