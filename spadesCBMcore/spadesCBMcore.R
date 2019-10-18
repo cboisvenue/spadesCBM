@@ -235,7 +235,7 @@ spinup <- function(sim) {
                              debug=P(sim)$spinupDebug)
   
   # setting CO2, CH4, CO and products to 0 before starting the simulations
-  spinupResult[,23:dim(spadesCBMout$spinupResult)[2]] <- 0
+  spinupResult[,23:dim(spinupResult)[2]] <- 0
   sim$spinupResult <- spinupResult
   return(invisible(sim))
 }
