@@ -1,6 +1,6 @@
 # Growth Component revised 
 # The growth component file (ther one that has the
-# m3/ha over time) provide for the spadesCBM runs had 105 unique
+# m3/ha over time) provided for the spadesCBM runs had 105 unique
 # growth_curve_component_id. In reality there are 10 curves. This script is
 # intended to reduce the 105 back into 10 (tasks 1). 
 # Those 10 will then be "feed into" the new volumeToBiomass function (task 2)

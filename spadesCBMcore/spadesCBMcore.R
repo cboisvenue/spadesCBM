@@ -414,7 +414,7 @@ annual <- function(sim) {
   ## processing in the C++ functions because the first thing that happens is
   ## disturbances and presently **all disturbances are stand replacing**. Set
   ## all ages to 0 in the disturbed pixels
-  distPixels$ages <- 0
+  distPixels$ages <- 1
 
   # get the carbon info from the old pixelGroup for the disturbed pixels
   groupToAddC <- sim$pixelGroupC[which(sim$pixelGroupC$pixelGroup %in% unique(distPixels$pixelGroup)),-c("ages","rasterSps", "Productivity", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]

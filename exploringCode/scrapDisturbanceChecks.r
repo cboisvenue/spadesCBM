@@ -207,7 +207,7 @@ otherOut <- 0.1161637-0.0075
 stand1DistYr <- stand1Dist[simYrs==2050,]
 # SWMERCH SWFOL SWOTher summary: growth is taken from the age=53 (prior to
 # disturbance) and no other transfers happen in those three
-# pools. Is that tru for the previous year? YES-------------------------------------------------
+# pools. Is that true for the previous year? YES-------------------------------------------------
 
 # check ROOTS swCoarseRoots and FineRoots pools------------------------------------------
 # given the value of swmerch swFol and swOther, can I calculate the roots growth

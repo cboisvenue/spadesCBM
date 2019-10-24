@@ -172,7 +172,7 @@ Init <- function(sim) {
   sim$level3DT <- level3DT
   # end level3DT-------------------------------------------------------------
   
-  # process growth curves ---------------------------------------------------------------------------------
+  #### process growth curves #########--------------------------------------------------------------
   
   # first reduce to the curves applicable to the study area----
   ecoToSpu <- as.data.table(sim$cbmData@spatialUnitIds)
@@ -236,6 +236,7 @@ Init <- function(sim) {
     for(j in 1:length(unique(speciesMeta$growth_curve_component_id))){
       meta <- speciesMeta[j,]
       id <- growthCurveComponents$GrowthCurveComponentID[which(growthCurveComponents$GrowthCurveComponentID == meta$growth_curve_component_id)][-1]
+      ### IMPORTANT BOURDEWYN PARAMETERS FOR NOT HANDLE AGE 0 ###
       age <- growthCurveComponents[GrowthCurveComponentID==meta$growth_curve_component_id,Age][-1]
       cumBiom <- as.matrix(convertM3biom(meta = meta,gCvalues = growthCurveComponents,spsMatch=spsMatch, 
                                          ecozones = ecozones,params3=sktable3, params4=sktable4, 
@@ -261,6 +262,27 @@ Init <- function(sim) {
   colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
   increments[is.na(increments)] <- 0
+  
+  #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
+  ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
+  ## id 49 becomes 28
+  ## id 50 becomes 29
+  ## white birch does not work at all, so take lower productivity trembling aspen
+  ## ids 38 and 58 become 34
+  increments[id==49,3:8] <- increments[id==28,3:8]
+  increments[id==50,3:8] <- increments[id==29,3:8]
+  increments[id==37,3:8] <- increments[id==34,3:8]
+  increments[id==58,3:8] <- increments[id==34,3:8]
+  ## NEGATIVES PRIOR TO 80 become 0
+  #gc[value < 0 & age<80, value := 0]
+  increments[age<80 & swmerch < 0, swmerch := 0]
+  increments[age<80 & swfol < 0, swfol := 0]
+  increments[age<80 & swother < 0, swother := 0]
+  increments[age<80 & hwmerch < 0, hwmerch := 0]
+  increments[age<80 & hwfol < 0, hwfol := 0]
+  increments[age<80 & hwother < 0, hwother := 0]
+  
+
   sim$growth_increments <- as.matrix(increments)
   # END process growth curves -------------------------------------------------------------------------------
 
@@ -276,6 +298,7 @@ Init <- function(sim) {
 
   ############################################################
   ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
+  ## it gets stuck in the spinup
   ## this is a problem to tackle once we have some insight into the cpp code
   ###########################################################
   # temp fix:
