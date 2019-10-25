@@ -399,18 +399,14 @@ annual <- function(sim) {
 
 
   ################################
-
+  
+  ## get the disturbed pixels only
   # Trying just adding the lines to groups that are disturbed.
   distPixels <- sim$spatialDT[events>0,.(pixelIndex, pixelGroup, ages, rasterSps, Productivity,
                                                spatial_unit_id, growth_curve_component_id, growth_curve_id, events)]
   setkey(distPixels,pixelGroup)
-  # count the number of disturbed pixels
-  count <- distPixels[,.N,by=pixelGroup]
-  setkey(count,pixelGroup)
-  # add it to the distPixels
-
-
-  ## ok so...let's try this: I think the ages can be changed prior to the
+  
+  ## The ages can be changed prior to the
   ## processing in the C++ functions because the first thing that happens is
   ## disturbances and presently **all disturbances are stand replacing**. Set
   ## all ages to 0 in the disturbed pixels
@@ -424,14 +420,11 @@ annual <- function(sim) {
 
   #calculate the new pixelGroup values
   maxPixelGroup <- max(sim$spatialDT$pixelGroup)
-  # NOTE: different carbon transactions will apply to different events, so, keep
-  # them seperate pre-C++ processing
-
-
   distPixels[,oldGroup:=pixelGroup]
   distPixels$newGroup <- LandR::generatePixelGroups(distPixels,maxPixelGroup,
                                          columns = c("oldGroup","spatial_unit_id", "growth_curve_component_id", "ages", "events"))
   distPixels <- distPixels[,.(pixelIndex,ages,rasterSps,Productivity,spatial_unit_id, growth_curve_component_id,growth_curve_id, events, oldGroup,newGroup)]
+
   #adding the new pixelGroup to the pixelKeep
   trackPix <- sim$spatialDT[which(!(pixelIndex %in% distPixels$pixelIndex)),.(pixelIndex,pixelGroup)]
   newGroups <- distPixels[,.(pixelIndex,newGroup)] %>% .[,pixelGroup:=newGroup] %>% .[,newGroup:=NULL]
@@ -448,7 +441,7 @@ annual <- function(sim) {
   group1 <- sort(unique(sim$spatialDT$pixelGroup))
   sim$spatialDT$pixelGroup <- trackPix2$pixelGroup
   # count the pixels in each new pixel group
-  pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
+  pixelCount <- sim$spatialDT[,.N,by=pixelGroup][order(pixelGroup),]
 
   group2 <- sort(unique(trackPix2$pixelGroup))
   groupOut <- subset(group1, !(group1 %in% group2))
@@ -456,11 +449,12 @@ annual <- function(sim) {
   # match the pixelGroup of the carbon (groupToAddC) with the pixelGroup of the
   # distPixels. This is to make sure we don't miss a newGroup...since we have
   # events there might be more of these.
-  uniqueNewGroup <- unique(distPixels[,-("pixelIndex")]) #60
+  uniqueNewGroup <- unique(distPixels[,-("pixelIndex")]) 
   setkey(uniqueNewGroup,oldGroup)
 
   # this is where the equivalent of sim$level3DT and C pools for new groups are
   # put together
+
   toAdd <- merge(uniqueNewGroup,groupToAddC,all.x=TRUE)#,on = c("pixelGroup")]
   toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
   toAdd <- toAdd[order(pixelGroup),]
@@ -477,12 +471,70 @@ annual <- function(sim) {
 
   #rbind now matches column names for you
   #throws out pixelGroups that are where "emptied" by disturbances
-  pixelGroupForAnnual <- rbind(sim$pixelGroupC[!(pixelGroup %in% groupOut),],toAdd)
+  
+  ##--## try disturbances here
+  ################# PROCESSING DISTURBANCES AND ANNUAL PROCESS FOR DISTURBED PIXELS ###################
+  browser()
+  ### THIS STEP CAN BE REMOVED ONCE I FIGURE OUT HOW TO PICK THESE FROM sim$allProcesses$Disturbance$
+  disturbances <- list(length(5))
+  # 1 is Wildfire DMID 378 (SPU 28) and 371 (SPU 27)
+  # 2 is Clearcut harvesting with salvage DMID 409 (one for both SPU)
+  # 4 is Deforestation â€” Transportation â€” Salvage, uprooting and burn DMID 26
+  # 3 Lcondition Generic 20% mortality DMID 91
+  # 5	Unclassified Generic 20% mortality DMID 91
+  orderDistMat <- c(1,2,3,3,4,4,5,5,5,5)
+  mySpuDmids <- as.data.table(cbind(sim$mySpuDmids,orderDistMat))
+  disturbances[[1]] <- sim$allProcesses$Disturbance$`378`
+  disturbances[[2]] <- sim$allProcesses$Disturbance$`371`
+  disturbances[[3]] <- sim$allProcesses$Disturbance$`409`
+  disturbances[[4]] <- sim$allProcesses$Disturbance$`26`
+  disturbances[[5]] <- sim$allProcesses$Disturbance$`91`
+  #these by ecozones
+  domTurnMat <- list(length(2))
+  domTurnMat[[1]] <- sim$allProcesses$DomTurnover$`6`
+  domTurnMat[[2]] <- sim$allProcesses$DomTurnover$`9`
+  bioTurnMat <- list(length(2))
+  bioTurnMat[[1]] <- sim$allProcesses$BioTurnover$`6`
+  bioTurnMat[[2]] <- sim$allProcesses$BioTurnover$`9`
+  # these by spatial unit
+  domDecayMat <- list(length(2))
+  domDecayMat[[1]] <- sim$allProcesses$DomDecay$`27`
+  domDecayMat[[2]] <- sim$allProcesses$DomDecay$`28`
+  # these by spatial unit
+  slowDecayMat <- list(length(2))
+  slowDecayMat[[1]] <- sim$allProcesses$SlowDecay$`27`
+  slowDecayMat[[2]] <- sim$allProcesses$SlowDecay$`28`
+  ####### END STEP TO BE REMOVED #####################
+  
+  toAddOut <- NULL
+  for(i in 1:length(toAdd$pixelGroup)){
+    preD <- toAdd[i,Input:Products]
+    distProp <- as.data.table(disturbances[[unique(mySpuDmids[disturbance_matrix_id==DMIDS[i],orderDistMat])]])
+    distCalc <- cTransferDist(standIn =t(preD),transProp = distProp)
+    if(toAdd$spatial_unit_id[i]==27) {a=1} else a=2
+    domTurn <- cTransfer(standIn = distCalc$calcDist,transProp = domTurnMat[[a]])
+    bioTurn <- cTransfer(standIn = domTurn$calcDist,transProp = bioTurnMat[[a]])
+    domDecay <- cTransfer(standIn = bioTurn$calcDist,transProp = domDecayMat[[a]])
+    slowDecay <- cTransfer(standIn = domDecay$calcDist,transProp = slowDecayMat[[a]])
+    slowMix <- cTransfer(standIn = slowDecay$calcDist,transProp = sim$allProcesses$SlowMixing$`1`)
+    toAddOut <- rbind(toAddOut,as.data.table(t(slowMix[,2])))
+  }
+  
+  names(toAddOut) <- names(sim$cbmPools)[5:30]
+  countDist <- distPixels[,.N,by="newGroup"][order(newGroup),]
+  distPixOut <- cbind(rep(time(sim)[1],dim(toAddOut)[1]),countDist[,2],toAdd$pixelGroup, toAdd$ages,toAddOut)
+  
+  
+  
+  ##################################
+  
+  ##--##rbind(,toAdd)## took the rbin with toAdd out of the following line
+  pixelGroupForAnnual <- sim$pixelGroupC[!(pixelGroup %in% groupOut),]
   pixelGroupForAnnual <- pixelGroupForAnnual[order(pixelGroup),]
   
   # Changing the vectors and matrices that need to be changed to process this year's growth
   sim$pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
-  eventDMIDs <- c(rep(0,dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
+  eventDMIDs <- rep(0,dim(pixelGroupForAnnual)[1])##--##c( ...dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[,c(1,3)])
   names(ecoToSpu) <- c("spatial_unit_id","ecozones")
   ecozones <- merge(pixelGroupForAnnual,ecoToSpu)
@@ -634,7 +686,7 @@ annual <- function(sim) {
   sim$spatialDT$ages <- sim$spatialDT$ages+1
 
 
-  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelCount[,2],pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools))
+  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelCount[,2],pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools), distPixOut)
   
 
   return(invisible(sim))

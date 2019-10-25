@@ -261,7 +261,9 @@ Init <- function(sim) {
   colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
-  increments[is.na(increments)] <- 0
+  interim <- as.matrix(increments)
+  interim[is.na(interim)] <- 0
+  increments <- as.data.table(interim)
   
   #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
   ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
@@ -269,6 +271,7 @@ Init <- function(sim) {
   ## id 50 becomes 29
   ## white birch does not work at all, so take lower productivity trembling aspen
   ## ids 38 and 58 become 34
+
   increments[id==49,3:8] <- increments[id==28,3:8]
   increments[id==50,3:8] <- increments[id==29,3:8]
   increments[id==37,3:8] <- increments[id==34,3:8]
@@ -298,7 +301,10 @@ Init <- function(sim) {
 
   ############################################################
   ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
-  ## it gets stuck in the spinup
+  ## it gets stuck in the spinup. Here is my therory: there is a mismatch in the
+  ## pinup disturbances which creates problems with this specific growth curve
+  ## (id 58). Because the first few years of growth are 0 it does not grow and
+  ## it does not fill-up the soil pools.
   ## this is a problem to tackle once we have some insight into the cpp code
   ###########################################################
   # temp fix:
