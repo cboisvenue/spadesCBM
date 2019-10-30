@@ -49,12 +49,12 @@ areaPlot <- function(cbmPools, masterRaster) {
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
-  pixelNo <- sum(cbmPools$N/length(unique(cbmPools$simYear))) #Get pixel Sum
+  pixelNo <- sum(cbmPools$pixelCount/length(unique(cbmPools$simYear))) #Get pixel Sum
   
   cbmPools$simYear <- as.character(cbmPools$simYear)
   soilCarbon <- cbmPools[, .(products = sum(Products),
                              emissions = sum(CH4, CO, CO2),
-                             weight = N/pixelNo), 
+                             weight = pixelCount/pixelNo), 
                          by = .(pixelGroup, simYear)]
   
 
@@ -101,7 +101,7 @@ barPlot <- function(cbmPools, masterRaster) {
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
   
-  pixelNo <- sum(cbmPools$N/length(unique(cbmPools$simYear))) #Get pixel Sum
+  pixelNo <- sum(cbmPools$pixelCount/length(unique(cbmPools$simYear))) #Get pixel Sum
     cbmPools$simYear <- as.character(cbmPools$simYear)
   soilCarbon <- cbmPools[, .(DOM = sum(AboveGroundVeryFastSoil, BelowGroundVeryFastSoil,
                                        AboveGroundFastSoil, BelowGroundFastSoil,
@@ -110,7 +110,7 @@ barPlot <- function(cbmPools, masterRaster) {
                                        HardwoodMerch, HardwoodFoliage, HardwoodOther),
                              BGB = sum(SoftwoodCoarseRoots, SoftwoodFineRoots, 
                                        HardwoodCoarseRoots, HardwoodFineRoots),
-                             weight = N/pixelNo),
+                             weight = pixelCount/pixelNo),
                          by = .(pixelGroup, simYear)]
   
   

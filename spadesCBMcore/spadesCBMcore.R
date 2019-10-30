@@ -548,79 +548,202 @@ annual <- function(sim) {
   
   ##--## try disturbances here
   ################# PROCESSING DISTURBANCES AND ANNUAL PROCESS FOR DISTURBED PIXELS ###################
-  browser()
+  
   toAdd[,DMIDS := as.character(DMIDS)]
-  tri1 <- mget(unique(toAdd$DMIDS),envir = sim$allProcesses$Disturbance)
-  tri1 <- lapply(tri1, as.data.table)
-  out <- rbindlist(tri1, idcol = "DMIDS")
-  setnames(out, old = "value", new = "distValue")
-  out1 <- out[toAdd, on = "DMIDS", allow.cartesian = TRUE]
+  distMatrices <- mget(unique(toAdd$DMIDS),envir = sim$allProcesses$Disturbance)
+  distMatrices <- lapply(distMatrices, as.data.table)
+  distMats <- rbindlist(distMatrices, idcol = "DMIDS")
+  # what is each column?
+  #lapply(distMats,is)
   
-  # Testing join
-  out1[, list(DMID = unique(DMIDS), length(DMIDS)), by = "pixelGroup"]
+  setnames(distMats, old = "value", new = "distValue")
+  distMats[,row := as.character(row)]
   
-  InputColNum <- grep("Input", colnames(out1))
-  ProductsColNum <- grep("Products", colnames(out1))
-  ValsColNum <- grep("value", colnames(out1))
-  out1[, 1:ProductsColNum]
+  # need to do the melt first so that "row" in disturbances can be matched with Inputs:Products numbered 1:26
+  # melt toAdd
   
-  # ### THIS STEP CAN BE REMOVED ONCE I FIGURE OUT HOW TO PICK THESE FROM sim$allProcesses$Disturbance$
-  # disturbances <- list(length(5))
-  # # 1 is Wildfire DMID 378 (SPU 28) and 371 (SPU 27)
-  # # 2 is Clearcut harvesting with salvage DMID 409 (one for both SPU)
-  # # 4 is Deforestation â€” Transportation â€” Salvage, uprooting and burn DMID 26
-  # # 3 Lcondition Generic 20% mortality DMID 91
-  # # 5	Unclassified Generic 20% mortality DMID 91
-  # orderDistMat <- c(1,2,3,3,4,4,5,5,5,5)
-  # mySpuDmids <- as.data.table(cbind(sim$mySpuDmids,orderDistMat))
-  # disturbances[[1]] <- sim$allProcesses$Disturbance$`378`
-  # disturbances[[2]] <- sim$allProcesses$Disturbance$`371`
-  # disturbances[[3]] <- sim$allProcesses$Disturbance$`409`
-  # disturbances[[4]] <- sim$allProcesses$Disturbance$`26`
-  # disturbances[[5]] <- sim$allProcesses$Disturbance$`91`
-  # #these by ecozones
-  # domTurnMat <- list(length(2))
-  # domTurnMat[[1]] <- sim$allProcesses$DomTurnover$`6`
-  # domTurnMat[[2]] <- sim$allProcesses$DomTurnover$`9`
-  # bioTurnMat <- list(length(2))
-  # bioTurnMat[[1]] <- sim$allProcesses$BioTurnover$`6`
-  # bioTurnMat[[2]] <- sim$allProcesses$BioTurnover$`9`
-  # # these by spatial unit
-  # domDecayMat <- list(length(2))
-  # domDecayMat[[1]] <- sim$allProcesses$DomDecay$`27`
-  # domDecayMat[[2]] <- sim$allProcesses$DomDecay$`28`
-  # # these by spatial unit
-  # slowDecayMat <- list(length(2))
-  # slowDecayMat[[1]] <- sim$allProcesses$SlowDecay$`27`
-  # slowDecayMat[[2]] <- sim$allProcesses$SlowDecay$`28`
-  # ####### END STEP TO BE REMOVED #####################
-  # 
-  out2 <- melt(out1, measure.vars = InputColNum:ProductsColNum, 
-       id.vars = c("pixelGroup", "row", "col", "distValue"))
-  out2[, fluxOut := distValue * value]
-  outC <- out2[, list(outC = sum(fluxOut)), by = c("pixelGroup", "row")]
-  inC <- out2[, list(outC = sum(fluxOut)), by = c("pixelGroup", "col")]
+  InputColNum <- grep("Input", colnames(toAdd))
+  ProductsColNum <- grep("Products", colnames(toAdd))
+  toAdd1 <- melt(toAdd, measure.vars = InputColNum:ProductsColNum, 
+                 id.vars = c("pixelGroup", "DMIDS"))
+  
+  # change the Inputs:Products to 1:26 using this
+  poolsToRows <- as.data.frame(cbind(pools = sim$pooldef,row = c(1:26)))
+  names(poolsToRows) <- c("variable","row")
+  toAdd2 <- toAdd1[poolsToRows,on="variable"]
+  keycol <-c("pixelGroup","row")
+  setorderv(toAdd2, keycol)
+  
+  toAdd3 <- toAdd2[distMats, on=c("DMIDS","row"), allow.cartesian = TRUE][,fluxOut:=(value*distValue)]
+  setorderv(toAdd3,keycol)
+  outC <- toAdd3[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
+  inC <-  toAdd3[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
+  inC[,row:=as.character(col)]
+  #names(inC) <- c("pixelGroup","row","inC")
+  fluxes <- inC[outC,on=c("pixelGroup","row")]
+  # no NAs allowed
+  fluxes$inC[which(is.na(fluxes$inC))] <- 0
+  toAddDist <- toAdd2[fluxes,on=c("pixelGroup","row")][,.(calcDist = (value-outC+inC)),by=c("pixelGroup","row")]
+  # pools can't go negative
+  toAddDist[calcDist<0,"calcDist"] <- 0
+  toAddDist
+  setorderv(toAddDist,keycol)
+  ## DISTURBANCES CALCULATED
+  
+  # # for a visual check
+  # distPg740 <- toAddDist[pixelGroup==740,.(row, calcDist)]
+  # distPg740 <- distPg740[, row:= as.numeric(as.character(row))][order(row),]
+  # chgVect <- cbind(toAdd1[pixelGroup==740],distPg740)
   
   
-  out1[, ]
+  ## calculate domTurn ########################
+  # match with ecozones
+  #toAdd[,ecoz:=as.character(spatial_unit_id)]  
+  ecoToSpu <- as.data.table(ecoToSpu)
+  tri1 <- merge(toAdd,ecoToSpu,by=c("spatial_unit_id"))
+  tri2 <- tri1[,.(pixelGroup,ecozones)][,ecoz := as.character(ecozones)]
+  ecoz <- ecoToSpu[ecoToSpu$spatial_unit_id %in% unique(toAdd$spatial_unit_id),"ecozones"]
+  domTurnMatrices <- mget(as.character(t(ecoz)),envir = sim$allProcesses$DomTurnover)  
+  domTurnMatrices <- lapply(domTurnMatrices, as.data.table)
+  domTurnMats <- rbindlist(domTurnMatrices , idcol = "ecoz")
   
-  toAddOut <- NULL
-  for(i in 1:length(toAdd$pixelGroup)){
-    preD <- toAdd[i,Input:Products]
-    distProp <- as.data.table(disturbances[[unique(mySpuDmids[disturbance_matrix_id==DMIDS[i],orderDistMat])]])
-    distCalc <- cTransferDist(standIn =t(preD),transProp = distProp)
-    if(toAdd$spatial_unit_id[i]==27) {a=1} else a=2
-    domTurn <- cTransfer(standIn = distCalc$calcDist,transProp = domTurnMat[[a]])
-    bioTurn <- cTransfer(standIn = domTurn$calcDist,transProp = bioTurnMat[[a]])
-    domDecay <- cTransfer(standIn = bioTurn$calcDist,transProp = domDecayMat[[a]])
-    slowDecay <- cTransfer(standIn = domDecay$calcDist,transProp = slowDecayMat[[a]])
-    slowMix <- cTransfer(standIn = slowDecay$calcDist,transProp = sim$allProcesses$SlowMixing$`1`)
-    toAddOut <- rbind(toAddOut,as.data.table(t(slowMix[,2])))
-  }
+  setnames(domTurnMats, old = "value", new = "domTurnValue")
+  domTurnMats[,row := as.character(row)]
+  domT1 <- toAddDist[tri2,on="pixelGroup"]
+  domT2 <- domT1[domTurnMats,on=c("ecoz","row") , allow.cartesian=TRUE][,fluxOut:=(calcDist*domTurnValue)]
+  outC <- domT2[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
+  inC <-  domT2[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
+  inC[,row:=as.character(col)]
+  #names(inC) <- c("pixelGroup","row","inC")
+  domTfluxes <- inC[outC,on=c("pixelGroup","row")]
+
+  toAddDomT <- toAddDist[domTfluxes,on=c("pixelGroup","row")][,.(calcDomT = (calcDist-outC+inC)),by=c("pixelGroup","row")]
+  # pools can't go negative
+  toAddDomT [calcDomT<0,"calcDomT"] <- 0
+  ## END calculate domTurn ########################
   
-  names(toAddOut) <- names(sim$cbmPools)[5:30]
+  # # for a visual check
+  # domTpg740 <- toAddDomT[pixelGroup==740,.(row, calcDomT)]
+  # domTpg740 <- domTpg740[, row:= as.numeric(as.character(row))][order(row),]
+  # chgVect[,domTpg740:=domTpg740$calcDomT]
+  
+  ## calculate bioTurn ########################
+  # match with ecozones as above
+
+  bioTurnMatrices <- mget(as.character(t(ecoz)),envir = sim$allProcesses$BioTurnover)  
+  bioTurnMatrices <- lapply(bioTurnMatrices, as.data.table)
+  bioTurnMats <- rbindlist(bioTurnMatrices , idcol = "ecoz")
+  
+  setnames(bioTurnMats, old = "value", new = "bioTurnValue")
+  bioTurnMats[,row := as.character(row)]
+  bioT1 <- toAddDomT[tri2,on="pixelGroup"]
+  bioT2 <- bioT1[bioTurnMats,on=c("ecoz","row") , allow.cartesian=TRUE][,fluxOut:=(calcDomT*bioTurnValue)]
+  outC <- bioT2[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
+  inC <-  bioT2[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
+  inC[,row:=as.character(col)]
+  #names(inC) <- c("pixelGroup","row","inC")
+  bioTfluxes <- inC[outC,on=c("pixelGroup","row")]
+  
+  toAddbioT <- toAddDomT[bioTfluxes,on=c("pixelGroup","row")][,.(calcbioT = (calcDomT-outC+inC)),by=c("pixelGroup","row")]
+  # pools can't go negative
+  toAddbioT[calcbioT<0,"calcbioT"]  <- 0
+  ## END calculate bioTurn ########################
+  
+  # # for a visual check
+  # bioTpg740 <- toAddbioT[pixelGroup==740,.(row, calcbioT)]
+  # bioTpg740 <- bioTpg740[, row:= as.numeric(as.character(row))][order(row),]
+  # chgVect[,bioTpg740:=bioTpg740$calcbioT]
+  
+  ## calculate domDecay ########################
+  # match with spatial units
+  domDecayMatrices <- mget(as.character(unique(toAdd$spatial_unit_id)),envir = sim$allProcesses$DomDecay)  
+  domDecayMatrices <- lapply(domDecayMatrices, as.data.table)
+  domDecayMats <- rbindlist(domDecayMatrices , idcol = "spu")
+  
+  setnames(domDecayMats, old = "value", new = "domDecayValue")
+  domDecayMats[,row := as.character(row)]
+  spuAdd <- toAdd[,.(pixelGroup,spatial_unit_id)][,spu := as.character(spatial_unit_id)]
+  domD1 <- toAddbioT[spuAdd,on="pixelGroup"]
+  domD2 <- domD1[domDecayMats,on=c("spu","row") , allow.cartesian=TRUE][,fluxOut:=(calcbioT*domDecayValue)]
+  outC <- domD2[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
+  inC <-  domD2[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
+  inC[,row:=as.character(col)]
+  #names(inC) <- c("pixelGroup","row","inC")
+  domDfluxes <- inC[outC,on=c("pixelGroup","row")]
+  
+  toAddDomD <- toAddbioT[domDfluxes,on=c("pixelGroup","row")][,.(calcDomD = (calcbioT-outC+inC)),by=c("pixelGroup","row")]
+  # pools can't go negative
+  toAddDomD[calcDomD<0,"calcDomD"]  <- 0
+  ## END calculate domDecay ########################
+  
+  # # for a visual check
+  # domDpg740 <- toAddDomD[pixelGroup==740,.(row, calcDomD)]
+  # domDpg740 <- domDpg740[, row:= as.numeric(as.character(row))][order(row),]
+  # chgVect[,domDpg740:=domDpg740$calcDomD]
+  
+  
+  ## calculate slowDecay ########################
+  # match with spatial units
+  slowDecayMatrices <- mget(as.character(unique(toAdd$spatial_unit_id)),envir = sim$allProcesses$SlowDecay)  
+  slowDecayMatrices <- lapply(slowDecayMatrices, as.data.table)
+  slowDecayMats <- rbindlist(slowDecayMatrices , idcol = "spu")
+  
+  setnames(slowDecayMats, old = "value", new = "slowDecayValue")
+  slowDecayMats[,row := as.character(row)]
+  #spuAdd <- toAdd[,.(pixelGroup,spatial_unit_id)][,spu := as.character(spatial_unit_id)]
+  slowD1 <- toAddDomD[spuAdd,on="pixelGroup"]
+  slowD2 <- slowD1[slowDecayMats,on=c("spu","row") , allow.cartesian=TRUE][,fluxOut:=(calcDomD*slowDecayValue)]
+  outC <- slowD2[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
+  inC <-  slowD2[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
+  inC[,row:=as.character(col)]
+  #names(inC) <- c("pixelGroup","row","inC")
+  slowDfluxes <- inC[outC,on=c("pixelGroup","row")]
+  
+  toAddslowD <- toAddDomD[slowDfluxes,on=c("pixelGroup","row")][,.(calcSlowD = (calcDomD-outC+inC)),by=c("pixelGroup","row")]
+  # pools can't go negative
+  toAddslowD[calcSlowD<0,"calcSlowD"]  <- 0
+  ## END calculate slowDecay ########################
+  
+  # # for a visual check
+  # slowDpg740 <- toAddslowD[pixelGroup==740,.(row, calcSlowD)]
+  # slowDpg740 <- slowDpg740[, row:= as.numeric(as.character(row))][order(row),]
+  # chgVect[,slowDpg740:=slowDpg740$calcSlowD]
+  
+  ## calculate slowMix ########################
+  # only one matrixHERE
+  slowMixMatrices <- as.data.table(mget(as.character(1),envir = sim$allProcesses$SlowMixing))
+  slowMixMats <-  setnames(slowMixMatrices,names(slowMixMatrices),new = c("row","col","slowMixValue"))
+   slowMixMats[,row := as.character(row)]
+  #spuAdd <- toAdd[,.(pixelGroup,spatial_unit_id)][,spu := as.character(spatial_unit_id)]
+  slowM1 <- toAddslowD[slowMixMats,on="row", allow.cartesian=TRUE][,fluxOut:=(calcSlowD*slowMixValue)]
+  outC <- slowM1[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
+  inC <-  slowM1[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
+  inC[,row:=as.character(col)]
+  #names(inC) <- c("pixelGroup","row","inC")
+  slowMfluxes <- inC[outC,on=c("pixelGroup","row")]
+  
+  toAddslowM <- toAddslowD[slowMfluxes,on=c("pixelGroup","row")][,.(calcSlowM = (calcSlowD-outC+inC)),by=c("pixelGroup","row")]
+  # pools can't go negative
+  toAddslowM[calcSlowM<0,"calcSlowM"]  <- 0
+  toAddslowM[,row:=as.numeric(as.character(row))]
+  
+  ## END calculate slowMix ########################  
+  
+  # # for a visual check
+  # slowMpg740 <- toAddslowM[pixelGroup==740,.(row, calcSlowM)]
+  # slowMpg740 <- slowMpg740[, row:= as.numeric(as.character(row))][order(row),]
+  # chgVect[,slowMpg740:=slowMpg740$calcSlowM]
+ 
+  # from long to wide
+  setorderv(toAddslowM, keycol)
+  toAddOut <- dcast(toAddslowM,pixelGroup~row, value.var="calcSlowM")
+  
+  names(toAddOut) <- c("pixelGroup",as.character(poolsToRows$variable))
+  toAddOut[order(pixelGroup),]
+  toAddOut <- toAddOut[,-1]
   countDist <- distPixels[,.N,by="newGroup"][order(newGroup),]
-  distPixOut <- cbind(rep(time(sim)[1],dim(toAddOut)[1]),countDist[,2],toAdd$pixelGroup, toAdd$ages,toAddOut)
+  ages <- unique(distPixels[,ages, by=newGroup])
+  distPixOut <- cbind(rep(time(sim)[1],dim(toAddOut)[1]),countDist[,2],toAddOut$pixelGroup, ages,toAddOut)
   
   
   
@@ -710,9 +833,10 @@ annual <- function(sim) {
   #sim$pixelGroupC$N <- sim$spatialDT[,.N,by=pixelGroup]$
   sim$pixelGroupC$ages <- sim$pixelGroupC$ages+1
   sim$spatialDT$ages <- sim$spatialDT$ages+1
-
-
-  sim$cbmPools <- rbind(sim$cbmPools, cbind(rep(time(sim)[1],length(sim$ages)),pixelCount[,2],pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools), distPixOut)
+  names(distPixOut) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
+  updatePools <-   cbind(rep(time(sim)[1],length(sim$ages)),pixelCount[1:length(sim$ages),2],pixelGroupForAnnual$pixelGroup, sim$ages, sim$pools)
+  names(updatePools) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
+  sim$cbmPools <- rbind(sim$cbmPools,updatePools,distPixOut)
   
 
   return(invisible(sim))
