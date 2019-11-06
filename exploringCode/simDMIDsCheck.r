@@ -11,7 +11,7 @@ dists <- unique(spadesCBMout$mySpuDmids$disturbance_matrix_id)
 
 # use the functions in extraFunctions
 listDists <- seeDist(dists)
-str(listDists)
+str(listDists,1)
 
 # ecozone names
 ecoToSpu <- as.data.frame(spadesCBMout$cbmData@spatialUnitIds[,c(1,3)])
@@ -65,7 +65,7 @@ g1 <- growthCheck1[growth_curve_component_id==gcIdCheck1[round(runif(1,1,length(
 g2 <- g1[round(runif(1,1,dim(g1)[1]),0),c(ages,growth_curve_component_id,pixelGroup)]
 
 # calculate growth for merch fol other from $growth_increment table
-gCalc <- gInc[id==g2[2] & age %in% (g2[1]+1): (g2[1]+(length(1990:2011)-1)),]
+gCalc <- gInc[id==g2[2] & age %in% (g2[1]+1): (g2[1]+(length(1990:1993)-1)),]
 gSim <- diff(as.matrix(cbmPools[pixelGroup== g2[3],c("SoftwoodMerch","SoftwoodFoliage","SoftwoodOther",
                               "HardwoodMerch","HardwoodFoliage","HardwoodOther")]))
 diff0 <- gCalc[,-c(1:2)] - gSim
@@ -111,7 +111,7 @@ unique(spadesCBMout$spatialUnits)
 #27 28
 
 # are the fire disturbances different?-----------------------------------
-ls.str(listDists) ## careful, this does not show you the disturbances in order in the list
+str(listDists,1) ## careful, this does not show you the disturbances in order in the list
 d378 <- as.data.table(listDists[[1]])
 d371 <- as.data.table(listDists[[2]])
 dim(d371)

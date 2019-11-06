@@ -79,7 +79,7 @@ doEvent.spadesCBMdefaults = function(sim, eventTime, eventType, debug = FALSE) {
 ### template initialization
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
-sim$pooldef = c("Input",
+sim$pooldef <-  c("Input",
                   "SoftwoodMerch",
                   "SoftwoodFoliage",
                   "SoftwoodOther",
@@ -174,7 +174,7 @@ Save <- function(sim) {
 }
 
 ### template for plot events
-Plot <- function(sim) {
+plot <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # do stuff for this event
   #Plot("object")

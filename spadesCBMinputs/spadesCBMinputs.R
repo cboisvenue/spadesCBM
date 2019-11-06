@@ -453,8 +453,8 @@ Save <- function(sim) {
                        domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
     ) 
   }
-  if (!suppliedElsewhere(sim$pooldef)) 
-    sim$pooldef = c("Input",
+  if (!suppliedElsewhere(sim$pooldef)) {
+    sim$pooldef <- c("Input",
                     "SoftwoodMerch",
                     "SoftwoodFoliage",
                     "SoftwoodOther",
@@ -480,6 +480,9 @@ Save <- function(sim) {
                     "CH4",
                     "CO",
                     "Products")
+  sim$PoolCount <- length(sim$pooldef)
+  }
+
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }

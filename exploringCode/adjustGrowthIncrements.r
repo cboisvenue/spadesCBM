@@ -61,6 +61,20 @@ m3ToVolCheckPlots <- function(sim=spadesCBMout){
   
   return(plots)
 }
+m3ToVolCheckPlots <- function(inc=increments){
+  gInc <- as.data.table(inc)
+  idSim <- unique(gInc$id)
+  gcSim <- gInc[id %in% idSim,]
+  gc <- melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:8)
+  names(idSim) <- idSim
+  plots <- lapply(idSim, function(idLoop) {
+    ggplot(data=gc[id == idLoop], 
+           aes(x=age,y=value,group=variable,colour=variable)) + geom_line()
+  })
+  
+  return(plots)
+}
+#
 # plots <- gcSim[, ggplot(data=.SD, aes(x=age,y=value,group=variable,colour=variable)) + geom_line(), 
 #                by = "id"]
 

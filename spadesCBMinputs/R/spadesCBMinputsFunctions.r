@@ -120,7 +120,8 @@ biomProp <- function(table6,vol){
     (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
        exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
        exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
-  propVect <- cbind(pstem,pbark,pbranches,pfol)    
+  propVect <- cbind(pstem,pbark,pbranches,pfol)   
+  return(propVect)
 }
 
 convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, params5,params6){
