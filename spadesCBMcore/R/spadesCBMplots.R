@@ -13,7 +13,7 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
   #Build rasters for every year and pool
   carbonStacks <- vector(mode = "list", length = length(poolsToPlot))
   names(carbonStacks) <- poolsToPlot
-  
+
   for (pool in poolsToPlot) {
     carbonStacks[[pool]] <- lapply(years, FUN = function(x, poolsDT = cbmPools, 
                                                          var = pool, 
@@ -22,14 +22,19 @@ spatialPlot <- function(pixelkeep, cbmPools, poolsToPlot, years, masterRaster) {
         .[simYear == x, .(pixelGroup, "var" =  get(pool))] #subset by year
       #subset  pixelKeep
       colsToKeep <- c("pixelIndex", paste0("pixelGroup", x))
-      
+
       pixelKeep <- pixelKeep[, colsToKeep, with = FALSE] %>%
-        setnames(., c("pixelIndex", "pixelGroup")) #with=FALSE tells data.table colsToKeep isn't a column name    
-      pixelKeep <- pixelKeep[poolsDT, on = c("pixelGroup")] %>% #join with pixelKeep
-        .[order(pixelIndex)] #order by rowOrder for raster prep
-      
-      masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
-      masterRaster[!is.na(masterRaster)] <- pixelKeep$var
+        setnames(., c("pixelIndex", "pixelGroup")) #with=FALSE tells data.table colsToKeep isn't a column name  
+      # until here it is ok...then in 1993 - an extra line gets added from the merge below
+      #Keep <- poolsDT[pixelKeep, on = c("pixelGroup")]
+      pixelKeep <- merge(pixelKeep,poolsDT,by="pixelGroup", all.x=TRUE) %>% #join with pixelKeep
+         .[order(pixelIndex)] #order by rowOrder for raster prep
+      #pixelKeep <- pixelKeep[poolsDT, on = c("pixelGroup")] %>% #join with pixelKeep
+      pixels <- getValues(masterRaster)
+      ### Problem here -  three seems to be a change to the masterRaster made by this line below
+      masterRaster[pixels>0] <- pixelKeep$var
+      # masterRaster[masterRaster == 0] <- NA #Species has zeroes instead of NA. Revisit if masterRaster changes
+      # masterRaster[!is.na(masterRaster)] <- pixelKeep$var
       
       #name will begin with x if no character assigned
       return(masterRaster)
@@ -49,12 +54,12 @@ areaPlot <- function(cbmPools, masterRaster) {
   #Need to first average values per ha
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
-  pixelNo <- sum(cbmPools$N/length(unique(cbmPools$simYear))) #Get pixel Sum
+  pixelNo <- sum(cbmPools$pixelCount/length(unique(cbmPools$simYear))) #Get pixel Sum
   
   cbmPools$simYear <- as.character(cbmPools$simYear)
   soilCarbon <- cbmPools[, .(products = sum(Products),
                              emissions = sum(CH4, CO, CO2),
-                             weight = N/pixelNo), 
+                             weight = pixelCount/pixelNo), 
                          by = .(pixelGroup, simYear)]
   
 
@@ -88,7 +93,9 @@ NPPPlot <- function(spatialDT, changeInNPP, masterRaster, time){
   #NPP will not have the disturbed pixelGroups in spatialDT
   changeInNPP <- changeInNPP[simYear == time,]
   t <- spatialDT[, .(pixelIndex, pixelGroup)]
-  temp <- merge(changeInNPP, t, on = "pixelGroup", all = TRUE)
+  temp <- merge(t, changeInNPP, on = "pixelGroup", all.x = TRUE)
+  #pixelCount[which(is.na(pixelCount$N)),"N"] <- 0
+  temp[which(is.na(temp$simYear)),"NPP"] <- 0
   setkey(temp, pixelIndex)
   masterRaster[!masterRaster == 0] <- temp$NPP
   quickPlot::Plot(masterRaster, new = TRUE, title = paste0("NPP in ", time))
@@ -101,7 +108,7 @@ barPlot <- function(cbmPools, masterRaster) {
   cbmPools <- as.data.table(cbmPools)
   cbmPools$pixelGroup <- as.character(cbmPools$pixelGroup)
   
-  pixelNo <- sum(cbmPools$N/length(unique(cbmPools$simYear))) #Get pixel Sum
+  pixelNo <- sum(cbmPools$pixelCount/length(unique(cbmPools$simYear))) #Get pixel Sum
     cbmPools$simYear <- as.character(cbmPools$simYear)
   soilCarbon <- cbmPools[, .(DOM = sum(AboveGroundVeryFastSoil, BelowGroundVeryFastSoil,
                                        AboveGroundFastSoil, BelowGroundFastSoil,
@@ -110,7 +117,7 @@ barPlot <- function(cbmPools, masterRaster) {
                                        HardwoodMerch, HardwoodFoliage, HardwoodOther),
                              BGB = sum(SoftwoodCoarseRoots, SoftwoodFineRoots, 
                                        HardwoodCoarseRoots, HardwoodFineRoots),
-                             weight = N/pixelNo),
+                             weight = pixelCount/pixelNo),
                          by = .(pixelGroup, simYear)]
   
   

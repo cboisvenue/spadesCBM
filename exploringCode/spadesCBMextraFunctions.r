@@ -392,3 +392,23 @@ NPP <- function(pools = spadesCBMout$cbmPools, pixelGroupSpu=spadesCBMout$pixelG
   return(NPP)  
   
 }
+
+######## Function to check the growth increments by above ground pool. This is
+######## necessary because the Boudewyn et al parameters used to translate the
+######## m3/ha into biomass/ha do not always work. Returns a list of plots, each
+######## plot show the merch, fol, and other increments for a specific growth
+######## curve -------------------------------------------------------------------
+m3ToVolCheckPlots <- function(sim=spadesCBMout){
+  gInc <- as.data.table(sim$growth_increments)
+  idSim <- unique(gInc$id)
+  gcSim <- gInc[id %in% idSim,]
+  gc <- melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:8)
+  names(idSim) <- idSim
+  plots <- lapply(idSim, function(idLoop) {
+    ggplot(data=gc[id == idLoop], 
+           aes(x=age,y=value,group=variable,colour=variable)) + geom_line()
+  })
+  
+  return(plots)
+}
+### END INCREMENT PLOTS------------------------------------------------------------
