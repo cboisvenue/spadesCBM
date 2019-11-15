@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 template < typename T > std::string to_string( const T& n )
 {
   std::ostringstream stm ;
@@ -316,6 +315,7 @@ public:
     }
   }
 };
+
 void FillMatrix(int maxIndex, Coomatrix& coomat, Rcpp::NumericMatrix& mat){
   for( auto matRow = 0; matRow<mat.nrow(); matRow++){
     int rowIdx = (int)mat(matRow, 0)-1;
