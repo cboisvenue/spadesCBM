@@ -27,6 +27,7 @@
 #8.unit tests on master branch (create separate branch for tests)
 #person: Ian
 
+#idea: decision module for input data to spadesCBM
 
 # Tasks completed-----------------------------------------------------------------------------------------
 # 1.THIS PART IS DONE--------------------

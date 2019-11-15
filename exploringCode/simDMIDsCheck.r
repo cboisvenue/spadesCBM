@@ -11,7 +11,7 @@ dists <- unique(spadesCBMout$mySpuDmids$disturbance_matrix_id)
 
 # use the functions in extraFunctions
 listDists <- seeDist(dists)
-str(listDists)
+str(listDists,1)
 
 # ecozone names
 ecoToSpu <- as.data.frame(spadesCBMout$cbmData@spatialUnitIds[,c(1,3)])
@@ -29,269 +29,376 @@ myBigList <- lapply(myBigList, raster::raster)
 myBigStack <- raster::stack(myBigList)
 freqTables <- raster::freq(myBigStack)
 # this gives my a frequency table for each of the year in which we have disturbances.
-# our current simulations are freqTable[6] to freqTable[21]
+length(myBigList)
+#[1] 27
+#goes from 1985:2011
+length(1985:2011)
+# our current simulations are freqTable[6] 1990 to freqTable[21] 1993
 
-# what pixels are disturbed in 1990?------------------------------------
+
+########### Ran spadesCBM 1990:1993 with the disturbance rasters, so [[6]] to [[9]]#############
+# this is what comes out of the spinup, 739 pixel groups
+spinupOut <- as.data.table(spadesCBMout$spinupResult)
+# these are all the pools for all the pixels groups throughout the simulations
+cbmPools <- as.data.table(spadesCBMout$cbmPools)
+
+# Check growth for three non-disturbed pixel groups with no overmature decline--------------------
+# get the age of pixel groups <50 in the initial pixel groups (these carry
+# through the simulations, i.e., no pixel groups disappear)
+spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")
+gInc <- as.data.table(spadesCBMout$growth_increments)
+# plot m3/ha
+volInc <- fread(spadesCBMout$gcurveComponentsFileName)
+library(ggplot2)
+volCurves <- ggplot(data=volInc, aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
+  geom_line()
+
+
+# use this to have a "start" age of <50, and to select the growth_component_id
+level3DT <- spadesCBMout$level3DT
+#posIncCheck <- function(ageLim=50,inc=posInc, year1sim=growthCheck1,year2sim=)
+growthCheck1 <- level3DT[ages<50,]
+gcIdCheck1 <- unique(growthCheck1$growth_curve_component_id)
+# picking a growth curve randomly (this is specieXproductivity)
+g1 <- growthCheck1[growth_curve_component_id==gcIdCheck1[round(runif(1,1,length(gcIdCheck1)),0)],]
+# picking a specific age randomly - age, gcID, pixelGroup
+g2 <- g1[round(runif(1,1,dim(g1)[1]),0),c(ages,growth_curve_component_id,pixelGroup)]
+
+# calculate growth for merch fol other from $growth_increment table
+gCalc <- gInc[id==g2[2] & age %in% (g2[1]+1): (g2[1]+(length(1990:1993)-1)),]
+gSim <- diff(as.matrix(cbmPools[pixelGroup== g2[3],c("SoftwoodMerch","SoftwoodFoliage","SoftwoodOther",
+                              "HardwoodMerch","HardwoodFoliage","HardwoodOther")]))
+diff0 <- gCalc[,-c(1:2)] - gSim
+if (length(which(diff0!=0))!= 0){a <- "not equal"} else
+  a <- "equal"
+
+# END growth checks out--------------------------------------------------------------
+
+
+# check disturbances---------------------------------------------------------------------------------
+# each year, the disturbed pixels get regrouped into new pixel groups. Each new
+# group gets the carbon from their previous pixel groups. Their age is set to 0
+# before processing for that annual cycle. Example 739 in the first year (1990, which
+# is [[6]]) - starting at pixelgroup 740, the ages are set to 1 (CAN'T SET AGE
+# TO 0, Boudewyn et al can't handle that)
+cbmPools[736:800,]
+
+###### this shows that the right pixelGroups are selected for disturbance
+
+## check disturbances c transfers-------------
+
+freqTables[[6]] # shows all disturbed pixels for 1990
+# what pixels are simluated AND disturbed in 1990?------------------------------------
 pixels <- getValues(spadesCBMout$masterRaster)
 dist1990 <- getValues(myBigStack[[6]]) %>% .[pixels != 0]
 table(dist1990)
 # dist1990
 # 0             1       2       3       4       5 
 # 1346168       6     682     136      77     460 
+
+#C:\Celine\GitHub\spadesCBM\data\forIan\SK_data\disturbance_Sask\ReadMe.txt
+# Fire =  1
+# Harvest = 2
+# Lcondition = 3
+# Road = 4
+# Unclass = 5
 # 6 burnt pixels
 # 682 harvested pixels
-# 44 deforested pixels
+# 77 deforested pixels
 # 460+136 Generic 20% mortality
-#-----------------------------------------------------------------------
+# we have these spatial units in our sim
+unique(spadesCBMout$spatialUnits)
+#27 28
+
+# are the fire disturbances different?-----------------------------------
+str(listDists,1) ## careful, this does not show you the disturbances in order in the list
+d378 <- as.data.table(listDists[[1]])
+d371 <- as.data.table(listDists[[2]])
+dim(d371)
+dim(d378)
+length(which(d371$proportion==d378$proportion)) == length(d371$proportion)
+# YES: treat them as seperate disturbances, one fire for each spatial unit---
+burnPix <- which(dist1990==1)
+
+# harvest -----------------------
+d409 <- as.data.table(listDists[[3]])
+# defor--------------------
+d26 <- as.data.table(listDists[[4]])
+# generic 20% mortality --------------
+d91 <- as.data.table(listDists[[5]])
+
+## HARVEST in 1990 -----------------------------------------------------------------------
+
+## pixel index of harvested pixels
+harvPixInd <- which(dist1990==2)
+# pixelGroup to which for all these pixels
+trackHarv1990 <- spadesCBMout$pixelKeep[harvPixInd,1:3]
+# 682 harvested pixels
+
+# carbon in here WAIT not sure this is the right index..
+#preDist <- spinupOut[unique(trackHarv1990$pixelGroup0),]##
+# should match carbon in here + changes due to disturbances
+postDist <- cbmPools[simYear==1990 & pixelGroup %in% trackHarv1990$pixelGroup1990,]
+
+# get pixel group meta data
+# only on posInc growth_curve_component_id, age<50
+harv1990 <- spadesCBMout$level3DT[pixelGroup %in% trackHarv1990$pixelGroup0 & ages<50 &
+                                    growth_curve_component_id %in% gInc$id,]
+# this is a 49 year old Jack Pine pixel group
+## only one! Pixel group 287
+
+# pre-disturbance pixel group number matches the row values in level3DT and spinupOut
+level3DT[287,]==harv1990
+# so this is the pre-disturbance carbon
+preD <- spinupOut[harv1990$pixelGroup,]
+# what pixel group did it become?
+postPixG <- unique(trackHarv1990[pixelGroup0==harv1990$pixelGroup,]$pixelGroup1990)
+## pixel group 805
+postD <- cbmPools[simYear==1990 & pixelGroup == postPixG,]
+## something very weird happening...so I will look at all the sim years for that group
+pg805 <- cbmPools[pixelGroup == postPixG,]
+
+# check pixel group? 
+spadesCBMout$pixelKeep[,.N,by=pixelGroup1990][pixelGroup1990==805,]
+spadesCBMout$pixelKeep[,.N,by=pixelGroup1991][pixelGroup1991==805,]
+spadesCBMout$pixelKeep[,.N,by=pixelGroup1992][pixelGroup1992==805,]
+spadesCBMout$pixelKeep[,.N,by=pixelGroup1993][pixelGroup1993==805,]
+
+## Calculating disturbance to pre-disturbance values -----------------------------------
+## using data.table
+
+## CHECK numbering and names---------------------------
+# checking the pool numbering - what is the difference between these two? in
+# terms of pool numbering
+distProp <- as.data.table(spadesCBMout$allProcesses$Disturbance$`409`)
+distProp[order(row),]
+d409a <- d409[,.(row=as.numeric(as.character(source_pool_id)),col=as.numeric(as.character(sink_pool_id)),
+                 source_pool_id,sink_pool_id,proportion)][order(row),]
+distProp$row[1:dim(d409a)[1]] == (d409a$row+1)
+## the row value in the sparse matrices found here
+## $AllProceses$Disturbance$`number` are the source_pool_id in disturances out
+## of the seeDist() function
+### now deciding: the carbon goes from "row" to "col"
+colnames(preD) == spadesCBMout$pooldef
+# because of the "input" column, the numbering matches
+## END CHECK numbering and names-----------------------
+
+# CALCULATE DISTURBANCE-------------------------------------
+standIn <- as.data.table(cbind(t(preD),row=c(1:length(preD))))
+
+rowJoin <- standIn[distProp, on="row"][,fluxOut:=(V1*value)]
+
+outC <- rowJoin[,.(outC = sum(fluxOut)), by=row]
+inC <-  rowJoin[,.(inC = sum(fluxOut)), by=col]
+names(inC) <- c("row","inC")
+
+fluxes <- merge(outC,inC,by="row", all=TRUE)
+
+fluxes$inC[which(is.na(fluxes$inC))] <- 0
+standOut <- standIn[fluxes,on="row"][,.(calcDist = V1-outC+inC),by="row"]
+## END CALCULATE DISTURBANCE -------------------------------
 
 
+# c transfer function
+cTransferDist <- function(standIn=preD,transProp=distProp){
+  standIn <- as.data.table(cbind(standIn,row=c(1:length(standIn))))
+  names(standIn) <- c("V1","row")
+  transProp <- as.data.table(transProp)
+  rowJoin <- standIn[transProp, on="row"][,fluxOut:=(V1*value)]
+  
+  # calculate carbon out and in
+  outC <- rowJoin[,.(outC = sum(fluxOut)), by=row]
+  inC <-  rowJoin[,.(inC = sum(fluxOut)), by=col]
+  names(inC) <- c("row","inC")
+  fluxes <- merge(outC,inC,by="row", all=TRUE)
+  # no NAs allowed
+  fluxes$inC[which(is.na(fluxes$inC))] <- 0
+  
+  standOut <- standIn[fluxes,on="row"][,.(calcDist = V1-outC+inC),by="row"]
+  
+  # these two lines are "fixes for smal decimal differences that should not be there
+  # pools can't go negative
+  standOut[calcDist<0,"calcDist"] <- 0
+  # if it does not transfer to itself it has to end-up empty
+  rowsTofix <- transProp[row==col,.N,by="row"]
+  standOut[!(row %in% rowsTofix$row),"calcDist"] <- 0
+  
+  return(standOut)
+}
+## not doing the "fixes" in this one for the small decimal errors in the dist matrices
+cTransfer <- function(standIn=preD,transProp=distProp){
+  standIn <- as.data.table(cbind(standIn,row=c(1:length(standIn))))
+  names(standIn) <- c("V1","row")
+  transProp <- as.data.table(transProp)
+  rowJoin <- standIn[transProp, on="row"][,fluxOut:=(V1*value)]
+  
+  # calculate carbon out and in
+  outC <- rowJoin[,.(outC = sum(fluxOut)), by=row]
+  inC <-  rowJoin[,.(inC = sum(fluxOut)), by=col]
+  names(inC) <- c("row","inC")
+  fluxes <- merge(outC,inC,by="row", all=TRUE)
+  # no NAs allowed
+  fluxes$inC[which(is.na(fluxes$inC))] <- 0
+  
+  standOut <- standIn[fluxes,on="row"][,.(calcDist = V1-outC+inC),by="row"]
+  
+  return(standOut)
+}
+
+# Calculate growth merch, fol, other------------------------
+# spinup to 1990 will be called 1990
+# double check growth component id
+level3DT[287,growth_curve_component_id]==spadesCBMout$pixelGroupC[pixelGroup==805,growth_curve_component_id]
+level3DT[287,growth_curve_component_id]
+#plot the curve
+gc52 <- gInc[id==level3DT[287,growth_curve_component_id],]
+library(reshape2)
+gc <- melt(gc52[,2:5],id.vars = "age")
+all3 <- ggplot(data=gc, aes(x=age,y=value,group=variable,colour=variable)) + geom_line()
+## check
+
+# Annual processes post disturbance ---------------------------------------
+# I assume this order:
+# str(spadesCBMout$allProcesses,1)
+# List of 9
+#   $ Disturbance      :<environment: 0x000001bae659a198> 
+#   $ Growth1          :List of 4633
+#   $ DomTurnover      :<environment: 0x000001badb40db98> 
+#   $ BioTurnover      :<environment: 0x000001babf8c10e8> 
+#   $ OvermatureDecline:List of 4633
+#   $ Growth2          :List of 4633
+#   $ DomDecay         :<environment: 0x000001bada9dda20> 
+#   $ SlowDecay        :<environment: 0x000001bac80ec4b0> 
+#   $ SlowMixing       :<environment: 0x000001bae5c18020> 
+# GROWTH check - calculate growth from curve
+ages <- c(49,50,0,1,2,3)
+gCalc52 <- gInc[id==52 & age %in% ages,]
+# no inc until age 14 on gc52 in swmerch and age 21 for swother
+gInc[id==52,][1:30,]
+# growth would be 0 until age 14 and so would roots
+# NO GROWTH
+
+# dom turniver
+domTurn <- cTransfer(standIn = standOut$calcDist,transProp = spadesCBMout$allProcesses$DomTurnover$`9`)
+# bio turnover
+bioTurn <- cTransfer(standIn = domTurn$calcDist,transProp = spadesCBMout$allProcesses$BioTurnover$`9`)
+# skip over mature decline since stand was just disturbed and all disturbances
+# are whole stand disturbances
+domDecay <- cTransfer(standIn = bioTurn$calcDist,transProp = spadesCBMout$allProcesses$DomDecay$`28`)
+slowDecay <- cTransfer(standIn = domDecay$calcDist,transProp = spadesCBMout$allProcesses$SlowDecay$`28`)
+slowMix <- cTransfer(standIn = slowDecay$calcDist,transProp = spadesCBMout$allProcesses$SlowMixing$`1`)
+
+# ran the simulations until 2011 - the swmerch does not go to 0 at disturbances
+# and the increments are added to the swmerch when increments start at the age
+# of 14 in gc52
+# end(spadesCBMout) <- 2011
+# extSim <- spades(spadesCBMout,debug=TRUE)
+simHarv1990.1 <- t(cbmPools[simYear==1990 & pixelGroup==805,5:30])
+simHarv1990.2 <- t(cbmPools[simYear==1991 & pixelGroup==805,5:30])
+simHarv1990.3 <- t(cbmPools[simYear==1992 & pixelGroup==805,5:30])
 
 
-### Checking the matrices--------------------------------------------------------------------------
-# fire in the Boreal Plains (NIR2011)------------------------
-# dmid 371
-fireBP <- listDists[[2]][,c(2,4,3,5,6)]
-write.csv(file = file.path(outputPath(spadesCBMout),"fireBorealPlains.csv"),fireBP)
-# looking for burnt pixels
-# matching the pixelIndex in pixel keep
-burntPixelsBP <- getValues(myBigStack[[6]]) %>% .[pixels != 0]
-burntPixels1 <- which(burntPixelsBP==1)
-length(burntPixels1)
-#[1] 6
+harvStandCheck1 <- cbind(standIn[,2],standIn[,1],standOut[,2],domTurn[,2],bioTurn[,2],domDecay[,2],
+                         slowDecay[,2],slowMix[,2], 
+                         simHarv1990.1,simHarv1990.2,simHarv1990.3)
+names(harvStandCheck1) <- c("row","standIn","postDcalc","domTurn","bioTurn","domDecay",
+                            "slowDecay","slowMix","simOutYr1","simOutYr2","simOutYr3")
+## difference between postDcalc and simOut.1
+harvStandCheck1[,postMinusSim := (slowMix - simOutYr1)]
+####### harvest not tracked correctly 
+## END HARVEST in 1990 -----------------------------------------------------------------------
 
-# tracking which group those pixels belong to throught the simulation
-fire1Pixels1990 <- spadesCBMout$pixelKeep[burntPixels1,]
-fire1Groups <- unique(fire1Pixels1990[,2:16])
-#321,329 out of the spinup
-# changed to 761 and 763 respectively - stay in those groups until the end of the simulation
-# both groups are in spu 28 (so DMID 371)
-#Trying to recreate what happens in the annual...b/c something is wrong, doesn't match
-distGroups <- spadesCBMout$level3DT[pixelGroup==321 |pixelGroup==329 ,]
-pixelGroupC0 <- cbind(spadesCBMout$level3DT,spadesCBMout$spinupResult)
-cStep1 <- pixelGroupC0[which(pixelGroupC0$pixelGroup %in% c(321)),-c("ages","rasterSps", "Productivity", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]
-#pixelGroupC[which(sim$pixelGroupC$pixelGroup %in% unique(distPixels$pixelGroup)),-c("ages","rasterSps", "Productivity", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]
-setkey(cStep1,oldGroup)
-cStep1 <- cStep1[,oldGroup := pixelGroup] %>% .[,pixelGroup := NULL]
-distGroups[,oldGroup:=pixelGroup]
-distGroups[,pixelGroup:=NULL]
-distGroups$newGroup <- c(763,761)
-setkey(distGroups,oldGroup)
+###### check fire disturbances ---------------------------------------------------------
+firePixInd <- which(dist1990==1)
+# pixelGroup to which for all these pixels
+fireHarv1990 <- spadesCBMout$pixelKeep[firePixInd,1:3]
+# 682 harvested pixels
 
-cStep3 <- merge(distGroups,cStep1,all.x=TRUE)
+# carbon in here WAIT not sure this is the right index..
+#preDist <- spinupOut[unique(trackHarv1990$pixelGroup0),]##
+# should match carbon in here + changes due to disturbances
+postDist <- cbmPools[simYear==1990 & pixelGroup %in% fireHarv1990$pixelGroup1990,]
 
+# get pixel group meta data
+# growth_curve_component_id, age<50
+fire1990 <- spadesCBMout$level3DT[pixelGroup %in% fireHarv1990$pixelGroup0 &
+                                    growth_curve_component_id %in% gInc$id,]
+# this is a 49 year old Jack Pine pixel group
+## only one! Pixel group 287
 
-pixelGroup321 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==321)))
-pixelGroup329 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==329)))
-# 4 pixels burnt from 321 and 2 from 329 in 1990
+# pre-disturbance pixel group number matches the row values in level3DT and spinupOut
+level3DT[631,]==fire1990[1,]
+level3DT[639,]==fire1990[2,]
+# so this is the pre-disturbance carbon
+preD <- spinupOut[fire1990$pixelGroup,]
+# what pixel group did it become?
+postPixG <- c(790,793)
+## pixel group 805
+postD <- cbmPools[simYear==1990 & pixelGroup %in% postPixG,]
+## something very weird happening...so I will look at all the sim years for that group
+pg790 <- cbmPools[pixelGroup == 790,]
+pg793 <- cbmPools[pixelGroup == 793,]
+# are these fires the same disturbance matrix?
+level3DT[631,]
+level3DT[639,]
+# yes they are in spatial unit 28 (ecozone 9)
+mySpuDmids <- as.data.table(spadesCBMout$mySpuDmids)
+mySpuDmids[spatial_unit_id==28 & events==1,"disturbance_matrix_id"]
+# check pg631 that becomes 790------------
+firePre <- spinupOut[639,]
+fireProp <- as.data.table(spadesCBMout$allProcesses$Disturbance$`371`)
+# check which pools get emptied
+#fireProp[,sum(value), by="row"]
+## there are tiny mistakes...c left over where it should not be
+fireDcalc <- cTransferDist(standIn =t(firePre),transProp = fireProp )
+domTurn <- cTransfer(standIn = fireDcalc$calcDist,transProp = spadesCBMout$allProcesses$DomTurnover$`9`)
+# bio turnover
+bioTurn <- cTransfer(standIn = domTurn$calcDist,transProp = spadesCBMout$allProcesses$BioTurnover$`9`)
+# skip over mature decline since stand was just disturbed and all disturbances
+# are whole stand disturbances
+domDecay <- cTransfer(standIn = bioTurn$calcDist,transProp = spadesCBMout$allProcesses$DomDecay$`28`)
+slowDecay <- cTransfer(standIn = domDecay$calcDist,transProp = spadesCBMout$allProcesses$SlowDecay$`28`)
+slowMix <- cTransfer(standIn = slowDecay$calcDist,transProp = spadesCBMout$allProcesses$SlowMixing$`1`)
+simFire1990.1 <- t(cbmPools[simYear==1990 & pixelGroup==790,5:30])
+simFire1990.2 <- t(cbmPools[simYear==1991 & pixelGroup==790,5:30])
+simFire1990.3 <- t(cbmPools[simYear==1992 & pixelGroup==790,5:30])
 
-pixelGroup761 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==761)))
-pixelGroup763 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==763)))
-# No changes to those pixels after that
-## THE ONLY REASON THAT THESE 6 PIXELS ARE NOT IN THE SAME GROUP IS THAT THEY DO
-## NOT START OFF WITH THE SAME AMOUNT OF C IN THEIR POOLS
+check1Fire <- cbind(fireDcalc[,1],t(firePre),fireDcalc[,2],domTurn[,2],bioTurn[,2],domDecay[,2],
+                         slowDecay[,2],slowMix[,2], 
+                         simFire1990.1,simFire1990.2,simFire1990.3)
+names(check1Fire) <- c("row","standIn","postDcalc","domTurn","bioTurn","domDecay",
+                            "slowDecay","slowMix","simOutYr1","simOutYr2","simOutYr3")
+####### fire not tracked correctly either
+###### END check fire disturbances ---------------------------------------------------------
 
-# this is the pixel groups out of the spinup (759)
-group0 <- unique(spadesCBMout$pixelKeep$pixelGroup0)
-#these are the pixel groups that include the pixels disturbed, and the first
-#group in the cPoolsPixelYear.csv. There are 826 unique groups.
-group1 <- unique(spadesCBMout$pixelKeep$pixelGroup1990)
+#### Checking defor --------------------------------------------------------------------
+deforPixInd <- which(dist1990==4)
+# pixelGroup to which for all these pixels
+deforPg <- spadesCBMout$pixelKeep[deforPixInd,1:3]
+deforPg2 <- unique(deforPg[,-1])
+defor1990 <- spadesCBMout$level3DT[pixelGroup %in% deforPg2$pixelGroup0 &
+                                    growth_curve_component_id %in% gInc$id,]
+deforPre <- spinupOut[defor1990[1,pixelGroup],]
+# disturbance matrix id
+dmid <- `26`
+deforProp <- as.data.table(spadesCBMout$allProcesses$Disturbance$`26`)
+deforDcalc <- cTransferDist(standIn =t(deforPre),transProp = deforProp)
+domTurn <- cTransfer(standIn = deforDcalc$calcDist,transProp = spadesCBMout$allProcesses$DomTurnover$`9`)
+# bio turnover
+bioTurn <- cTransfer(standIn = domTurn$calcDist,transProp = spadesCBMout$allProcesses$BioTurnover$`9`)
+# skip over mature decline since stand was just disturbed and all disturbances
+# are whole stand disturbances
+domDecay <- cTransfer(standIn = bioTurn$calcDist,transProp = spadesCBMout$allProcesses$DomDecay$`28`)
+slowDecay <- cTransfer(standIn = domDecay$calcDist,transProp = spadesCBMout$allProcesses$SlowDecay$`28`)
+slowMix <- cTransfer(standIn = slowDecay$calcDist,transProp = spadesCBMout$allProcesses$SlowMixing$`1`)
+deforPg2[pixelGroup0==defor1990[1,pixelGroup],pixelGroup1990]
+simDef1990.1 <- t(cbmPools[simYear==1990 & pixelGroup==747,5:30])
+simDef1990.2 <- t(cbmPools[simYear==1991 & pixelGroup==747,5:30])
+simDef1990.3 <- t(cbmPools[simYear==1992 & pixelGroup==747,5:30])
 
-# take the 4 disturbed pixels in 1990, for group 321 that becomes group 761,
-# disturb it as per fireBP and check values in $cbmPools
-# carbon out of the spinup
-su321 <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==321),-1])
-g321c1 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==321,6:30])
-# the difference between the spinup and the 1990 pools should be the growth only for the 321 group
-growth321 <- g321c1[,2] - su321$value
-# three first values should be the carbon curve values
-# growth curve id for group 321 is 49
-gc49 <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1]==49,]
-plot(gc49[,2],gc49[,3])
-gc49age90 <- gc49[gc49[,2]==90,]
-gcCheck <- growth321[1:3]-t(gc49age90[3:5])
-##CHECK - those are the values of the $growth_increments
-# double check growth for the next year
-g321c2 <- melt(spadesCBMout$cbmPools[simYear==1991&pixelGroup==321,6:30])
-growth321_2 <- g321c2[,2]-g321c1[,2]
-gc49age91 <- gc49[gc49[,2]==91,]
-gcCheck2 <- growth321_2[1:3]-t(gc49age91[3:5])
-
-# note that the curves are wonky after beign put through CBMVolumeToBiomass....
-
-# group 761 should start out with the carbon in the group 321 in the spinup, get
-# disturbed by fire, and grow age 0 following only the 1st three pools as they
-# are the simplest
-# check that the spu is 28 and the gc is 49
-spadesCBMout$pixelGroupC[pixelGroup==761,]
-# CHECK
-## BUT THE STAND HAS 32 tonnes of carbon in the merch at age 3...wrong!###############
-
-g761c1 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==761,6:30])
-gc49age0 <- gc49[gc49[,2]==0,]
-g7610 <- gc49age0[3:5]
-end761 <- g761c1[1:3,]
-pnames <- as.character(g761c1$variable[1:3])
-startC761 <- su321[1:3,]
-
-merchOp <- startC761[1]-(startC761[1]*sum(fireBP[grep(pattern=pnames[1],fireBP$sourceName),5])) + g7610[1]
-### PROBLEM: THE PIXELS ARE NOT DISTURBED, THEY START WITH THE C FROM THE
-### PREVIOUS YEAR (IN THIS CASE SPINUP VALUES FROM pixelGroup444) AND "GROW" ON
-### CURVE 49 AT AGE 0
-# IAN REDOING THE DIST RASTER
-# I WILL LOOK AT ANOTHER DIST FOR CLUES
-
-## FIRE 1 DIST 371 DOES NOT SEEM TO BE HAPPENING
-
-#--------------------------------------
-
-## looking at harvest------------------------------------------------------------------------------
-harv <- listDists[[3]][,c(2,4,3,5,6)]
-write.csv(file = file.path(outputPath(spadesCBMout),"clearCutSK.csv"),harv)
-
-# pixels <- getValues(spadesCBMout$masterRaster)
-# # matching the pixelIndex in pixel keep
-harvPixels <- getValues(myBigStack[[6]]) %>% .[pixels != 0]
-harvPixels1 <- which(harvPixels==2)
-length(harvPixels1)
-#[1] 682
- 
-# tracking which group those pixels belong to throught the simulation
-harvPixels1990 <- spadesCBMout$pixelKeep[harvPixels1,]
-harv2Groups <- unique(harvPixels1990[,2:18])
-countHarvSU <- harvPixels1990[,.N,by=pixelGroup0]
-countHarv90 <- harvPixels1990[,.N,by=pixelGroup1990]
-#looking at 447 that becomes 777 with 20 pixels harvested
-# the 20 pixels harvested stay in those groups until the end of the simulation
-# only one DMID 409
-#Trying to recreate what happens in the annual...b/c something is wrong, doesn't match
-distGroups <- spadesCBMout$level3DT[pixelGroup==447,]
-#pixelGroupC0 <- cbind(spadesCBMout$level3DT,spadesCBMout$spinupResult)
-# cStep1 <- pixelGroupC0[which(pixelGroupC0$pixelGroup %in% c(321)),-c("ages","rasterSps", "Productivity", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]
-# #pixelGroupC[which(sim$pixelGroupC$pixelGroup %in% unique(distPixels$pixelGroup)),-c("ages","rasterSps", "Productivity", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]
-# setkey(cStep1,oldGroup)
-# cStep1 <- cStep1[,oldGroup := pixelGroup] %>% .[,pixelGroup := NULL]
-# distGroups[,oldGroup:=pixelGroup]
-# distGroups[,pixelGroup:=NULL]
-# distGroups$newGroup <- c(763,761)
-# setkey(distGroups,oldGroup)
-# 
-# cStep3 <- merge(distGroups,cStep1,all.x=TRUE)
-# 
-# 
-# pixelGroup321 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==321)))
-# pixelGroup329 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==329)))
-# # 4 pixels burnt from 321 and 2 from 329 in 1990
-# 
-# pixelGroup761 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==761)))
-# pixelGroup763 <- apply(spadesCBMout$pixelKeep[,-1],2,function(x) length(which(x==763)))
-# # No changes to those pixels after that
-# ## THE ONLY REASON THAT THESE 6 PIXELS ARE NOT IN THE SAME GROUP IS THAT THEY DO
-# ## NOT START OFF WITH THE SAME AMOUNT OF C IN THEIR POOLS
-# 
-# # this is the pixel groups out of the spinup (759)
-# group0 <- unique(spadesCBMout$pixelKeep$pixelGroup0)
-# #these are the pixel groups that include the pixels disturbed, and the first
-# #group in the cPoolsPixelYear.csv. There are 826 unique groups.
-# group1 <- unique(spadesCBMout$pixelKeep$pixelGroup1990)
-# 
-# # take the 4 disturbed pixels in 1990, for group 321 that becomes group 761,
-# # disturb it as per fireBP and check values in $cbmPools
-# # carbon out of the spinup
-# su321 <- melt(spadesCBMout$spinupResult[which(spadesCBMout$level3DT$pixelGroup==321),-1])
-# g321c1 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==321,6:30])
-# # the difference between the spinup and the 1990 pools should be the growth only for the 321 group
-# growth321 <- g321c1[,2] - su321$value
-# # three first values should be the carbon curve values
-# # growth curve id for group 321 is 49
-# gc49 <- spadesCBMout$growth_increments[spadesCBMout$growth_increments[,1]==49,]
-# plot(gc49[,2],gc49[,3])
-# gc49age90 <- gc49[gc49[,2]==90,]
-# gcCheck <- growth321[1:3]-t(gc49age90[3:5])
-# ##CHECK - those are the values of the $growth_increments
-# # double check growth for the next year
-# g321c2 <- melt(spadesCBMout$cbmPools[simYear==1991&pixelGroup==321,6:30])
-# growth321_2 <- g321c2[,2]-g321c1[,2]
-# gc49age91 <- gc49[gc49[,2]==91,]
-# gcCheck2 <- growth321_2[1:3]-t(gc49age91[3:5])
-# 
-# # note that the curves are wonky after beign put through CBMVolumeToBiomass....
-# 
-# # group 761 should start out with the carbon in the group 321 in the spinup, get
-# # disturbed by fire, and grow age 0 following only the 1st three pools as they
-# # are the simplest
-# # check that the spu is 28 and the gc is 49
-# spadesCBMout$pixelGroupC[pixelGroup==761,]
-# # CHECK
-# ## BUT THE STAND HAS 32 tonnes of carbon in the merch at age 3...wrong!###############
-# 
-# g761c1 <- melt(spadesCBMout$cbmPools[simYear==1990&pixelGroup==761,6:30])
-# gc49age0 <- gc49[gc49[,2]==0,]
-# g7610 <- gc49age0[3:5]
-# end761 <- g761c1[1:3,]
-# pnames <- as.character(g761c1$variable[1:3])
-# startC761 <- su321[1:3,]
-# 
-# merchOp <- startC761[1]-(startC761[1]*sum(fireBP[grep(pattern=pnames[1],fireBP$sourceName),5])) + g7610[1]
-##------------------------------------------------------------------------------------------------
-# fire in the Boreal Plains------------------------
-# this is disturbance 371 (SPU 27)
-# the proportions of c transfered are not the same as the fireBS
-fireBP <- listDists[[2]][,c(2,4,3,5,6)]
-write.csv(file = file.path(outputPath(spadesCBMout),"fireBorealPlains.csv"),fireBP)
-# are there differences between the fires?
-fireDiffs <- fireBP == fireBS
-propDiffs <- fireBP[,5]-fireBS[,5]
-mean(propDiffs)
-#[1] -1.70067e-08
-#They are almost equal...
-
-
-
-# follow a 'non-disturbed' pixelGroup to check the pixelGroup 1
-
-
-
-
-
-
-
-
-# ccut
-ccut <-  listDists[[3]]
-
-# defor
-defor <-  listDists[[4]]
-
-#mortality 20%
-mort20 <-  listDists[[5]]
-
-
-
-
-### TOADD
-trackPix3 <- sim$spatialDT[which(!(pixelIndex %in% distPixels$pixelIndex)),.(pixelIndex,pixelGroup)]
-newGroups <- distPixels[,.(pixelIndex,newGroup)] %>% .[,pixelGroup:=newGroup] %>% .[,newGroup:=NULL]
-trackPix4 <- rbind(trackPix3,newGroups)
-trackPix4 <- trackPix4[order(pixelIndex),]
-
-#trackPix[which(!is.na(sim$spatialDT$events))] <- distPixels$newGroup
-sim$pixelKeep <- sim$pixelKeep[,newPix := trackPix4$pixelGroup]
-setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
-
-# change the vector of pixel group in $spatialDT to match trackPix for next annual cycle
-group1 <- sort(unique(sim$spatialDT$pixelGroup))
-sim$spatialDT$pixelGroup <- trackPix4
-# count the pixels in each new pixel group
-pixelCount <- sim$spatialDT[,.N,by=pixelGroup]
-
-group2 <- sort(unique(trackPix))
-groupOut <- subset(group1, !(group1 %in% group2))
-# 
-
-
-grep(pattern=pnames[2],fireBS$sourceName)
-grep(pattern=pnames[3],fireBS$sourceName)
-# this is substrated from the atmosphere:1.354479
-minusAtm <- sum(growth321[c(1:5)])
-#This is the difference between the spinup and 1990 for the Atm pools (C02,CH4,CO)
-deltaAtm <- sum(growth321[22:24])# right now just in CO2
+check1Defor <- cbind(deforDcalc[,1],t(deforPre),deforDcalc[,2],domTurn[,2],bioTurn[,2],domDecay[,2],
+                    slowDecay[,2],slowMix[,2], 
+                    simDef1990.1,simDef1990.2,simDef1990.3)
+names(check1Defor) <- c("row","standIn","postDcalc","domTurn","bioTurn","domDecay",
+                       "slowDecay","slowMix","simOutYr1","simOutYr2","simOutYr3")
+## END CHECK DEFOR----------------------------------------------------------------------

@@ -94,3 +94,7 @@ sshkeygen
 *.grd
 
 exploringCode/scratchErrorsCBMinputs\.R
+
+exploringCode/scraptGC.r
+
+exploringCode/errorsFromCpp.r
