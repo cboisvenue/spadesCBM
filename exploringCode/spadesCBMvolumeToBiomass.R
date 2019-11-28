@@ -4,10 +4,10 @@
 #spadesCBM forward in growth from year to year
 # https://nfi.nfis.org/en/biomass_models
 
-table3 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table3.csv")#)file.path(paths(spadesCBMout)$inputPath,"
-table4 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table4.csv")
-table5 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table5.csv")
-table6 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table6_v2.csv")
+table3 <- read.csv("data/appendix2_table3.csv")#)file.path(paths(spadesCBMout)$inputPath,"
+table4 <- read.csv("data/appendix2_table4.csv")
+table5 <- read.csv("data/appendix2_table5.csv")
+table6 <- read.csv("data/appendix2_table6_v2.csv")
 
 ### needs
 library(data.table)
@@ -16,7 +16,7 @@ library(data.table)
     
   # identify species, genus, and ecozone
   # read-in meta data
-  gcMetaData <- fread("C:/Celine/GitHub/spadesCBM/data/spadesGCurvesSK.csv")#sim$gcurveFileName
+  gcMetaData <- fread("data/spadesGCurvesSK.csv")#sim$gcurveFileName
   gcMetaData <- unique(gcMetaData[,.(growth_curve_component_id,spatial_unit_id,forest_type_id,species,rasterSps)])
   # ecozones: gcMetaData contains all the ecozones in SK. Our study area does not.
   ecoToSpu <- as.data.table(spadesCBMout$cbmData@spatialUnitIds)#sim$cbmData@spatialUnitIds[,c(1,3)]
@@ -27,7 +27,7 @@ library(data.table)
   gcMetaData <- gcMetaData[rasterSps %in% spadesCBMout$level3DT$rasterSps,]
   
   # read-in m3/ha values
-  gCvalues <- fread("C:/Celine/GitHub/spadesCBM/data/yieldComponentSK.csv") # sim$gcurveComponentsFileName
+  gCvalues <- fread("data/yieldComponentSK.csv") # sim$gcurveComponentsFileName
   gCvalues <- gCvalues[GrowthCurveComponentID %in% unique(gcMetaData$growth_curve_component_id),]
 #### THIS WILL GO ON LINE 119 of spadesCBMinputs.R ### now only 20 curves to translate ##  
 
@@ -44,7 +44,7 @@ adminMatch <- as.data.table(cbind(cbmAdmin,paramJur))
 jurisdiction <- as.character(adminMatch[which(cbmAdmin %in% unique(ecoToSpu[SpatialUnitID %in% unique(gcMetaData$spatial_unit_id),2])),2])
 
 # read-in species match with canfi_species code and genus
-spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")
+spsMatch <- fread("data/spsMatchNameRasterGfileBiomParams.csv")
 # Match gcID$species to spsMatch$speciesName, then sktable3-4 have
 # $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
 # to $canfi_species

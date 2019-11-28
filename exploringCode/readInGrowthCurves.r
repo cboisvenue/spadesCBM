@@ -191,7 +191,7 @@ prod <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/s
 prod_val <- getValues(prod)
 unique(prod_val) # NA  1  2  3  0
 # from lookup Tables in here:
-# C:/Celine/GitHub/spadesCBM/data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv
+# data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv
 # RasterValue	prodClass
 # 1	G
 # 2	M

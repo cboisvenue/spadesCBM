@@ -27,8 +27,8 @@
 
 # Read in the gc files AND read-in the cbm_defaults.db to create the spu (to line 44)
 
-gcComponent <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv"))
-gcIn <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
+gcComponent <- as.matrix(read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv"))
+gcIn <- as.matrix(read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
 
 ## here trying to match the spatial_unit_id in gcIn with the spatial_unit in cbm_defaults
 

@@ -87,10 +87,10 @@ m3ToVolCheckPlots <- function(inc=increments){
 
 ############################################# WHite Birch check ######
 ## danger hard coded## need to change this to read URL or cache these.
-table3 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
-table4 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table4.csv")
-table5 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table5.csv")
-table6 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table6_v2.csv")
+table3 <- read.csv("data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
+table4 <- read.csv("data/appendix2_table4.csv")
+table5 <- read.csv("data/appendix2_table5.csv")
+table6 <- read.csv("data/appendix2_table6_v2.csv")
 
 # identify jurisdiction matching CBM-legacy numbering with Boudewyn
 # jurisdiction params----------------------------------------------
@@ -105,10 +105,10 @@ adminMatch <- as.data.table(cbind(cbmAdmin,paramJur))
 ecoToSpu <- as.data.table(ecoToSpu)
 
 jurisdiction <- "SK"
-table3 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
-table4 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table4.csv")
-table5 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table5.csv")
-table6 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table6_v2.csv")
+table3 <- read.csv("data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
+table4 <- read.csv("data/appendix2_table4.csv")
+table5 <- read.csv("data/appendix2_table5.csv")
+table6 <- read.csv("data/appendix2_table6_v2.csv")
 sktable3 <- as.data.table(table3[table3$juris_id==jurisdiction,])
 sktable4 <- as.data.table(table4[table4$juris_id==jurisdiction,])
 # table5 is weird since they did not have enough data for SK. I am selecting AB
@@ -122,7 +122,7 @@ sktable6 <- as.data.table(table6[table6$jur==jurisdiction,])
 # read-in species match with canfi_species code and genus to get rigth
 # Boudewyn params---------------------------------------------------
 ## danger this is hard coded ## Species match will have to be checked by user
-spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
+spsMatch <- fread("data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
 # Match gcID$species to spsMatch$speciesName, then sktable3-4 have
 # $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
 # to $canfi_species

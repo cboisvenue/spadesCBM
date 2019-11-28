@@ -145,7 +145,7 @@ Init <- function(sim) {
   
   # add the gcID information-------------------------------
   #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
-  gcID <- fread("C:/Celine/GitHub/spadesCBM/data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
+  gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
   gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
   setkey(gcID,rasterSps,Productivity,spatial_unit_id)
   # end add the gcID: each pixel has a growth curve now---
@@ -193,10 +193,10 @@ Init <- function(sim) {
   # spadesCBM forward in growth from year to year
   # https://nfi.nfis.org/en/biomass_models-------------------------------------
   ## danger hard coded## need to change this to read URL or cache these.
-  table3 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
-  table4 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table4.csv")
-  table5 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table5.csv")
-  table6 <- read.csv("C:/Celine/GitHub/spadesCBM/data/appendix2_table6_v2.csv")
+  table3 <- read.csv("data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
+  table4 <- read.csv("data/appendix2_table4.csv")
+  table5 <- read.csv("data/appendix2_table5.csv")
+  table6 <- read.csv("data/appendix2_table6_v2.csv")
   
   # identify jurisdiction matching CBM-legacy numbering with Boudewyn
   # jurisdiction params----------------------------------------------
@@ -222,7 +222,7 @@ Init <- function(sim) {
   # read-in species match with canfi_species code and genus to get rigth
   # Boudewyn params---------------------------------------------------
   ## danger this is hard coded ## Species match will have to be checked by user
-  spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
+  spsMatch <- fread("data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
   # Match gcID$species to spsMatch$speciesName, then sktable3-4 have
   # $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
   # to $canfi_species

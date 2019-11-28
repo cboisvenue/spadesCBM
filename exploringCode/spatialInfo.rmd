@@ -151,7 +151,7 @@ This is an assignment of a regeneration delay in years. I have not tested if thi
 These three variables can be determined if we know which spatial units we are in. As above the spatial unit can be provided by the gcID and that can be linked to the `spadesCBMout@.envir$cbmData@spinupParameters`.  The modules need to be run for this block of code to work. here is the code to get these variables:  
 
 `spinupParams <- spadesCBMout@.envir$cbmData@spinupParameters
-gcIn <- as.matrix(read.csv("C:/Celine/GitHub/spadesCBM/spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
+gcIn <- as.matrix(read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
 spu[which(spu$spu_id %in% unique(gcIn[,1])),]
 gcSpu <- spadesCBMout@.envir$cbmData@spinupParameters[which(spadesCBMout@.envir$cbmData@spinupParameters[,1] %in% unique(gcIn[,1])),]`
 

@@ -20,7 +20,7 @@ growth.inc <- spadesCBMout$growth_increments
 # there are only 10 individual growth curves going into the CBMVolumeToBiomass
 # translation. These were checked, they are exactly the same (only ten curves
 # total) in the input files data/spadesGCurvesSK.csv and
-# "C:/Celine/GitHub/spadesCBM/data/yieldComponentSK.csv"
+# "data/yieldComponentSK.csv"
 # 
 library(ggplot2)
 gComp <- as.data.table(read.csv(spadesCBMout$gcurveComponentsFileName))

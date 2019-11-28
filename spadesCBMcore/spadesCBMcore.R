@@ -1023,7 +1023,7 @@ annual <- function(sim) {
     
     # add the gcID information-------------------------------
     #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
-    gcID <- fread("C:/Celine/GitHub/spadesCBM/data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
+    gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
     gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
     setkey(gcID,rasterSps,Productivity,spatial_unit_id)
     # end add the gcID: each pixel has a growth curve now---
