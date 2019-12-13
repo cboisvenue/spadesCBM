@@ -1,0 +1,481 @@
+# RIA for NE BC --------------------------------------
+# Checking out the data I currently have: ~\data\RIA2019
+# Started  November 7, 2019
+# CBoisvenue
+#-----------------------------------------------------
+
+# this folder has all the data I currently have:
+dataDir <- "G:/RES_Work/Work/SpaDES/RIA/data/"
+# some of it was copied here: ~\data\RIA2019
+#  "G:/RES_Work/Work/SpaDES/RIA/data/ftStJohn_growthCurves"
+#growth info is in this folder: "/gcID for BC TSA 8/gcID for BC TSA 8"
+# and contains a shape file folder (ts08.shp), a text file called basenames.txt,
+# a password protected file (hdt_tsa08.pkl), a tiff (tsa08.tif), and a cvs (yld.csv)
+# there is another folder called spUnit_Locator, which seems to be a shape file
+# let's see what these all are:
+
+library(raster)
+library(data.table)
+
+###### SPU and eczones #############################################################
+## SPUs for the 5 TSAs##############################################################
+## old data has am spu file and Ian has an spu file, are they the same?
+#library(rgdal)
+# tsa08<-readOGR(dsn="C:/Directory_Containing_Shapefile",layer="MyMap")
+# plot(data.shape)
+# I think this is the shapefile of the SPUs
+test1 <- shapefile(file.path(dataDir,"old/ftStJohn_growthCurves/spUnit_Locator/spUnit_Locator.shp"))
+#"data/forIan/SK_data/CBM_GIS/SpadesCBM_TestArea.shp")
+Plot(test1)
+# check against Ian's
+ianSpu <- shapefile("data/spUnit_Locator.shp")
+Plot(ianSpu)
+# YES: these are the same
+
+### Ian provided RIAspu.png and TSAsSpuRia.png - this later has both SPUs and TSA boundaries
+
+# Read in the .dbf?
+library(foreign)
+spuDbf <- as.data.table(read.dbf("data/spUnit_Locator.dbf"))
+
+# there seems to be 4 ecozones in the RIA Boreal Cordillera, Taiga Plains,
+# Montane Cordillera, and Boreal Plains
+ecoCheck1 <- unique(spuDbf[ProvncN=="British Columbia",.(EcoBndr,ecozone)])
+targEcoz <- c(4,9,12,14)
+TSAecoz <- as.data.table(cbind(c(rep("Fort Nelson",2),rep("MacKenzie",2),"Prince George",
+                   rep("Dawson Creek",2),rep("Fort St John",4)),c(12,4,12,14,14,14,9,12,9,14,4)))
+names(TSAecoz) <- c("TSAnames","ecozones")
+RIAspu <- unique(spuDbf[ProvncN=="British Columbia" & ecozone!="Pacific Maritime" & EcoBndr %in% targEcoz,]$spu_id)
+# From Greg Paradis and Ian Eddy's map
+spuId <- c(40,38,40,42,42,40,38,42,39,42,39)
+
+TSAnames <- c("Fort Nelson","Fort Nelson", "MacKenzie", "MacKenzie", "Prince George", 
+              "Fort St John", "Fort St John", "Fort St John", "Fort St John", "Dawson Creek", "Dawson Creek")
+TSAid <- c(8,8,16,16,24,40,40,40,40,41,41)
+
+TSAspu <- cbind(TSAnames,TSAid,spuId)
+#names(TSAspu) <- c("TSAnames","TSAid","SpatialUnitID")
+spuEco <- as.data.table(spadesCBMout$cbmData@spatialUnitIds)
+RIAspuEco <- spuEco[SpatialUnitID %in% TSAspu$spuId,]
+eco <- c(12,4,12,14,14,12,4,14,9,14,9)
+TSAspuEco <- cbind(TSAspu,eco)
+#write.csv(TSAspuEco,file="data/RIA2019/TSAspuEco.csv",row.names = FALSE)
+## SPUs file complete###################################################################
+###### SPU and eczones END ###########################################################
+
+
+### DISTURBANCES - picking which ones in the CBM list #####################################
+# There are functions in spadesCBMextraFunctions.r that help with finding the
+# right disturbance matrices id in spadesCBMextraFunctions.r ###########################
+  
+### histDist()---------------------------------------------
+#Historical disturbances in CBM-CFS3 are used for "filling-up" the soil-related
+#carbon pools during spinup. In all spatial
+#units in Canada, the historical disturbance is set to fire. A stand-replacing
+#fire disturbance is used in a disturb-grow cycle, where stands are disturbed
+#and regrown with turnover, overmature, decay, functioning until the dead
+#organic matter pools biomass values stabilise.
+#This function histDist(), identifies the stand-replacing wildfire disturbance
+#in each spatial unit. By default the most recent is selected, but the user can
+#change that.
+RIAhistDist <- histDist(unique(TSAspu[,3]))
+#write.csv(RIAhistDist,file="data/RIA2019/RIAhistDist.csv",row.names = FALSE)
+# This will be a vector the length of the number of pixel groups
+#### HIST DIST COMPLETED ####################################################
+### DECISION: the fire disturbance matrices in the simulations will be the same
+
+## Last pass dist will have to wait until we have more info#################
+
+# spuDist ################################################S
+#This function identifies the ID number (CBM-CFS3 legacy) that are possible in
+#the specific spatial unit you are in. You give is spatial units you are
+#targetting (mySpu) and it give you the disturbance matrix id that are
+#possible/default in that specific spu and a descriptive name of that disturbance matrix
+#it creates a data.frame of length number of disturbances, with three columns: spatial_unit_id, 
+#disturbance_matrix_id, and a desciption of the disturbance.
+RIAdmidsAll <- spuDist(unique(TSAspu[,3]))
+dim(RIAdmidsAll)
+#[1] 312   3
+# we need a harvesting for each spatial units, fire will be the wild fire one
+# used in the spinup
+clearCut <- RIAdmidsAll[grep("Clear",RIAdmidsAll[,3], ignore.case=TRUE),]
+# I visiually looked I the list and picked "Clear Cutting Matrix with Salvage"
+### NOTE: this means there is no slashburn
+clearCut$`cbmTables[[6]][dmid$disturbance_matrix_id, 3]`
+
+# select the chosen matrices
+clearCut <- RIAdmidsAll[grep("Clear Cutting Matrix with Salvage",RIAdmidsAll[,3], ignore.case=TRUE),]
+mySpuDmids <- rbind(RIAhistDist,clearCut)
+names(mySpuDmids) <- c("spatial_unit_id","disturbance_matrix_id","distName")
+### NOTE: there will have to be a matching of the dist identification form the
+### disturbance rasters or list and the 3rd column presently called distName
+#write.csv(mySpuDmids,"data/RIA2019/mySpuDmids.csv",row.names = FALSE)
+### DISTURBANCES - picking which ones in the CBM list END #####################################
+
+############# growth curves: read them in, select just the ones used in the RIA sims, 
+# translate into biomass with Boudewyn, CHECK this translations and insert hard fixes ##########################
+
+## these files are from Greg Paradis 
+# this file contains ALL the bc curves
+gcBC <- fread("data/RIA2019/yld.csv")
+# the vector of the Analysis Unit used in the RIA2019 
+riaAU <- fread("data/RIA2019/ria_au_values.txt")
+names(riaAU) <- "AU"
+
+gcRIAall <- gcBC[AU %in% riaAU$AU]
+# start the meta data file (equivalent to spadesGCurvesSK.csv)
+################### there will be more columns to add here onces we have the
+################### link between curves and pixels equivalent to growth_curve_id
+################### in spadesGCurvesSK.csv################## (might be anaylsis units??)
+gcMeta <- gcRIAall[,c(1:5)]
+
+# creating the equivalent of yieldComponentsSK.csv. Three coumns only: curve id
+# (here AU?), age, Merchvolume
+
+gcRIAwide <- gcRIAall[,c(3,7:42)]
+# this is wide make it long
+gcRIAyields <- melt.data.table(gcRIAwide, id.vars = "AU",measure.vars = c("X0","X10","X20","X30","X40","X50","X60","X70","X80","X90",
+                                                                          "X100","X110","X120","X130","X140","X150","X160",
+                                                                          "X170","X180","X190","X200","X210","X220","X230","X240",  
+                                                                          "X250","X260","X270","X280","X290","X300","X310","X320","X330",
+                                                                         "X340","X350"))
+
+setorder(gcRIAyields,AU) 
+
+gcRIAm3 <- gcRIAyields[,age := rep(seq(0,350,by=10),204)]
+gcRIAm3[,-"variable"]
+# this is the equivalent of the yieldComponentSK.csv
+#write.csv(gcRIAm3[,-"variable"],file = "data/RIA2019/gcRIAm3.csv",row.names = FALSE) 
+
+## Plot it out
+  library(ggplot2)
+  volCurves <- ggplot(data=gcRIAm3, aes(x=age,y=value,group=AU, colour=AU)) +
+    geom_line()
+## NOTES: curves look messy...some very low, but 2 near or above 1000m3!!
+  ## check curves over 900m3
+  vol900AU <- unique(gcRIAm3[which(gcRIAm3$value>900),AU])
+  vol300AU <- unique(gcRIAm3[which(gcRIAm3$value>300),AU])
+
+
+###### growth curves END #######################################################################################
+
+
+
+#### process growth curves ############################--------------------------------------------------------------
+# read-in Boudewyn et al parameters for conversion from m3/ha to biomass in
+# the three main carbon pools that make-up the $growth_increments used to move
+# spadesCBM forward in growth from year to year
+# https://nfi.nfis.org/en/biomass_models-------------------------------------
+## danger hard coded## need to change this to read URL or cache these.
+table3 <- fread("C:/Celine/GitHub/spadesCBM/data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
+table4 <- fread("C:/Celine/GitHub/spadesCBM/data/appendix2_table4.csv")
+table5 <- fread("C:/Celine/GitHub/spadesCBM/data/appendix2_table5.csv")
+table6 <- fread("C:/Celine/GitHub/spadesCBM/data/appendix2_table6_v2.csv",fill=TRUE)
+
+# identify jurisdiction matching CBM-legacy numbering with Boudewyn
+# jurisdiction params----------------------------------------------
+# choices are: 
+# table3$juris_id and table4$juris_id and table6$jur
+# AB BC MB NB NF NS NT NU ON PE QC SK YK
+# table5$juris_id
+# AB BC NB NF NT
+cbmAdmin <- c(10,11,8,5,1,2,3,13,14,7,4,6,9,12)## danger hard coded##
+paramJur <- c("AB","BC","MB","NB","NF","NF","NS" ,"NT" ,"NU" ,"ON" ,"PE", "QC", "SK", "YK")
+adminMatch <- as.data.table(cbind(cbmAdmin,paramJur))
+#write.csv(adminMatch, file="data/adminMarchBoudewynParams.csv",row.names = FALSE)
+
+jurisdiction <- "BC"#as.character(adminMatch[which(cbmAdmin %in% unique(ecoToSpu[SpatialUnitID %in% unique(gcID$spatial_unit_id),2])),2])
+RIAtable3 <- as.data.table(table3[table3$juris_id==jurisdiction,])
+RIAtable4 <- as.data.table(table4[table4$juris_id==jurisdiction,])
+# table5 is weird since they did not have enough data for SK. I am selecting AB
+# instead. Another catch is that they don't have the same species match. I
+# manually check and ABIES is genus 3 (used below)
+#### PUT error message if the specified jurisdiction is not found #### GIVE CHOICES
+RIAtable5 <- as.data.table(table5[table5$juris_id==jurisdiction,])
+RIAtable6 <- as.data.table(table6[table6$jur==jurisdiction,])
+# END jurisdiction-----------------------------------------------
+
+# read-in species match with canfi_species code and genus to get rigth
+# Boudewyn params---------------------------------------------------
+
+
+#### build the spsMatch needed to match between the leading species identified in
+#### the curves and the Boudewyn params that "translate" the m3/ha into biomass
+#### ####################################################################################################
+# THESE ARE ALL THE DECISIONS ON THE 21 sps in gcMeta
+# need to match species from gcMeta to Bourdewyn params
+# so LDSPP from the gcMeta matched with canfi_species and genus
+## the AUs will have to be in there also, so there will be 204 of them
+RIAsps <- unique(gcMeta$LDSPP)
+# table3 and table4 are the same for BC
+tbl3sps <- unique(RIAtable3[,.(canfi_species,genus,species)])
+unique(RIAtable4[,.(canfi_species,genus,species)])==tbl3sps
+# table5 genus
+tbl5sps <- unique(RIAtable5[,.(canfi_genus,genus)])
+# table6 looks like the same numbers as canfi_species in table3 and 4
+tbl6sps <- unique(RIAtable6[,.(species)])
+
+## danger this is hard coded ## Species match is a visual process for the moment
+# look at each species and build tbl3sps[c(21,10,5,)]
+RIAsps[1]
+# "Aspen"
+which(tbl3sps$species=="TRE")
+#21
+spsMatchRIA <- cbind(RIAsps[1],tbl3sps[21,])
+RIAsps[2]
+#"Subalpine fir"
+which(tbl3sps$species=="LAS")
+#10
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[2],tbl3sps[10,]))
+RIAsps[3]
+#"Lodgepole Pine"
+tbl3sps[which(tbl3sps$genus=="PINU")]
+which(tbl3sps$species=="CON")
+#5 (this is the var latifolia - the other one is var contorta)
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[3],tbl3sps[5,]))
+
+
+RIAsps[5]
+#"Poplar"
+# these will all be given the Cottonwood parameters as the values in the curves
+# visually match those better then the aspen
+RIAsps[6]
+# "Cottonwood"
+tbl3sps[which(tbl3sps$genus=="POPU")]
+which(tbl3sps$species=="BAL")
+# 22
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[5],tbl3sps[22,]))
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[6],tbl3sps[22,]))
+
+
+RIAsps[7]
+# "Paper birch"
+tbl3sps[which(tbl3sps$genus=="BETU")]
+which(tbl3sps$species=="PAP")
+# tbl3sps[which(tbl3sps$species=="PAP"),]
+# canfi_species genus species
+# 1:          1303  BETU     PAP
+# 2:          1308  BETU     PAP
+# These have the same params in table 3, but one says it has a count of 27 - so I am picking that one 1303
+which(tbl3sps$canfi_species==1303)
+# 23
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[7],tbl3sps[23,]))
+
+
+RIAsps[8]
+# "Alpine larch"
+# Note: only Larix laricina is the only larch that occurs that far north
+tbl3sps[which(tbl3sps$genus=="LARI")]
+which(tbl3sps$species=="LAR")
+#17
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[8],tbl3sps[17,]))
+
+RIAsps[9]
+# "Black spruce"
+# there is only one
+tbl3sps[which(tbl3sps$genus=="PICE")]
+which(tbl3sps$species=="MAR")
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[9],tbl3sps[2,]))
+
+RIAsps[10]
+# "Engelmann spruce"
+# there is only one
+tbl3sps[which(tbl3sps$genus=="PICE")]
+which(tbl3sps$species=="ENG")
+#3
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[10],tbl3sps[3,]))
+
+
+RIAsps[11]
+# "White spruce"
+# there is only one
+tbl3sps[which(tbl3sps$genus=="PICE")]
+which(tbl3sps$species=="GLA")
+#4
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[11],tbl3sps[4,]))
+
+
+RIAsps[12]
+# "Western white pine"
+# there is only one BUT Western White pine's distribution does not reach these
+# latitudes...will go with what they say since the BC level database (yld.csv)
+# has a Whitebark Pine
+tbl3sps[which(tbl3sps$genus=="PINU")]
+which(tbl3sps$species=="MON")
+#29
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[12],tbl3sps[29,]))
+
+
+RIAsps[13]
+# "Balsam fir"
+# Balsam fir (Abies balsamea) does not occur in BC and all the other firs do not
+# occur this far north. Selecting Abies lasiocarpa
+tbl3sps[which(tbl3sps$genus=="ABIE")]
+which(tbl3sps$species=="LAS")
+#10
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[13],tbl3sps[10,]))
+
+
+RIAsps[14]
+# "Amabilis fir"
+# there is only one BUT Pacific silver fir' is a coastal species's distribution does not reach these
+# latitudes...will go with what they say since the BC level database (yld.csv)
+# has a Whitebark Pine
+tbl3sps[which(tbl3sps$genus=="ABIE")]
+which(tbl3sps$species=="AMA")
+#9
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[14],tbl3sps[9,]))
+
+
+RIAsps[15]
+# "Redcedar"
+# there is only one
+tbl3sps[which(tbl3sps$genus=="THUJ")]
+which(tbl3sps$species=="PLI")
+#20
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[15],tbl3sps[20,]))
+
+
+RIAsps[16]
+# "Douglas-fir"
+# there are two but they have the same canfi_species. so canfi_specie 500
+tbl3sps[which(tbl3sps$genus=="PSEU")]
+which(tbl3sps$species=="MEN")
+#14
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[16],tbl3sps[14,]))
+
+
+RIAsps[17]
+# "Mountain hemlock"
+# there is only one BUT it's distribution does not reach these
+# latitudes...will go with what they say since the BC level database (yld.csv)
+tbl3sps[which(tbl3sps$genus=="TSUG")]
+which(tbl3sps$species=="MER")
+# 13
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[17],tbl3sps[13,]))
+
+
+RIAsps[18]
+# "Western hemlock"
+# there is only one BUT it's distribution does not reach these
+# latitudes...will go with what they say since the BC level database (yld.csv)
+tbl3sps[which(tbl3sps$genus=="TSUG")]
+which(tbl3sps$species=="HET")
+#12
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[18],tbl3sps[12,]))
+
+
+RIAsps[19]
+# "Tamarack"
+# Note: only Larix laricina is the only larch that occurs that far north
+tbl3sps[which(tbl3sps$genus=="LARI")]
+which(tbl3sps$species=="LAR")
+#17
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[19],tbl3sps[17,]))
+
+
+RIAsps[20]
+# "Whitebark pine"
+# there is only one
+tbl3sps[which(tbl3sps$genus=="PINU")]
+which(tbl3sps$species=="ALB")
+#6
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[20],tbl3sps[6,]))
+
+RIAsps[21]
+# "Willow"
+# there is only one
+tbl3sps[which(tbl3sps$genus=="SALI")]
+#34
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[21],tbl3sps[34,]))
+
+
+RIAsps[4]
+#"Spruce"
+# there are 28 curves labelled "Spruce"
+dim(gcMeta[LDSPP=="Spruce",])
+#[1] 28  5
+dim(gcMeta[LDSPP=="Engelmann spruce",])
+#[1] 11  5
+dim(gcMeta[LDSPP=="White spruce",])
+#[1] 16  5
+dim(gcMeta[LDSPP=="Black spruce",])
+#[1] 10  5
+# generic "Spruce" will be given a speciefic spruce name to get the best chances
+# of the Boudewyn params working (? I think this is a true statement but I have
+# not checked)
+# visual matching: I sorted all the "Spruces" by their volume at 50 and looked
+# at the other three spruces species and roughly matche the volumes
+# All 28 "Spruce" will be assigned "White Spruce" (#4)
+
+# These AUs will be changed to Engelman: 80,308,389 (#3)
+# and these to "Black Spruce" (#2): 1008, 1026,1085,1103,1161,1192,1203
+# After the merge is complete
+RIAsps[4]
+spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[4],tbl3sps[4,]))
+names(spsMatchRIA) <- c("LDSPP","canfi_species","genus","species")
+
+gcMeta <- gcMeta[spsMatchRIA, on="LDSPP"]
+eng <- c(80,308,389)
+black <- c(1008, 1026,1085,1103,1161,1192,1203)
+
+gcMeta[AU %in% eng,c(6:8)] <- tbl3sps[3,]
+gcMeta[AU %in% black,c(6:8)] <- tbl3sps[2,]
+
+#write.csv(gcMeta,file="data/RIA2019/gcMeta.csv",row.names = FALSE)
+
+#### ####################################################################################################
+# END - THESE ARE ALL THE DECISIONS ON THE 21 sps in gcMeta
+
+###############################################################################
+# Create the canfi_species and genus columns to add to gcMeta
+
+
+
+spsMatch
+
+spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
+# Match gcID$species to spsMatch$speciesName, then sktable3-4 have
+# $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
+# to $canfi_species
+
+fullSpecies <- unique(gcID$species)
+swInc <- NULL
+hwInc <- NULL
+
+for(i in 1:length(fullSpecies)){
+  speciesMeta <- gcID[species==fullSpecies[i],]
+  for(j in 1:length(unique(speciesMeta$growth_curve_component_id))){
+    meta <- speciesMeta[j,]
+    id <- growthCurveComponents$GrowthCurveComponentID[which(growthCurveComponents$GrowthCurveComponentID == meta$growth_curve_component_id)][-1]
+    ### IMPORTANT BOURDEWYN PARAMETERS DO NOT HANDLE AGE 0 ###
+    age <- growthCurveComponents[GrowthCurveComponentID==meta$growth_curve_component_id,Age][-1]
+    cumBiom <- as.matrix(convertM3biom(meta = meta,gCvalues = growthCurveComponents,spsMatch=spsMatch, 
+                                       ecozones = ecozones,params3=sktable3, params4=sktable4, 
+                                       params5=sktable5,params6=sktable6))
+    # going from tonnes of biomass/ha to tonnes of carbon/ha here
+    cumBiom <- cumBiom*0.5
+    inc <- diff(cumBiom)
+    if(meta$forest_type_id==1){
+      incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
+      swInc <- rbind(swInc,incs)
+      #FYI:
+      # cbmTables$forest_type
+      # id           name
+      # 1  1       Softwood
+      # 2  2      Mixedwood
+      # 3  3       Hardwood
+      # 4  9 Not Applicable
+    } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),inc)
+    hwInc <- rbind(hwInc,incs)}
+  }
+}
+colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
+interim <- as.matrix(increments)
+interim[is.na(interim)] <- 0
+increments <- as.data.table(interim)
+
+
+

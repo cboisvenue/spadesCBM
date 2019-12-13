@@ -30,8 +30,8 @@ mySpu <- unique(spatial_unit_id)
 # or 
 mySpu <- unique(gcIn[,1])
 
-# the function has the defaults from the Sk managed forest example. These can my
-# changed by feeing in other spu
+# the function has the defaults from the Sk managed forest example. These can be
+# changed by feeding in other spu
 spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")){
 
   library(RSQLite)

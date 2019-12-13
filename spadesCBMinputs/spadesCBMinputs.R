@@ -264,7 +264,7 @@ Init <- function(sim) {
   interim <- as.matrix(increments)
   interim[is.na(interim)] <- 0
   increments <- as.data.table(interim)
-  
+ 
   #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
   ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
   ## id 49 becomes 28
