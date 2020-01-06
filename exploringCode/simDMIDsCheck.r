@@ -45,7 +45,7 @@ cbmPools <- as.data.table(spadesCBMout$cbmPools)
 # Check growth for three non-disturbed pixel groups with no overmature decline--------------------
 # get the age of pixel groups <50 in the initial pixel groups (these carry
 # through the simulations, i.e., no pixel groups disappear)
-spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")
+spsMatch <- fread("data/spsMatchNameRasterGfileBiomParams.csv")
 gInc <- as.data.table(spadesCBMout$growth_increments)
 # plot m3/ha
 volInc <- fread(spadesCBMout$gcurveComponentsFileName)
