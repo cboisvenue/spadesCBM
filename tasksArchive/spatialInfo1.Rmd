@@ -32,7 +32,7 @@ Here is a table of of the spatial units refered to in the cbm_default.db and the
 library(RSQLite)
 
 
-inputDir <- file.path(getwd(),"data/12_Spades_run") 
+inputDir <- file.path("data/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 
 sqlite.driver <- dbDriver("SQLite")
@@ -105,7 +105,7 @@ a)This should be age in 1984, please check this raster to see if it gives ages a
 ```{r Age raster,echo = FALSE, include=FALSE} 
 library(raster)
 
-age <- raster(file.path(getwd(),"data/forIan/SK_data/rasters/age1.tif"))
+age <- raster(file.path("data/forIan/SK_data/rasters/age1.tif"))
 
 ageVal <- getValues(age) #this will take a few seconds, big raster (4.6 Gb)
 #age is now a vector 
@@ -119,7 +119,7 @@ b) Please check if this raster is the same as the one above:
 ```{r compare Age, echo=FALSE, include=FALSE}
 library(raster)
 # Firstcrop to a smaller area first for faster comparisons
-small_extent <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")) #This is smaller
+small_extent <- raster(file.path("data/forIan/SK_data/SK_ReclineRuns30m/layers/age1_recliner.tif")) #This is smaller
 ## Ian: yes, it is smaller...but we are not sure this is the same as the age raster above...how can you be sure that it is a cropped version of the age raster above? 
 ##Celine: I am just using this extent (which happens to be from an age raster) to crop but keeping the original age raster values to compare. 
 # what if I just get the values and compare the vectors? Celine: You can do this.But "identical"" and "all.equal" will fail over a single difference
@@ -296,15 +296,13 @@ The above steps associate a spatial unit and can be linked to an ecozone for eac
 
 ### 13- Disturbances
 
-This will come from the Wulder and White work. There is a list for SK here: `SK_ReclineRuns30m\layers\projected_change_type`
+This will come from the Wulder and White work.
+There is a list for SK here: `SK_ReclineRuns30m\layers\projected_change_type`
 
 ***TASKS***  
 1. get the prototype working with one disturbance  ***DONE***
 2. get the prototype working with existing SK data  
 3. Link it to larger work of using disturbance info from that national product.  
-
-
-
 
 ```{r dataTable}
 ###################### MAKING A DATA.TABLE FIRST ##########################################
@@ -312,25 +310,25 @@ library(data.table)
 library(raster)
 library(dplyr)
 
-age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+age <- raster(file.path("data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
 #This works
 ages <- getValues(age)
 # read-in species
-ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+ldSpsRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
 rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
 # read-in productivity  levels
-prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+prodRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
 RasterValue <- getValues(prodRaster)#1 2 3 0
 # read-in spatial units
-spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
 spatial_unit_id <- as.integer(getValues(spuRaster)) #28 27
 # make it a data.table
 level2DT <- as.data.table(cbind("LeadingSp" = rasterSps,"Productivity" = RasterValue, spatial_unit_id, "Age" = ages))
 
 #Join to Growth Curves
 # add the gcID
-gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
-gcID <- as.data.table(gcID[,-1])%>%
+gcID <- read.csv(file.path("data/forIan/SK_data/gcID_ref.csv"))
+gcID <- as.data.table(gcID[,-1]) %>%
   .[,.("LeadingSp" = rasterSps,"Productivity" = RasterValue, growth_curve_component_id, spatial_unit_id)]
 setkey(gcID, growth_curve_component_id, LeadingSp, Productivity, spatial_unit_id)
 

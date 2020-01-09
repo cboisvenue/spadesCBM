@@ -19,7 +19,7 @@ spu[spu$AdminBoundaryID==9&spu$EcoBoundaryID %in% c(6,9),]
 # end spu and eco--------------------------------------------------------
 
 # what species do we have?--------------------------------------------------------
-gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path(getwd(),"data/spadesGCurvesSK.csv"))
+gcID <- read.csv(spadesCBMout$gcurveFileName)#file.path("data/spadesGCurvesSK.csv"))
 gcSpsName <- unique(gcID$species)
 # this is cbm-species number
 gcSpsID <- unique(gcID$species_id)

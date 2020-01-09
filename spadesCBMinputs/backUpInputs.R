@@ -148,18 +148,18 @@ Init <- function(sim) {
   #### Data will have to be provided by user in a separated module...short cut for now...
   #####################################################################################
 
-  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  age <- raster(file.path("data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
   #This works
   ages <- getValues(age)
   # read-in species
-  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+  ldSpsRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
   rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
   # read-in productivity  levels
-  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+  prodRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
   Productivity <- getValues(prodRaster)#1 2 3 0
   
   # read-in spatial units
-  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+  spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
 
   level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
@@ -173,7 +173,7 @@ Init <- function(sim) {
   setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
   level2DT <- level2DT[order(pixelIndex),]
   # add the gcID	  # add the gcID
-  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
+  #gcID <- read.csv(file.path("data/spadesGCurvesSK.csv"))#gcID_ref.csv
   gcID <- as.data.table(gcID[,-1]) 
   gcID <- gcID[,.(rasterSps,Productivity,growth_curve_component_id,spatial_unit_id,growth_curve_id)]
   setkey(gcID,growth_curve_component_id,rasterSps,Productivity,spatial_unit_id)

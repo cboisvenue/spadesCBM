@@ -40,7 +40,7 @@ spadesCBMout1 <- spades(spadesCBMout,debug=TRUE)
   spadesCBMout@.envir$yearEvents
 
 # this is what the current simulations spitout
-outPixelGroupPools <- read.csv(file.path(getwd(),"outputs","output1stand.csv"))
+outPixelGroupPools <- read.csv(file.path("outputs", "output1stand.csv"))
 # this has all the pools (25+"Input" which seems to always be equal to 1) 
 # plus a unique identifier for the line, for the pixelGroup (standindex)
 # and has the age of the pixelGroup.

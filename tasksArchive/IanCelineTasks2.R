@@ -22,18 +22,18 @@ require(data.table)
 
 #1. Get test area GIS data
 #1 i age
-ageMap <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+ageMap <- raster(file.path("data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
 ages <- getValues(ageMap)
 #1 ii species
-ldSpsMap <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+ldSpsMap <- raster(file.path("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
 species <- getValues(ldSpsMap)
 #1 iii. productivity
-prodMap <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+prodMap <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
 prod <- getValues(prodMap)
 
 #iv . Spatial units - Must run spadesCBM to get spuNames 
 #This exists for the small study area - we can always generate the raster for other areas as in Task3
-spuMap <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+spuMap <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
 spatial_unit_id <- as.integer(getValues(spuMap)) #28 27
 
 #2. Make level 2DT
@@ -42,7 +42,7 @@ level2DT <- level2DT[LeadingSp != 0] #Remove NAs
 
 #3. Add growth curves
 #3 i get growth curve table
-gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+gcID <- read.csv(file.path("data/forIan/SK_data/gcID_ref.csv"))
 gcID <- as.data.table(gcID[,-1])%>%
   .[,.("LeadingSp" = rasterSps,"Productivity" = RasterValue, growth_curve_component_id, spatial_unit_id)]
 setkey(gcID, growth_curve_component_id, LeadingSp, Productivity, spatial_unit_id)
@@ -158,7 +158,7 @@ level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
 
 #1 Create the spatial unit shapefile for all of Canada
 #1 i Source the data with correct spatial unit IDs
-inputDir <- file.path(getwd(),"data/12_Spades_run") 
+inputDir <- file.path("data/12_Spades_run") 
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 sqlite.driver <- dbDriver("SQLite")
 cbmDefaults <- dbConnect(sqlite.driver, dbname = dbPath)

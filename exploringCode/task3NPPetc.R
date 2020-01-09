@@ -177,7 +177,7 @@ processGrowthCurve <- function(gcid,growthCurves,growthCurveComponents,sim) {
 }
 
 
-gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))
+gcID <- read.csv(file.path("data/spadesGCurvesSK.csv"))
 growthCurves <- as.matrix(gcID[,c(3,2,5,4,6)])#as.matrix(read.csv(sim$gcurveFileName))
 growthCurveComponents <- as.matrix(read.csv(spadesCBMout$gcurveComponentsFileName))
 #gcid is a unique identifier for each growth curve (1 to 105)

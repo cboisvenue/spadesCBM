@@ -21,7 +21,7 @@
 
 # could be with the rasters
 library(raster)
-spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
 spatial_unit_id <- getValues(spuRaster) #28 27
 # or with the growth curves
 gcIn <- as.matrix(read.csv("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv"))
@@ -32,7 +32,7 @@ mySpu <- unique(gcIn[,1])
 
 # the function has the defaults from the Sk managed forest example. These can my
 # changed by feeing in other spu
-spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")){
+spuDist <- function(mySpu = c(27,28),dbPath = file.path("data","cbm_defaults","cbm_defaults.db")){
 
   library(RSQLite)
   
@@ -99,7 +99,7 @@ histDist<- function(mySpu = c(27,28)){
 distId <- c(161,230,313,361)
 
 
-seeDist <-function(distId = c(161,230,313,361),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")) {
+seeDist <-function(distId = c(161,230,313,361),dbPath = file.path("data","cbm_defaults","cbm_defaults.db")) {
   # get the defaults
   library(RSQLite)
   

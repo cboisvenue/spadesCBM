@@ -13,8 +13,8 @@
 ## DESCRIPTIVE: what is in those files? how does it relate to cbm_defaults?
 
 # in the data folder of the spadesCBMinputs module
-gcComponent <- as.matrix(read.csv(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv")))
-gcIn <- as.matrix(read.csv(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")))
+gcComponent <- as.matrix(read.csv(file.path("data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/yieldComponentRCBM.csv")))
+gcIn <- as.matrix(read.csv(file.path("data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")))
 
 ## here trying to match the spatial_unit_id in gcIn with the spatial_unit in cbm_defaults
 # ***run readInSQLiteData.r which creates the data.frame spu (combines all ids with province and ecozone names)***
@@ -187,7 +187,7 @@ names(gcIDspsProd) <- c("species_id","growth_curve_component_id",names(gcIDspsPr
 
 # how many levels of productivity on the productivity raster?
 library(raster)
-prod <- raster(file.path(getwd(),"data/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity.tif"))
+prod <- raster(file.path("data/forIan/SK_data/SK_ReclineRuns30m/layers/site_productivity.tif"))
 prod_val <- getValues(prod)
 unique(prod_val) # NA  1  2  3  0
 # from lookup Tables in here:
@@ -196,7 +196,7 @@ unique(prod_val) # NA  1  2  3  0
 # 1	G
 # 2	M
 # 3	P
-prodLookup <- read.csv(file.path(getwd(),
+prodLookup <- read.csv(file.path(
                       "data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/productivityLookup.csv"))
 
 
@@ -222,6 +222,6 @@ sps_ref <- cbind(gcSps[,1:2],rasterSps=c(3,7,4,1,5,2,6))
 gcID_ref <- merge.data.frame(gcID_ref,sps_ref)
 # adding the spatial units id
 gcID_ref <- merge.data.frame(gcDF[,1:2],gcID_ref)
-write.csv(gcID_ref,file=file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+write.csv(gcID_ref,file=file.path("data/forIan/SK_data/gcID_ref.csv"))
 
           

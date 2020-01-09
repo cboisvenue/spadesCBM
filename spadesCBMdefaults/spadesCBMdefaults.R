@@ -7,7 +7,7 @@ defineModule(sim, list(
   name = "spadesCBMdefaults",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "celine.boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMdefaults = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),

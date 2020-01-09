@@ -7,7 +7,7 @@ defineModule(sim, list(
   name = "spadesCBMcore",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "celine.boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMcore = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -18,7 +18,7 @@ defineModule(sim, list(
   reqdPkgs = list("Rcpp","raster", "quickPlot", "ggplot2"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),    
-    defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no ouput of the spinupResult"),
+    defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no output of the spinupResult"),
     defineParameter("noAnnualDisturbances", "logical", FALSE, NA, NA, "If TRUE the sim$allProcesses and sim$opMatrix are created in the postSpinup event, just once. By default, these are recreated everyyear in the annual event"),
     defineParameter("poolsToPlot", "character", "totalCarbon", NA, NA, 
                     desc = "which carbon pools to plot, if any. Defaults to total carbon"),
@@ -89,7 +89,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # do stuff for this event
       #sim <- Init(sim) #? can I call the function something else then Init?
       sim <- spinup(sim) ## this is the spinup
-      if(P(sim)$spinupDebug)
+      if (P(sim)$spinupDebug)
         sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "saveSpinup")
       #sim <- postSpinup(sim)
 
@@ -120,7 +120,7 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- annual(sim)
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot",.last())
       sim <- scheduleEvent(sim, time(sim) + 1, "spadesCBMcore", "annual")
-      if(time(sim)==end(sim))
+      if (time(sim)==end(sim))
         sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last())
       # ! ----- STOP EDITING ----- ! #
     },
@@ -905,77 +905,76 @@ annual <- function(sim) {
     # These objects currently are required to be in the .GlobalEnv
     #   due to cpp code in RCBMGrowthIncrements.cpp. This should be
     #   changed in the cpp and also here so it is in the sim
-    for(i in 1:length(sim$pooldef)){
+    for (i in 1:length(sim$pooldef)) {
       assign(sim$pooldef[i], i, envir = .GlobalEnv)#?.globals
     }
   }
   
-  if (!suppliedElsewhere("cbmData", sim)){
+  if (!suppliedElsewhere("cbmData", sim)) {
     spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
     disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
     sim$cbmData <- new("dataset",
-                       turnoverRates=as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
-                       rootParameters=as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
-                       decayParameters=as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
-                       spinupParameters=as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
-                       climate=as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
-                       spatialUnitIds=spatialUnitIds,
-                       slowAGtoBGTransferRate=as.matrix(0.006),
-                       biomassToCarbonRate=as.matrix(0.5),
-                       stumpParameters=as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
-                       overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
-                       disturbanceMatrix=disturbanceMatrix,
-                       disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
-                       disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
-                       landclasses=as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
+                       turnoverRates = as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
+                       rootParameters = as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
+                       decayParameters = as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
+                       spinupParameters = as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
+                       climate = as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
+                       spatialUnitIds = spatialUnitIds,
+                       slowAGtoBGTransferRate = as.matrix(0.006),
+                       biomassToCarbonRate = as.matrix(0.5),
+                       stumpParameters = as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
+                       overmatureDeclineParameters = as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrix = disturbanceMatrix,
+                       disturbanceMatrixAssociation = as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
+                       disturbanceMatrixValues = as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
+                       landclasses = as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
                        pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
                        domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
     ) 
   }
   
-  
-  if(!suppliedElsewhere(sim$PoolCount))
+  if (!suppliedElsewhere(sim$PoolCount))
     sim$PoolCount <- length(sim$pooldef)
-  if(!suppliedElsewhere(sim$pools)){
-    sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
-    colnames(sim$pools)<- sim$pooldef
+  if (!suppliedElsewhere(sim$pools)) {
+    sim$pools <- matrix(ncol = sim$PoolCount, nrow = 1, data = 0)
+    colnames(sim$pools) <- sim$pooldef
     sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
-    }
-  if(!suppliedElsewhere(sim$ages)){
+  }
+  if (!suppliedElsewhere(sim$ages)) {
     sim$ages <- c(0)#,2,3,140)
     sim$nStands <- length(sim$ages)
     #standIdx <- 1:sim$nStands
   }
-  if(!suppliedElsewhere(sim$gcids))
+  if (!suppliedElsewhere(sim$gcids))
     sim$gcids <- c(1)#,2,3,101)
-  if(!suppliedElsewhere(sim$historicDMIDs))
+  if (!suppliedElsewhere(sim$historicDMIDs))
     sim$historicDMIDs <- c(214)#,1,1,1)
-  if(!suppliedElsewhere(sim$lastPassDMIDS))
+  if (!suppliedElsewhere(sim$lastPassDMIDS))
     sim$lastPassDMIDS <- c(214)#,1,1,1)
-  if(!suppliedElsewhere(sim$delays))
+  if (!suppliedElsewhere(sim$delays))
     sim$delays <- c(0)#,0,0,0)
-  if(!suppliedElsewhere(sim$minRotations))
+  if (!suppliedElsewhere(sim$minRotations))
     sim$minRotations <- rep(0, sim$nStands)
-  if(!suppliedElsewhere(sim$maxRotations))
+  if (!suppliedElsewhere(sim$maxRotations))
     sim$maxRotations <- rep(100, sim$nStands)
-  if(!suppliedElsewhere(sim$returnIntervals))
+  if (!suppliedElsewhere(sim$returnIntervals))
     sim$returnIntervals <- c(200)#,110,120,130)
-  if(!suppliedElsewhere(sim$spatialUnits))
+  if (!suppliedElsewhere(sim$spatialUnits))
     sim$spatialUnits <- rep(26, sim$nStands)
-  if(!suppliedElsewhere(sim$ecozones))
+  if (!suppliedElsewhere(sim$ecozones))
     sim$ecozones <- rep(5, sim$nStands)
   # if(!suppliedElsewhere(sim$disturbanceEvents)){sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
   # colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
   #}
   dataPath <- file.path(modulePath(sim),"data")
-  if(!suppliedElsewhere(sim$dbPath))
+  if (!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  if(!suppliedElsewhere(sim$gcurveFileName))
+  if (!suppliedElsewhere(sim$gcurveFileName))
     sim$gcurveFileName <- file.path(dataPath, "spadesGCurvesSK.csv")#"SK_ReclineRuns30m", "LookupTables",
-  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
+  if (!suppliedElsewhere(sim$gcurveComponentsFileName))
     sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
   # ! ----- STOP EDITING ----- ! #
-  if(!suppliedElsewhere(sim$processes))
+  if (!suppliedElsewhere(sim$processes))
    sim$processes <-
      list(
        domDecayMatrices = matrixHash(computeDomDecayMatrices(sim$decayRates, sim$cbmData@decayParameters, sim$PoolCount)),
@@ -985,23 +984,23 @@ annual <- function(sim) {
        bioTurnover = matrixHash(computeBioTurnoverMatrices(sim$cbmData@turnoverRates, sim$PoolCount)),
        disturbanceMatrices = matrixHash(loadDisturbanceMatrixIds(sim$cbmData@disturbanceMatrixValues, sim$cbmData@pools))
      )
-   if(!suppliedElsewhere(sim$disturbanceRasters)){
+   if (!suppliedElsewhere(sim$disturbanceRasters)) {
    sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
                                         full.names = TRUE) %>%
      grep(., pattern = ".grd$", value = TRUE)
    }
-  if(!suppliedElsewhere(sim$spatialDT)){
-    age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  if (!suppliedElsewhere(sim$spatialDT)) {
+    age <- raster(file.path("data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
     #This works
     ages <- getValues(age)
     # read-in species
-    ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+    ldSpsRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
     rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
     # read-in productivity  levels
-    prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+    prodRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
     Productivity <- getValues(prodRaster)#1 2 3 0
     # read-in spatial units
-    spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+    spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
     spatial_unit_id <- getValues(spuRaster) #28 27
     sim$masterRaster <- ldSpsRaster
     ## END Rasters--------------------------------------------------------------------
@@ -1022,7 +1021,7 @@ annual <- function(sim) {
     # END adjustment of productivity to match data----------------
     
     # add the gcID information-------------------------------
-    #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
+    #gcID <- read.csv(file.path("data/spadesGCurvesSK.csv"))#gcID_ref.csv
     gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
     gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
     setkey(gcID,rasterSps,Productivity,spatial_unit_id)
@@ -1044,13 +1043,13 @@ annual <- function(sim) {
   }
   
     
-    if(!suppliedElsewhere(sim$mySpuDmids)){
+    if (!suppliedElsewhere(sim$mySpuDmids)){
     spu <- unique(sim$spatialDT$spatial_unit_id)
     # what disturbances in those spu(s)?
     listDist <- spuDist(spu)
   
    #get the right ones
-    fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
+    fire <- listDist[grep("wildfire",listDist[,3], ignore.case = TRUE),1:3]
   
     #had to figure this one out by hand...there were 12 clearcut types...took the
     #one that said 50% salvage got that from looking at the published paper Boivenue
@@ -1058,15 +1057,15 @@ annual <- function(sim) {
     #publication, we said 85% of the merchantable trees and 50% of the snags...
     #there is no "85%" clearcut in the whole data base (cbmTables[[6]][,2])...85% is
     #only used in precommercial thinning Sylva EPC
-    clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
+    clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case = TRUE),1:3]
     clearCut <- clearCut[7:8,]
   
     # Again, there are 12 deforestation, but only two are not called "Fixed
     # Deforestation-Hydro", so I picked these two
-    defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
+    defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case = TRUE),1:3]
     defor <- defor1[1:2,]
     
-    generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
+    generic <- listDist[grep("20% mortality",listDist[,3], ignore.case = TRUE),1:3]
     
     mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
     #creating a vector of the pixel values to be able to match the disturbance_matrix_id
@@ -1080,27 +1079,23 @@ annual <- function(sim) {
     sim$historicDMIDs <- histLastDMIDs$disturbance_matrix_id
     sim$lastPassDMIDS <- histLastDMIDs$disturbance_matrix_id
     # and merge them on the level3DT$spatial_unit_id
-    
-    
+  
     #sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
     #sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
-    
-    
+  
     sim$mySpuDmids <- cbind(mySpuDmids,events)
-    }
-  if(!suppliedElsewhere(sim$level3DT)){  
-  level3DT <- unique(sim$spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
-  # might have to keep this when we integrate the disturbances
-  sim$level3DT <- level3DT
+  }
+  if (!suppliedElsewhere(sim$level3DT)) {  
+    level3DT <- unique(sim$spatialDT[,-("pixelIndex")]) %>% .[order(pixelGroup),]
+    # might have to keep this when we integrate the disturbances
+    sim$level3DT <- level3DT
   }
   
   return(invisible(sim))
-  
 }
 ### add additional events as needed by copy/pasting from above
 
 Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")
 #sourceCpp(file='RCBMStep.cpp')
-Rcpp::sourceCpp(file='RCBMGrowthIncrements.cpp', cacheDir = cachePath(sim), 
-          env = envir(sim)[["spadesCBMcore"]])
-
+Rcpp::sourceCpp(file = "RCBMGrowthIncrements.cpp", cacheDir = cachePath(sim),
+                env = envir(sim)[["spadesCBMcore"]])

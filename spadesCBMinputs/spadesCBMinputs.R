@@ -7,7 +7,7 @@ defineModule(sim, list(
   name = "spadesCBMinputs",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "celine.boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputs = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("RSQLite","data.table","raster", "PredictiveEcology/LandR"),
+  reqdPkgs = list("RSQLite", "data.table", "raster", "PredictiveEcology/LandR"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -34,9 +34,7 @@ defineModule(sim, list(
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "gcurveFileName", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "gcurveComponentsFileName", objectClass = "character", desc = NA, sourceURL = NA)
-    
-    
-  ),
+ ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     #createsOutput(objectName = NA, objectClass = NA, desc = NA)
@@ -113,17 +111,17 @@ Init <- function(sim) {
   #####################################################################################
 
   ## Rasters----------------------------------------------------------------------
-  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+  age <- raster(file.path("data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
   #This works
   ages <- getValues(age)
   # read-in species
-  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+  ldSpsRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
   rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
   # read-in productivity  levels
-  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+  prodRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
   Productivity <- getValues(prodRaster)#1 2 3 0
     # read-in spatial units
-  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+  spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
   spatial_unit_id <- getValues(spuRaster) #28 27
   sim$masterRaster <- ldSpsRaster
   ## END Rasters--------------------------------------------------------------------
@@ -144,7 +142,7 @@ Init <- function(sim) {
   # END adjustment of productivity to match data----------------
   
   # add the gcID information-------------------------------
-  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
+  #gcID <- read.csv(file.path("data/spadesGCurvesSK.csv"))#gcID_ref.csv
   gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
   gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
   setkey(gcID,rasterSps,Productivity,spatial_unit_id)

@@ -77,17 +77,17 @@ Plot(dist85)
 library(data.table)
 library(raster)
 
-age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
+age <- raster(file.path("data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
 #This works
 ages <- getValues(age)
 # read-in species
-ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+ldSpsRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
 rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
 # read-in productivity  levels
-prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
+prodRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
 RasterValue <- getValues(prodRaster)#1 2 3 0
 # read-in spatial units
-spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
+spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
 spatial_unit_id <- getValues(spuRaster) #28 27
 
 # make it a data.table
@@ -98,7 +98,7 @@ setkey(level2DT1,rasterSps,RasterValue,spatial_unit_id)
 
 
 # add the gcID
-gcID <- read.csv(file.path(getwd(),"data/forIan/SK_data/gcID_ref.csv"))
+gcID <- read.csv(file.path("data/forIan/SK_data/gcID_ref.csv"))
 gcID <- as.data.table(gcID[,-1])
 setkey(gcID,rasterSps,RasterValue,spatial_unit_id)
 
