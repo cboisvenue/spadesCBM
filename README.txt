@@ -11,10 +11,10 @@ An overview of this family is in a prezi here G:\RES_Work\Work\SpaDES\spadesCBM\
 
 List of improvements that still need to be done to the Rcpp code:
 CBM features not yet implemented:
-- "Flux indicators" CBM-speak for automatic calculation of NPP, heterotrophic respiration, and NEP
+- UPDATE some version of this in the R-code is done:"Flux indicators" CBM-speak for automatic calculation of NPP, heterotrophic respiration, and NEP
 - "Land-use change tracking" pieces of land that switch between the UNCFFF land-classification such as Forest-Land to Agricultural-Land, etc.
 - "Transition rules" CBM-speak for switching from one growth trajectory pre-disturbance to a different growth trajectory post disturbance.
-- Testing: test the script against lots of different edge cases.  The priority might be to test hardwood stands, and the mixed hardwood softwood stands versus and equivalent stand in CBM-CFS3.  So far we’ve only seen one stand confirmed against CBM results
+- Testing: add unit teststest the script against lots of different edge cases.  
 Function documentation - RCpp functions are documented in the map of RunSK_new.R (G:\RES_Work\Work\SpaDES\work\RCBMoverview\June2017CBMcore\cbmCoreMap.xlsx), but a clearer map of what RCpp functions does what in each spadesCBM modules would be useful.
 - pools "input" object is passed by reference - programmer to change that so we can Cache() things...
 - something is also passed by reference in the stepfunct - to change by programmer that also.
@@ -22,11 +22,8 @@ Function documentation - RCpp functions are documented in the map of RunSK_new.R
 - ## Known Errors carried over from carb1: Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$processes,  :   Expecting a single value: [extent=0]. This is because the pooldef values are expected to be in the .GlobalEnv due to a function inside RCMBGrowthIncrements.cpp . That file should be changed so it is not looking in .GlobalEnv. Current work around is to place all the pooldef values in .GlobalEnv. This happens inside the ".inputObjects" function.
 
 List of SpaDES-related work:
-- Make this work with spatial data (module?) - first test spot SK data used in Boisvenue et al 2016.(almost done - test area running January 2019)
-- check the volume to biomass function with the SK PSP-built growth curves and biomass info
-- expand the CBMVolumeToBiomass library to access all Boudewyn et al parameters, and to be able to skip the double "translation". This probably means a new transparent module for volume to biomass conversion with the capability of skipping directly to the use of biomass (as opposed to m3/ha).
-- documentation of CBMVolumeToBiomass and the whole new module
-- make modules for all the parts of the S4 cbm_default.db so that it is clear what those are and where they come from, so that eventually any part of them could be replaced/tested/data assimilation
-- decayRates: matrix 48X12 - holds the decay rates for all the dom pools (11 of them) per spatial unit. Where is this created? How does it link to the "decay_parameter" table in cbmData?
-###SEE LOG###
- 
+- Improve volume to biomass function ?with the SK PSP-built growth curves and biomass info
+- make volume to biomass a seperate module. 
+- replace biomass increments currently calculate from user-provided volume curves with LandR estimates.
+- clean-up the creation of the S4? make modules for all the parts of the S4 cbm_default.db so that it is clear what those are and where they come from, so that eventually any part of them could be replaced/tested/data assimilation
+

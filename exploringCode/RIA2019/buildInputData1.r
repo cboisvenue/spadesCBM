@@ -7,18 +7,14 @@
 # this folder has all the data I currently have:
 dataDir <- "G:/RES_Work/Work/SpaDES/RIA/data/"
 # some of it was copied here: ~\data\RIA2019
-#  "G:/RES_Work/Work/SpaDES/RIA/data/ftStJohn_growthCurves"
-#growth info is in this folder: "/gcID for BC TSA 8/gcID for BC TSA 8"
-# and contains a shape file folder (ts08.shp), a text file called basenames.txt,
-# a password protected file (hdt_tsa08.pkl), a tiff (tsa08.tif), and a cvs (yld.csv)
-# there is another folder called spUnit_Locator, which seems to be a shape file
-# let's see what these all are:
+# processed data will be stored here: ~\data\RIA2019
 
 library(raster)
 library(data.table)
 
 ###### SPU and eczones #############################################################
 ## SPUs for the 5 TSAs##############################################################
+
 ## old data has am spu file and Ian has an spu file, are they the same?
 #library(rgdal)
 # tsa08<-readOGR(dsn="C:/Directory_Containing_Shapefile",layer="MyMap")
@@ -32,20 +28,23 @@ ianSpu <- shapefile("data/spUnit_Locator.shp")
 Plot(ianSpu)
 # YES: these are the same
 
-### Ian provided RIAspu.png and TSAsSpuRia.png - this later has both SPUs and TSA boundaries
-
+### Ian provided RIAspu.png and TSAsSpuRia.png - this last one has both SPUs and TSA boundaries
+## thoses are here: G:\RES_Work\Work\SpaDES\RIA\data
 # Read in the .dbf?
 library(foreign)
 spuDbf <- as.data.table(read.dbf("data/spUnit_Locator.dbf"))
 
 # there seems to be 4 ecozones in the RIA Boreal Cordillera, Taiga Plains,
 # Montane Cordillera, and Boreal Plains
+# determined by looking at the .png provided by Ian Eddy
 ecoCheck1 <- unique(spuDbf[ProvncN=="British Columbia",.(EcoBndr,ecozone)])
 targEcoz <- c(4,9,12,14)
 TSAecoz <- as.data.table(cbind(c(rep("Fort Nelson",2),rep("MacKenzie",2),"Prince George",
                    rep("Dawson Creek",2),rep("Fort St John",4)),c(12,4,12,14,14,14,9,12,9,14,4)))
 names(TSAecoz) <- c("TSAnames","ecozones")
 RIAspu <- unique(spuDbf[ProvncN=="British Columbia" & ecozone!="Pacific Maritime" & EcoBndr %in% targEcoz,]$spu_id)
+
+## CAREFUL HARD CODED ##
 # From Greg Paradis and Ian Eddy's map
 spuId <- c(40,38,40,42,42,40,38,42,39,42,39)
 
@@ -110,6 +109,9 @@ names(mySpuDmids) <- c("spatial_unit_id","disturbance_matrix_id","distName")
 ### NOTE: there will have to be a matching of the dist identification form the
 ### disturbance rasters or list and the 3rd column presently called distName
 #write.csv(mySpuDmids,"data/RIA2019/mySpuDmids.csv",row.names = FALSE)
+
+#mySpuDmids <- read.csv("data/RIA2019/mySpuDmids.csv")
+
 ### DISTURBANCES - picking which ones in the CBM list END #####################################
 
 ############# growth curves: read them in, select just the ones used in the RIA sims, 
@@ -118,7 +120,7 @@ names(mySpuDmids) <- c("spatial_unit_id","disturbance_matrix_id","distName")
 ## these files are from Greg Paradis 
 # this file contains ALL the bc curves
 gcBC <- fread("data/RIA2019/yld.csv")
-# the vector of the Analysis Unit used in the RIA2019 
+# the vector of the Analysis Units used in the RIA2019 
 riaAU <- fread("data/RIA2019/ria_au_values.txt")
 names(riaAU) <- "AU"
 
@@ -154,9 +156,17 @@ gcRIAm3[,-"variable"]
 ## NOTES: curves look messy...some very low, but 2 near or above 1000m3!!
   ## check curves over 900m3
   vol900AU <- unique(gcRIAm3[which(gcRIAm3$value>900),AU])
+  ## over 300m3/ha
   vol300AU <- unique(gcRIAm3[which(gcRIAm3$value>300),AU])
 
-
+  ### ARE ALL CURVES DIFFERENT? DOES ANYTHING JOIN THEM?
+  ## trying to see if there are duplicates in the 204 curves
+  gcCheck1 <- gcRIAwide[,-"AU"]
+  dim(gcCheck1)
+  gcCheck2 <- unique(gcCheck1)
+  dim(gcCheck2)
+  # even if the excell check showed some curves alike, this seems to tell me they are all different.
+  ### NEED TO PROCESS (translate to biomass) 204 CURVES
 ###### growth curves END #######################################################################################
 
 
@@ -424,26 +434,28 @@ gcMeta[AU %in% black,c(6:8)] <- tbl3sps[2,]
 
 #write.csv(gcMeta,file="data/RIA2019/gcMeta.csv",row.names = FALSE)
 
+#gcMeta <- as.data.table(read.csv("data/RIA2019/gcMeta.csv"))
+
 #### ####################################################################################################
 # END - THESE ARE ALL THE DECISIONS ON THE 21 sps in gcMeta
 
-###############################################################################
-# Create the canfi_species and genus columns to add to gcMeta
 
 
-
-spsMatch
-
+# this is what I had used
 spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
+spsMatch
 # Match gcID$species to spsMatch$speciesName, then sktable3-4 have
 # $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
 # to $canfi_species
 
+## RIA: will have to run each of the 204 AUs 
+
+
 fullSpecies <- unique(gcID$species)
 swInc <- NULL
 hwInc <- NULL
-
-for(i in 1:length(fullSpecies)){
+## could I write this in an lapply?
+for(i in 1:dim(gcMeta)[1]){
   speciesMeta <- gcID[species==fullSpecies[i],]
   for(j in 1:length(unique(speciesMeta$growth_curve_component_id))){
     meta <- speciesMeta[j,]
@@ -477,5 +489,99 @@ interim <- as.matrix(increments)
 interim[is.na(interim)] <- 0
 increments <- as.data.table(interim)
 
+## FUNCTIONS to process growth curves into growth increments--------------------------------------------
+# eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
+# the gross merchantable volume/ha. Parameters a and b are in table3
+b_m <- function(paramTable1, vol){
+  b_m <- unique(paramTable1$a) * vol ^ unique(paramTable1$b)
+  return(b_m)
+}
+# eq2 is for non-merch sized trees.
+nmfac <- function(table4,eq1){
+  nmFac <- unique(table4$k) + (unique(table4$a) * eq1 ^ unique(table4$b))
+  b_nm <- nmFac * eq1
+  b_n <- b_nm - eq1
+  return(cbind(b_n,b_nm))
+}
+# eq3 is for the saplings and it needs b_nm from the previous eq2
+sapfac <- function(table5, eq2){
+  sapFac <- table5$k + (table5$a * eq2[,2] ^ table5$b)
+  b_snm <- sapFac * eq2[,2]
+  b_s <- b_snm - eq2[,2]
+  return(b_s)
+}
+# calculate the 4 proportions that should be returned
+# will eventually add species, ecozone
+# vol = gross merchantable volume per ha
+# lvol = natural logarithm of (vol+5)
+biomProp <- function(table6,vol){
+  lvol <- log(vol+5)
+  a <- c(7:9)
+  b <- c(10:12)
+  c <- c(13:15)
+  pstem <- 1 / ( 1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+                   exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+                   exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  
+  pbark <- exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) /
+    (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+       exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+       exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  
+  pbranches <- exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) /
+    (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+       exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+       exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  
+  pfol <- exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol) /
+    (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+       exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+       exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  propVect <- cbind(pstem,pbark,pbranches,pfol)   
+  return(propVect)
+}
 
+convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, params5,params6){
+  oneCurve <- gCvalues[GrowthCurveComponentID==meta$growth_curve_component_id,]
+  spec <- spsMatch[speciesName==meta$species,]$canfi_species
+  ez <- ecozones[SpatialUnitID==meta$spatial_unit_id,]$EcoBoundaryID
+  gen <- spsMatch[speciesName==meta$species,]$genus
+  
+  params3 <- params3[canfi_species== spec & ecozone == ez,] 
+  params4 <- params4[canfi_species== spec & ecozone == ez,]
+  # table 5 is different than the others
+  params5 <- params5[genus == gen & ecozone == ez,]
+  params6 <- params6[species == spec & eco == ez,]
+  
+  # eq1 returns the total stem wood biomass in metric tonnes/ha, when you give it
+  # the gross merchantable volume/ha. Parameters a and b are in table3
+  eq1 <- b_m(params3, oneCurve$MerchVolume)
+  # eq2 returns a two colum matrix giving the biomass of the non-merch sized
+  # trees (b_n) and b_nm, the sum of the total stem wood biomass of merch size
+  # live plus, the stem wood live of non merche-sized trees, given the total
+  # stem wood biomass per ha of live merch size trees (in tonnes/ha)
+  eq2 <- nmfac(params4, eq1 = eq1)
+  #some NAs where it was 0s. Leave these in place
+  # eq3 is for biomass of the saplings, the smallest of the nonmerch trees. The
+  # non-merch biomass from eq2, is needed. eq3 returns b_s, stem wood biomass of
+  # live sapling-sized trees in tonnes/ha
+  eq3 <- sapfac(params5, eq2 = eq2)
+  #eq3[which(is.na(eq3))] <- 0
+  # middle box flowchart3: total stem wood biomass (tonnes) /ha for all live trees
+  merch <- eq1+eq2[,1] + eq3
+  merch[which(is.nan(merch))] <- NA
+  # calculate the 4 proportions that should be returned: proportion for
+  # stemwood, prop for bark, prop for branches, and prop for foliage.
+  pVect <- biomProp(table6 = params6, vol = oneCurve$MerchVolume)  
+  # translating this into biomass values for the carbon pools
+  totMerch <- merch/pVect[,1]
+  bark <- totMerch*pVect[,2]
+  branch <- totMerch*pVect[,3]
+  fol <- totMerch*pVect[,4]
+  other <- branch+bark
+  biomCumulative <- as.matrix(cbind(totMerch,fol,other))
+  return(biomCumulative)
+  
+}
+# END process growth curve functions-------------------------------------------------------------  
 
