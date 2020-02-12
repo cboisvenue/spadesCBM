@@ -15,7 +15,7 @@ library(data.table)
 ###### SPU and eczones #############################################################
 ## SPUs for the 5 TSAs##############################################################
 
-## old data has am spu file and Ian has an spu file, are they the same?
+## old data has an spu file and Ian has an spu file, are they the same?
 #library(rgdal)
 # tsa08<-readOGR(dsn="C:/Directory_Containing_Shapefile",layer="MyMap")
 # plot(data.shape)
@@ -55,12 +55,41 @@ TSAid <- c(8,8,16,16,24,40,40,40,40,41,41)
 TSAspu <- cbind(TSAnames,TSAid,spuId)
 #names(TSAspu) <- c("TSAnames","TSAid","SpatialUnitID")
 spuEco <- as.data.table(spadesCBMout$cbmData@spatialUnitIds)
-RIAspuEco <- spuEco[SpatialUnitID %in% TSAspu$spuId,]
+RIAspuEco <- spuEco[SpatialUnitID %in% as.data.table(TSAspu)$spuId,]
 eco <- c(12,4,12,14,14,12,4,14,9,14,9)
 TSAspuEco <- cbind(TSAspu,eco)
-#write.csv(TSAspuEco,file="data/RIA2019/TSAspuEco.csv",row.names = FALSE)
+#write.csv(TSAspuEco,file="data/RIA2019/TSAspuEcoAu.csv",row.names = FALSE)
+### Need to link the TSAspuEco to AU which are the identifiers for the growth curves for each modelled pixel
+#############################
+
+  ############from Ian Eddy ####NEED TO STREAMLINE ##############
+  ## Note that the raster to match is here G:\RES_Work\Work\SpaDES\RIA\data\RIA5tsaRTM 
+  # the study area (shape file) is G:\RES_Work\Work\SpaDES\RIA\data\RIA_fiveTSA and both are here
+  # https://drive.google.com/drive/folders/1I_G4DcLpMRwUwSE4rsEGnYWi5vLtEG06
+  #don't have this  
+  #mylandscape <- readRDS("C:/users/ieddy/Downloads/landscape_Initial.rds") #haven't shared this yet
+    # ecozones <- shapefile("C:/Ian/data/Canada Ecosystem/Ecozones/ecozones.shp") %>% #canadian ecozones
+    # spTransform(., CRSobj =  crs(mylandscape$au)) #get in same projection
+    # ecozonesSA <- crop(ecozones, y = mylandscape$au) %>% #crop these bad boys
+    # sf::st_as_sf(.) #and make them an sf object - see below
+    # #make ecozonesSA into a raster - there are many functions for tabulating rasters over a vector, 
+    # # and many of them are terrible. The easiest way off the top of my head is by rasterizing the vector
+    # ecozonesRas <- fasterize::fasterize(ecozonesSA, raster = mylandscape$au, field = 'ECOZONE')
+    # CelinesTable <- data.table(au = getValues(mylandscape$au), 
+    #                            ecozone = getValues(ecozonesRas)) %>%
+    # na.omit(.) %>% #get rid of Nas
+    # .[!duplicated(.)] #get rid of duplicate values
+    # CelinesTable
+    # sort(unique(CelinesTable$au))
+    # data.table::fwrite(CelinesTable, file = "C:/Ian/PracticeDirectory/CelinesTable.csv")
+  ############
+  # instead read this in
+ecoAu <- fread("data/RIA2019/CelinesTable.csv")
+names(ecoAu) <- c("AU", "ecozone")
+
 ## SPUs file complete###################################################################
-###### SPU and eczones END ###########################################################
+###### AU, SPU and eczones END ###########################################################
+
 
 
 ### DISTURBANCES - picking which ones in the CBM list #####################################
@@ -109,8 +138,9 @@ names(mySpuDmids) <- c("spatial_unit_id","disturbance_matrix_id","distName")
 ### NOTE: there will have to be a matching of the dist identification form the
 ### disturbance rasters or list and the 3rd column presently called distName
 #write.csv(mySpuDmids,"data/RIA2019/mySpuDmids.csv",row.names = FALSE)
+#########################################################
 
-#mySpuDmids <- read.csv("data/RIA2019/mySpuDmids.csv")
+mySpuDmids <- read.csv("data/RIA2019/mySpuDmids.csv")
 
 ### DISTURBANCES - picking which ones in the CBM list END #####################################
 
@@ -119,36 +149,38 @@ names(mySpuDmids) <- c("spatial_unit_id","disturbance_matrix_id","distName")
 
 ## these files are from Greg Paradis 
 # this file contains ALL the bc curves
-gcBC <- fread("data/RIA2019/yld.csv")
-# the vector of the Analysis Units used in the RIA2019 
-riaAU <- fread("data/RIA2019/ria_au_values.txt")
-names(riaAU) <- "AU"
-
-gcRIAall <- gcBC[AU %in% riaAU$AU]
-# start the meta data file (equivalent to spadesGCurvesSK.csv)
-################### there will be more columns to add here onces we have the
-################### link between curves and pixels equivalent to growth_curve_id
-################### in spadesGCurvesSK.csv################## (might be anaylsis units??)
-gcMeta <- gcRIAall[,c(1:5)]
-
-# creating the equivalent of yieldComponentsSK.csv. Three coumns only: curve id
-# (here AU?), age, Merchvolume
-
-gcRIAwide <- gcRIAall[,c(3,7:42)]
-# this is wide make it long
-gcRIAyields <- melt.data.table(gcRIAwide, id.vars = "AU",measure.vars = c("X0","X10","X20","X30","X40","X50","X60","X70","X80","X90",
-                                                                          "X100","X110","X120","X130","X140","X150","X160",
-                                                                          "X170","X180","X190","X200","X210","X220","X230","X240",  
-                                                                          "X250","X260","X270","X280","X290","X300","X310","X320","X330",
-                                                                         "X340","X350"))
-
-setorder(gcRIAyields,AU) 
-
-gcRIAm3 <- gcRIAyields[,age := rep(seq(0,350,by=10),204)]
-gcRIAm3[,-"variable"]
+    # gcBC <- fread("data/RIA2019/yld.csv")
+    # # the vector of the Analysis Units used in the RIA2019 
+    # riaAU <- fread("data/RIA2019/ria_au_values.txt")
+    # names(riaAU) <- "AU"
+    # 
+    # gcRIAall <- gcBC[AU %in% riaAU$AU]
+    # # start the meta data file (equivalent to spadesGCurvesSK.csv)
+    # ################### there will be more columns to add here onces we have the
+    # ################### link between curves and pixels equivalent to growth_curve_id
+    # ################### in spadesGCurvesSK.csv################## (might be anaylsis units??)
+    # gcMeta <- gcRIAall[,c(1:5)]
+    # 
+    # # creating the equivalent of yieldComponentsSK.csv. Three coumns only: curve id
+    # # (here AU?), age, Merchvolume
+    # 
+    # gcRIAwide <- gcRIAall[,c(3,7:42)]
+    # # this is wide make it long
+    # gcRIAyields <- melt.data.table(gcRIAwide, id.vars = "AU",measure.vars = c("X0","X10","X20","X30","X40","X50","X60","X70","X80","X90",
+    #                                                                           "X100","X110","X120","X130","X140","X150","X160",
+    #                                                                           "X170","X180","X190","X200","X210","X220","X230","X240",  
+    #                                                                           "X250","X260","X270","X280","X290","X300","X310","X320","X330",
+    #                                                                          "X340","X350"))
+    # 
+    # setorder(gcRIAyields,AU) 
+    # 
+    # gcRIAm3 <- gcRIAyields[,age := rep(seq(0,350,by=10),204)]
+    # gcRIAm3[,-"variable"]
 # this is the equivalent of the yieldComponentSK.csv
 #write.csv(gcRIAm3[,-"variable"],file = "data/RIA2019/gcRIAm3.csv",row.names = FALSE) 
+##############################
 
+gcRIAm3 <- as.data.table(read.csv("data/RIA2019/gcRIAm3.csv"))
 ## Plot it out
   library(ggplot2)
   volCurves <- ggplot(data=gcRIAm3, aes(x=age,y=value,group=AU, colour=AU)) +
@@ -168,7 +200,6 @@ gcRIAm3[,-"variable"]
   # even if the excell check showed some curves alike, this seems to tell me they are all different.
   ### NEED TO PROCESS (translate to biomass) 204 CURVES
 ###### growth curves END #######################################################################################
-
 
 
 #### process growth curves ############################--------------------------------------------------------------
@@ -212,282 +243,802 @@ RIAtable6 <- as.data.table(table6[table6$jur==jurisdiction,])
 #### build the spsMatch needed to match between the leading species identified in
 #### the curves and the Boudewyn params that "translate" the m3/ha into biomass
 #### ####################################################################################################
-# THESE ARE ALL THE DECISIONS ON THE 21 sps in gcMeta
-# need to match species from gcMeta to Bourdewyn params
-# so LDSPP from the gcMeta matched with canfi_species and genus
-## the AUs will have to be in there also, so there will be 204 of them
-RIAsps <- unique(gcMeta$LDSPP)
-# table3 and table4 are the same for BC
-tbl3sps <- unique(RIAtable3[,.(canfi_species,genus,species)])
-unique(RIAtable4[,.(canfi_species,genus,species)])==tbl3sps
-# table5 genus
-tbl5sps <- unique(RIAtable5[,.(canfi_genus,genus)])
-# table6 looks like the same numbers as canfi_species in table3 and 4
-tbl6sps <- unique(RIAtable6[,.(species)])
-
-## danger this is hard coded ## Species match is a visual process for the moment
-# look at each species and build tbl3sps[c(21,10,5,)]
-RIAsps[1]
-# "Aspen"
-which(tbl3sps$species=="TRE")
-#21
-spsMatchRIA <- cbind(RIAsps[1],tbl3sps[21,])
-RIAsps[2]
-#"Subalpine fir"
-which(tbl3sps$species=="LAS")
-#10
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[2],tbl3sps[10,]))
-RIAsps[3]
-#"Lodgepole Pine"
-tbl3sps[which(tbl3sps$genus=="PINU")]
-which(tbl3sps$species=="CON")
-#5 (this is the var latifolia - the other one is var contorta)
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[3],tbl3sps[5,]))
-
-
-RIAsps[5]
-#"Poplar"
-# these will all be given the Cottonwood parameters as the values in the curves
-# visually match those better then the aspen
-RIAsps[6]
-# "Cottonwood"
-tbl3sps[which(tbl3sps$genus=="POPU")]
-which(tbl3sps$species=="BAL")
-# 22
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[5],tbl3sps[22,]))
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[6],tbl3sps[22,]))
-
-
-RIAsps[7]
-# "Paper birch"
-tbl3sps[which(tbl3sps$genus=="BETU")]
-which(tbl3sps$species=="PAP")
-# tbl3sps[which(tbl3sps$species=="PAP"),]
-# canfi_species genus species
-# 1:          1303  BETU     PAP
-# 2:          1308  BETU     PAP
-# These have the same params in table 3, but one says it has a count of 27 - so I am picking that one 1303
-which(tbl3sps$canfi_species==1303)
-# 23
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[7],tbl3sps[23,]))
-
-
-RIAsps[8]
-# "Alpine larch"
-# Note: only Larix laricina is the only larch that occurs that far north
-tbl3sps[which(tbl3sps$genus=="LARI")]
-which(tbl3sps$species=="LAR")
-#17
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[8],tbl3sps[17,]))
-
-RIAsps[9]
-# "Black spruce"
-# there is only one
-tbl3sps[which(tbl3sps$genus=="PICE")]
-which(tbl3sps$species=="MAR")
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[9],tbl3sps[2,]))
-
-RIAsps[10]
-# "Engelmann spruce"
-# there is only one
-tbl3sps[which(tbl3sps$genus=="PICE")]
-which(tbl3sps$species=="ENG")
-#3
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[10],tbl3sps[3,]))
-
-
-RIAsps[11]
-# "White spruce"
-# there is only one
-tbl3sps[which(tbl3sps$genus=="PICE")]
-which(tbl3sps$species=="GLA")
-#4
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[11],tbl3sps[4,]))
-
-
-RIAsps[12]
-# "Western white pine"
-# there is only one BUT Western White pine's distribution does not reach these
-# latitudes...will go with what they say since the BC level database (yld.csv)
-# has a Whitebark Pine
-tbl3sps[which(tbl3sps$genus=="PINU")]
-which(tbl3sps$species=="MON")
-#29
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[12],tbl3sps[29,]))
-
-
-RIAsps[13]
-# "Balsam fir"
-# Balsam fir (Abies balsamea) does not occur in BC and all the other firs do not
-# occur this far north. Selecting Abies lasiocarpa
-tbl3sps[which(tbl3sps$genus=="ABIE")]
-which(tbl3sps$species=="LAS")
-#10
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[13],tbl3sps[10,]))
-
-
-RIAsps[14]
-# "Amabilis fir"
-# there is only one BUT Pacific silver fir' is a coastal species's distribution does not reach these
-# latitudes...will go with what they say since the BC level database (yld.csv)
-# has a Whitebark Pine
-tbl3sps[which(tbl3sps$genus=="ABIE")]
-which(tbl3sps$species=="AMA")
-#9
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[14],tbl3sps[9,]))
-
-
-RIAsps[15]
-# "Redcedar"
-# there is only one
-tbl3sps[which(tbl3sps$genus=="THUJ")]
-which(tbl3sps$species=="PLI")
-#20
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[15],tbl3sps[20,]))
-
-
-RIAsps[16]
-# "Douglas-fir"
-# there are two but they have the same canfi_species. so canfi_specie 500
-tbl3sps[which(tbl3sps$genus=="PSEU")]
-which(tbl3sps$species=="MEN")
-#14
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[16],tbl3sps[14,]))
-
-
-RIAsps[17]
-# "Mountain hemlock"
-# there is only one BUT it's distribution does not reach these
-# latitudes...will go with what they say since the BC level database (yld.csv)
-tbl3sps[which(tbl3sps$genus=="TSUG")]
-which(tbl3sps$species=="MER")
-# 13
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[17],tbl3sps[13,]))
-
-
-RIAsps[18]
-# "Western hemlock"
-# there is only one BUT it's distribution does not reach these
-# latitudes...will go with what they say since the BC level database (yld.csv)
-tbl3sps[which(tbl3sps$genus=="TSUG")]
-which(tbl3sps$species=="HET")
-#12
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[18],tbl3sps[12,]))
-
-
-RIAsps[19]
-# "Tamarack"
-# Note: only Larix laricina is the only larch that occurs that far north
-tbl3sps[which(tbl3sps$genus=="LARI")]
-which(tbl3sps$species=="LAR")
-#17
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[19],tbl3sps[17,]))
-
-
-RIAsps[20]
-# "Whitebark pine"
-# there is only one
-tbl3sps[which(tbl3sps$genus=="PINU")]
-which(tbl3sps$species=="ALB")
-#6
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[20],tbl3sps[6,]))
-
-RIAsps[21]
-# "Willow"
-# there is only one
-tbl3sps[which(tbl3sps$genus=="SALI")]
-#34
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[21],tbl3sps[34,]))
-
-
-RIAsps[4]
-#"Spruce"
-# there are 28 curves labelled "Spruce"
-dim(gcMeta[LDSPP=="Spruce",])
-#[1] 28  5
-dim(gcMeta[LDSPP=="Engelmann spruce",])
-#[1] 11  5
-dim(gcMeta[LDSPP=="White spruce",])
-#[1] 16  5
-dim(gcMeta[LDSPP=="Black spruce",])
-#[1] 10  5
-# generic "Spruce" will be given a speciefic spruce name to get the best chances
-# of the Boudewyn params working (? I think this is a true statement but I have
-# not checked)
-# visual matching: I sorted all the "Spruces" by their volume at 50 and looked
-# at the other three spruces species and roughly matche the volumes
-# All 28 "Spruce" will be assigned "White Spruce" (#4)
-
-# These AUs will be changed to Engelman: 80,308,389 (#3)
-# and these to "Black Spruce" (#2): 1008, 1026,1085,1103,1161,1192,1203
-# After the merge is complete
-RIAsps[4]
-spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[4],tbl3sps[4,]))
-names(spsMatchRIA) <- c("LDSPP","canfi_species","genus","species")
-
-gcMeta <- gcMeta[spsMatchRIA, on="LDSPP"]
-eng <- c(80,308,389)
-black <- c(1008, 1026,1085,1103,1161,1192,1203)
-
-gcMeta[AU %in% eng,c(6:8)] <- tbl3sps[3,]
-gcMeta[AU %in% black,c(6:8)] <- tbl3sps[2,]
-
+    # # THESE ARE ALL THE DECISIONS ON THE 21 sps in gcMeta
+    # # need to match species from gcMeta to Bourdewyn params
+    # # so LDSPP from the gcMeta matched with canfi_species and genus
+    # ## the AUs will have to be in there also, so there will be 204 of them
+    # RIAsps <- unique(gcMeta$LDSPP)
+    # # table3 and table4 are the same for BC
+    # tbl3sps <- unique(RIAtable3[,.(canfi_species,genus,species)])
+    # unique(RIAtable4[,.(canfi_species,genus,species)])==tbl3sps
+    # # table5 genus
+    # tbl5sps <- unique(RIAtable5[,.(canfi_genus,genus)])
+    # # table6 looks like the same numbers as canfi_species in table3 and 4
+    # tbl6sps <- unique(RIAtable6[,.(species)])
+    # 
+    # ## danger this is hard coded ## Species match is a visual process for the moment
+    # # look at each species and build tbl3sps[c(21,10,5,)]
+    # RIAsps[1]
+    # # "Aspen"
+    # which(tbl3sps$species=="TRE")
+    # #21
+    # spsMatchRIA <- cbind(RIAsps[1],tbl3sps[21,])
+    # RIAsps[2]
+    # #"Subalpine fir"
+    # which(tbl3sps$species=="LAS")
+    # #10
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[2],tbl3sps[10,]))
+    # RIAsps[3]
+    # #"Lodgepole Pine"
+    # tbl3sps[which(tbl3sps$genus=="PINU")]
+    # which(tbl3sps$species=="CON")
+    # #5 (this is the var latifolia - the other one is var contorta)
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[3],tbl3sps[5,]))
+    # 
+    # 
+    # RIAsps[5]
+    # #"Poplar"
+    # # these will all be given the Cottonwood parameters as the values in the curves
+    # # visually match those better then the aspen
+    # RIAsps[6]
+    # # "Cottonwood"
+    # tbl3sps[which(tbl3sps$genus=="POPU")]
+    # which(tbl3sps$species=="BAL")
+    # # 22
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[5],tbl3sps[22,]))
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[6],tbl3sps[22,]))
+    # 
+    # 
+    # RIAsps[7]
+    # # "Paper birch"
+    # tbl3sps[which(tbl3sps$genus=="BETU")]
+    # which(tbl3sps$species=="PAP")
+    # # tbl3sps[which(tbl3sps$species=="PAP"),]
+    # # canfi_species genus species
+    # # 1:          1303  BETU     PAP
+    # # 2:          1308  BETU     PAP
+    # # These have the same params in table 3, but one says it has a count of 27 - so I am picking that one 1303
+    # which(tbl3sps$canfi_species==1303)
+    # # 23
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[7],tbl3sps[23,]))
+    # 
+    # 
+    # RIAsps[8]
+    # # "Alpine larch"
+    # # Note: only Larix laricina is the only larch that occurs that far north
+    # tbl3sps[which(tbl3sps$genus=="LARI")]
+    # which(tbl3sps$species=="LAR")
+    # #17
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[8],tbl3sps[17,]))
+    # 
+    # RIAsps[9]
+    # # "Black spruce"
+    # # there is only one
+    # tbl3sps[which(tbl3sps$genus=="PICE")]
+    # which(tbl3sps$species=="MAR")
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[9],tbl3sps[2,]))
+    # 
+    # RIAsps[10]
+    # # "Engelmann spruce"
+    # # there is only one
+    # tbl3sps[which(tbl3sps$genus=="PICE")]
+    # which(tbl3sps$species=="ENG")
+    # #3
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[10],tbl3sps[3,]))
+    # 
+    # 
+    # RIAsps[11]
+    # # "White spruce"
+    # # there is only one
+    # tbl3sps[which(tbl3sps$genus=="PICE")]
+    # which(tbl3sps$species=="GLA")
+    # #4
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[11],tbl3sps[4,]))
+    # 
+    # 
+    # RIAsps[12]
+    # # "Western white pine"
+    # # there is only one BUT Western White pine's distribution does not reach these
+    # # latitudes...will go with what they say since the BC level database (yld.csv)
+    # # has a Whitebark Pine
+    # tbl3sps[which(tbl3sps$genus=="PINU")]
+    # which(tbl3sps$species=="MON")
+    # #29
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[12],tbl3sps[29,]))
+    # 
+    # 
+    # RIAsps[13]
+    # # "Balsam fir"
+    # # Balsam fir (Abies balsamea) does not occur in BC and all the other firs do not
+    # # occur this far north. Selecting Abies lasiocarpa
+    # tbl3sps[which(tbl3sps$genus=="ABIE")]
+    # which(tbl3sps$species=="LAS")
+    # #10
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[13],tbl3sps[10,]))
+    # 
+    # 
+    # RIAsps[14]
+    # # "Amabilis fir"
+    # # there is only one BUT Pacific silver fir' is a coastal species's distribution does not reach these
+    # # latitudes...will go with what they say since the BC level database (yld.csv)
+    # # has a Whitebark Pine
+    # tbl3sps[which(tbl3sps$genus=="ABIE")]
+    # which(tbl3sps$species=="AMA")
+    # #9
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[14],tbl3sps[9,]))
+    # 
+    # 
+    # RIAsps[15]
+    # # "Redcedar"
+    # # there is only one
+    # tbl3sps[which(tbl3sps$genus=="THUJ")]
+    # which(tbl3sps$species=="PLI")
+    # #20
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[15],tbl3sps[20,]))
+    # 
+    # 
+    # RIAsps[16]
+    # # "Douglas-fir"
+    # # there are two but they have the same canfi_species. so canfi_specie 500
+    # tbl3sps[which(tbl3sps$genus=="PSEU")]
+    # which(tbl3sps$species=="MEN")
+    # #14
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[16],tbl3sps[14,]))
+    # 
+    # 
+    # RIAsps[17]
+    # # "Mountain hemlock"
+    # # there is only one BUT it's distribution does not reach these
+    # # latitudes...will go with what they say since the BC level database (yld.csv)
+    # tbl3sps[which(tbl3sps$genus=="TSUG")]
+    # which(tbl3sps$species=="MER")
+    # # 13
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[17],tbl3sps[13,]))
+    # 
+    # 
+    # RIAsps[18]
+    # # "Western hemlock"
+    # # there is only one BUT it's distribution does not reach these
+    # # latitudes...will go with what they say since the BC level database (yld.csv)
+    # tbl3sps[which(tbl3sps$genus=="TSUG")]
+    # which(tbl3sps$species=="HET")
+    # #12
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[18],tbl3sps[12,]))
+    # 
+    # 
+    # RIAsps[19]
+    # # "Tamarack"
+    # # Note: only Larix laricina is the only larch that occurs that far north
+    # tbl3sps[which(tbl3sps$genus=="LARI")]
+    # which(tbl3sps$species=="LAR")
+    # #17
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[19],tbl3sps[17,]))
+    # 
+    # 
+    # RIAsps[20]
+    # # "Whitebark pine"
+    # # there is only one
+    # tbl3sps[which(tbl3sps$genus=="PINU")]
+    # which(tbl3sps$species=="ALB")
+    # #6
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[20],tbl3sps[6,]))
+    # 
+    # RIAsps[21]
+    # # "Willow"
+    # # there is only one
+    # tbl3sps[which(tbl3sps$genus=="SALI")]
+    # #34
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[21],tbl3sps[34,]))
+    # 
+    # 
+    # RIAsps[4]
+    # #"Spruce"
+    # # there are 28 curves labelled "Spruce"
+    # dim(gcMeta[LDSPP=="Spruce",])
+    # #[1] 28  5
+    # dim(gcMeta[LDSPP=="Engelmann spruce",])
+    # #[1] 11  5
+    # dim(gcMeta[LDSPP=="White spruce",])
+    # #[1] 16  5
+    # dim(gcMeta[LDSPP=="Black spruce",])
+    # #[1] 10  5
+    # # generic "Spruce" will be given a speciefic spruce name to get the best chances
+    # # of the Boudewyn params working (? I think this is a true statement but I have
+    # # not checked)
+    # # visual matching: I sorted all the "Spruces" by their volume at 50 and looked
+    # # at the other three spruces species and roughly matche the volumes
+    # # All 28 "Spruce" will be assigned "White Spruce" (#4)
+    # 
+    # # These AUs will be changed to Engelman: 80,308,389 (#3)
+    # # and these to "Black Spruce" (#2): 1008, 1026,1085,1103,1161,1192,1203
+    # # After the merge is complete
+    # RIAsps[4]
+    # spsMatchRIA <- rbind(spsMatchRIA,cbind(RIAsps[4],tbl3sps[4,]))
+    # names(spsMatchRIA) <- c("LDSPP","canfi_species","genus","species")
+    # 
+    # gcMeta <- gcMeta[spsMatchRIA, on="LDSPP"]
+    # eng <- c(80,308,389)
+    # black <- c(1008, 1026,1085,1103,1161,1192,1203)
+    # 
+    # gcMeta[AU %in% eng,c(6:8)] <- tbl3sps[3,]
+    # gcMeta[AU %in% black,c(6:8)] <- tbl3sps[2,]
+    # 
+    # # NEED to add forest_type (1:SW, 3:HW)
+    # RIAspsForestType <- as.data.table(cbind(as.character(RIAsps), c(3,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1)))
+    # names(RIAspsForestType) <- c("LDSPP","forest_type_id")
+    # gcMeta <- gcMeta[RIAspsForestType,on="LDSPP"]
+#################
 #write.csv(gcMeta,file="data/RIA2019/gcMeta.csv",row.names = FALSE)
-
-#gcMeta <- as.data.table(read.csv("data/RIA2019/gcMeta.csv"))
-
+gcMeta <- fread("data/RIA2019/gcMeta.csv")
+gcMeta[!(which(gcMeta$AU %in% ecoAu$AU)),]
+which(riaAU$V1 %in% ecoAu$AU)
+# 29 missing AUs in the ecoAU match...
 #### ####################################################################################################
 # END - THESE ARE ALL THE DECISIONS ON THE 21 sps in gcMeta
 
+###### from m3.ha to biomass and carbon###############################
+## RIA: will have to run each of the 204 AUs is the commun denominator (unique gc by AU)
 
-
-# this is what I had used
-spsMatch <- fread("C:/Celine/GitHub/spadesCBM/data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
-spsMatch
-# Match gcID$species to spsMatch$speciesName, then sktable3-4 have
-# $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
-# to $canfi_species
-
-## RIA: will have to run each of the 204 AUs 
-
-
-fullSpecies <- unique(gcID$species)
 swInc <- NULL
 hwInc <- NULL
-## could I write this in an lapply?
-for(i in 1:dim(gcMeta)[1]){
-  speciesMeta <- gcID[species==fullSpecies[i],]
-  for(j in 1:length(unique(speciesMeta$growth_curve_component_id))){
-    meta <- speciesMeta[j,]
-    id <- growthCurveComponents$GrowthCurveComponentID[which(growthCurveComponents$GrowthCurveComponentID == meta$growth_curve_component_id)][-1]
-    ### IMPORTANT BOURDEWYN PARAMETERS DO NOT HANDLE AGE 0 ###
-    age <- growthCurveComponents[GrowthCurveComponentID==meta$growth_curve_component_id,Age][-1]
-    cumBiom <- as.matrix(convertM3biom(meta = meta,gCvalues = growthCurveComponents,spsMatch=spsMatch, 
-                                       ecozones = ecozones,params3=sktable3, params4=sktable4, 
-                                       params5=sktable5,params6=sktable6))
-    # going from tonnes of biomass/ha to tonnes of carbon/ha here
-    cumBiom <- cumBiom*0.5
-    inc <- diff(cumBiom)
-    if(meta$forest_type_id==1){
-      incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
-      swInc <- rbind(swInc,incs)
-      #FYI:
-      # cbmTables$forest_type
-      # id           name
-      # 1  1       Softwood
-      # 2  2      Mixedwood
-      # 3  3       Hardwood
-      # 4  9 Not Applicable
-    } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),inc)
-    hwInc <- rbind(hwInc,incs)}
-  }
+## could I write this in an lapply to generalise?? YES
+
+# only process the 173 that have a match in the ecoAu
+gcMeta1 <- gcMeta[which(gcMeta$AU %in% ecoAu$AU),]
+# these are no parameters in table 5 for "SALI" genus
+gcMeta1 <- gcMeta1[-(which(genus=="SALI")),]
+## 29 AUs that Greg said were in the RIA are not in the ecoAu list
+# gcMeta[!(which(gcMeta$AU %in% ecoAu$AU)),]
+# ## and table3 does not have canfi_species 201 in ecozone 9...it is in ecozones 12 13 or 14
+# # table(TSAspuEco[,4])
+# # 12 14  4  9 
+# # 3  4  2  2 
+ ecoAu[AU==218,"ecozone"] <- 14
+# # no canfi_species 3500 in eco 12 in table 3
+ ecoAu[AU==320,"ecozone"] <- 14
+
+# now processing 173
+
+
+for(i in 1:length(gcMeta1$AU)){
+  ## can't run the ecozones like this..in the mean time using the first ecozone in the TSAspuEco
+  meta <- gcMeta1[i,]
+  # match the AU call it id with the actual m3
+  id <- gcRIAm3$AU[which(gcRIAm3$AU == meta$AU)]
+  age <- gcRIAm3[gcRIAm3$AU==id,"age"]
+  # temp remove age 0 to see if the Boudewyn et al params handle m3 values of 0
+  # need the ecozones attached to the AUs
+  cumBiom <- as.matrix(convertM3biomRIA(meta = meta,gCvalues = gcRIAm3, 
+                                     ecozones = ecoAu,params3=RIAtable3, params4=RIAtable4, 
+                                     params5=RIAtable5,params6=RIAtable6))
+  
+  cumBiom[which(is.na(cumBiom))] <- 0
+  # going from tonnes of biomass/ha to tonnes of carbon/ha here
+  cumBiom <- cumBiom*0.5
+  inc <- diff(cumBiom)
+  
+  if(meta$forest_type_id==1){
+    incs  <- cbind(id,age,rbind(rep(0,dim(inc)[2]),inc),rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
+    swInc <- rbind(swInc,incs)
+    #FYI:
+    # cbmTables$forest_type
+    # id           name
+    # 1  1       Softwood
+    # 2  2      Mixedwood
+    # 3  3       Hardwood
+    # 4  9 Not Applicable
+  } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),rbind(rep(0,dim(inc)[2]),inc))
+  hwInc <- rbind(hwInc,incs)}
+  
 }
+
 colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
 colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
 increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
 interim <- as.matrix(increments)
 interim[is.na(interim)] <- 0
 increments <- as.data.table(interim)
+
+inc173AUs <- m3ToBiomIncOnlyPlots(inc=increments)
+      # summary(increments[,swmerch:hwother])
+      # swmerch               swfol               swother              hwmerch          
+      # Min.   :-8.016e+09   Min.   :-1.294e+09   Min.   :-1.692e+09   Min.   :-1308.9061  
+      # 1st Qu.: 0.000e+00   1st Qu.: 0.000e+00   1st Qu.: 0.000e+00   1st Qu.:    0.0000  
+      # Median : 0.000e+00   Median : 0.000e+00   Median : 0.000e+00   Median :    0.0000  
+      # Mean   : 3.000e+00   Mean   : 0.000e+00   Mean   : 1.000e+00   Mean   :    0.9103  
+      # 3rd Qu.: 2.000e+00   3rd Qu.: 0.000e+00   3rd Qu.: 0.000e+00   3rd Qu.:    0.0000  
+      # Max.   : 8.016e+09   Max.   : 1.294e+09   Max.   : 1.692e+09   Max.   : 1321.8905  
+      # hwfol              hwother         
+      # Min.   :-70.64033   Min.   :-442.1977  
+      # 1st Qu.:  0.00000   1st Qu.:   0.0000  
+      # Median :  0.00000   Median :   0.0000  
+      # Mean   :  0.02935   Mean   :   0.2162  
+      # 3rd Qu.:  0.00000   3rd Qu.:   0.0000  
+      # Max.   : 75.73454   Max.   : 446.2988  
+
+######### PROBLEMS WITH TRANSLATIONS###################
+### will replace the increments with
+### big negative values
+### unbeleivable shapes
+######################################################
+
+# the Plot functions does not like it when names are numbers
+# here I change the names to be able to plot many windows at a time
+names(inc173AUs) <- paste0("AU", names(inc173AUs))
+clearPlot()
+Plot(inc173AUs[1:28])
+dev.new()
+Plot(inc173AUs[29:56])
+dev.new()
+Plot(inc173AUs[57:88])
+dev.new()
+Plot(inc173AUs[89:100])
+dev.new()
+Plot(inc173AUs[101:115])
+dev.new()
+clearPlot()
+Plot(inc173AUs[116:148])
+dev.new()
+clearPlot()
+Plot(inc173AUs[149:173])
+
+## By visual assessment: there are 69 (of 173) curves that are unacceptable.
+## They either have negative values or ridiculous shapes
+## Try to figure out rules to replace those with similar curves that work.
+## Similar here means by species ann other info in the gcMeta1 data.table
+### CAREFUL MANUAL INPUT HERE###############################
+# by visual assessment, these are the curves that cannot be used:
+incOut <- fread("data/RIA2019/incOutVisual.csv")
+incOut[, names := paste0(V1,V2)]
+incOut[,"V1" :=  NULL]
+names(incOut) <- c("AU","names")
+
+# double check
+plotIncOut <- inc173AUs[which(names(inc173AUs) %in% incOut$names)]
+clearPlot()
+Plot(plotIncOut[1:23])
+clearPlot()
+Plot(plotIncOut[24:46])
+clearPlot()
+Plot(plotIncOut[47:69])
+
+
+## RULES to decide is increments need to be replaces:
+# do these have anything in commun?
+## started from gcMeta1
+outMeta1 <- gcMeta1[ AU %in% incOut$AU,]
+summary(outMeta1)
+# since we are working in the north (similar temps/prod) I will go by species.
+outSps <- unique(outMeta1$LDSPP) # 15 species
+# can I map the AUs? (NO! no map yet)
+# so match by species and check if there are curves in the same ecozone that works.
+
+# aspen##############################################################################################
+    # All aspen
+    aspNames <- paste0("AU",gcMeta1[LDSPP == outSps[1],AU])
+    which(names(inc173AUs) %in% aspNames) # 14 aspen in total
+    aspPlots <- as.list(inc173AUs[which(names(inc173AUs) %in% aspNames)])
+    # visually check all aspen
+    clearPlot()
+    Plot(aspPlots)
+    gcMeta1[LDSPP == outSps[1],]
+    ## They all seem too productive!!
+    # I want to see what the aspen looks like in my increments in SK
+    aspIncsRuns <- spadesCBMout$growth_increments[which(spadesCBMout$growth_increments[,1] %in% spadesCBMout$level3DT[rasterSps==3,growth_curve_component_id]),]
+      spadesCBMout$level3DT[rasterSps==3,growth_curve_component_id]
+    plotRunsAsp <- m3ToBiomIncOnlyPlots(inc=aspIncsRuns)
+    names(plotRunsAsp) <- paste0("id",names(plotRunsAsp))
+    dev.new()
+    clearPlot()
+    Plot(plotRunsAsp)
+    incsRuns <- spadesCBMout$growth_increments
+    # much much smoother...
+    # what is the range of incs in the runs?
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[1],AU],.N, by=AU]
+    aspEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[1],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    # make up a new aspEco that uses only the Boreal Cordillera and the Montane
+    # Cordillera to see if it would make a differeance in the curves
+    aspEco[,c("4","9") := NULL]
+    aspEz <- melt(aspEco,id.vars = "AU", measure.vars = c("12","14"), variable.name = "ecozone")
+    aspEz[,"ecozone" :=NULL]
+    names(aspEz) <- c("AU","ecozone")
+    aspEz <- aspEz[1:14,]
+    aspEz[is.na(aspEz$ecozone),"ecozone"] <- 14
+    ### JUST ASPENT
+    aspInc <- NULL
+    # only process the 173 that have a match in the ecoAu
+    aspMeta1 <- gcMeta[which(gcMeta$AU %in% aspEz$AU),]
+    
+    #14
+    for(i in 1:length(aspMeta1$AU)){
+      ## can't run the ecozones like this..in the mean time using the first ecozone in the TSAspuEco
+      meta <- aspMeta1[i,]
+      # match the AU call it id with the actual m3
+      id <- gcRIAm3$AU[which(gcRIAm3$AU == meta$AU)]
+      age <- gcRIAm3[gcRIAm3$AU==id,"age"]
+      cumBiom <- as.matrix(convertM3biomRIA(meta = meta,gCvalues = gcRIAm3, 
+                                            ecozones = aspEz,params3=RIAtable3, params4=RIAtable4, 
+                                            params5=RIAtable5,params6=RIAtable6))
+      
+      cumBiom[which(is.na(cumBiom))] <- 0
+      # going from tonnes of biomass/ha to tonnes of carbon/ha here
+      cumBiom <- cumBiom*0.5
+      inc <- diff(cumBiom)
+      incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),rbind(rep(0,dim(inc)[2]),inc))
+      aspInc <- rbind(aspInc,incs)}
+      
+    colnames(aspInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+    aspInc <- as.data.table(aspInc)
+    aspInc[is.na(aspInc)] <- 0
+    
+    plotApsNewEco <- m3ToBiomIncOnlyPlots(inc=aspInc)
+    names(plotApsNewEco) <- paste0("id",names(plotApsNewEco))
+    dev.new()
+    clearPlot()
+    Plot(plotApsNewEco)
+    ### NO BETTER
+
+    ## check aspen growth curves
+    aspM3 <- gcRIAm3[AU %in% aspEz$AU,]    
+    aspCurves <- ggplot(data=aspM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+## Aspen decision: NO CHANGE. There are no better curves. No smooth ones, no "less productive" ones
+## Could use the other ecozones...not much difference though#######################################
+
+# subFir##############################################################################################
+    # All subFir
+    subFNames <- paste0("AU",gcMeta1[LDSPP == outSps[2],AU])
+    which(names(inc173AUs) %in% subFNames) # 17 subFir in total
+    subFPlots <- as.list(inc173AUs[which(names(inc173AUs) %in% subFNames)])
+    # visually check all subFir
+    clearPlot()
+    Plot(subFPlots)
+    gcMeta1[LDSPP == outSps[2],]
+    ## They all seem too productive!!
+
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[2],AU],.N, by=AU]
+    subFEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[2],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+#DECISION: replace AU 61, AU 61 and AU268 with AU265
+    
+    ## check subFir growth curves
+    subFM3 <- gcRIAm3[AU %in% subFEco$AU,]    
+    subFCurves <- ggplot(data=subFM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+###### subFir decision: replace AU 61, AU 61 and AU268 with AU265#########################
+
+# lodgepole##############################################################################################
+    # All lodgepole
+    lPineNames <- paste0("AU",gcMeta1[LDSPP == outSps[3],AU])
+    which(names(inc173AUs) %in% lPineNames) # 20 lodgepole in total
+    lPinePlots <- as.list(inc173AUs[which(names(inc173AUs) %in% lPineNames)])
+    # visually check all lodgepole
+    clearPlot()
+    Plot(lPinePlots)
+    gcMeta1[LDSPP == outSps[3],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[3],AU],.N, by=AU]
+    lPineEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[3],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check lodgepole growth curves
+    lPineM3 <- gcRIAm3[AU %in% lPineEco$AU,]    
+    lPineCurves <- ggplot(data=lPineM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+###### lodgepole decisionDECISION: replace AU15 with AU 378, AU1025, 1102, 1191, 1202 with AU602#########################
+
+# poplar##############################################################################################
+    # All poplar
+    poplarNames <- paste0("AU",gcMeta1[LDSPP == outSps[4],AU])
+    which(names(inc173AUs) %in% poplarNames) # 15 poplar in total
+    poplarPlots <- as.list(inc173AUs[which(names(inc173AUs) %in% poplarNames)])
+    # visually check all poplar
+    clearPlot()
+    Plot(poplarPlots)
+    gcMeta1[LDSPP == outSps[4],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[4],AU],.N, by=AU]
+    poplarEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[4],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check poplar growth curves
+    poplarM3 <- gcRIAm3[AU %in% poplarEco$AU,]    
+    poplarCurves <- ggplot(data=poplarM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+###### poplar DECISION: replace ALL with AU51#########################
+    
+# cotton##############################################################################################
+    # All cotton
+    cottonNames <- paste0("AU",gcMeta1[LDSPP == outSps[5],AU])
+    which(names(inc173AUs) %in% cottonNames) # 15 cotton in total
+    cottonPlots <- as.list(inc173AUs[which(names(inc173AUs) %in% cottonNames)])
+    # visually check all cotton
+    clearPlot()
+    Plot(cottonPlots)
+    gcMeta1[LDSPP == outSps[5],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[5],AU],.N, by=AU]
+    cottonEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[5],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check cotton growth curves
+    cottonM3 <- gcRIAm3[AU %in% cottonEco$AU,]    
+    cottonCurves <- ggplot(data=cottonM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+  ###### cotton DECISION: replace AU52, Au254, AU685, AU686 with AU51#######################################
+    
+# birch##############################################################################################
+    # All birch
+    birchNames <- paste0("AU",gcMeta1[LDSPP == outSps[6],AU])
+    which(names(inc173AUs) %in% birchNames) # 15 birch in total
+    birchPlots <- as.list(inc173AUs[which(names(inc173AUs) %in% birchNames)])
+    # visually check all birch
+    clearPlot()
+    Plot(birchPlots)
+    gcMeta1[LDSPP == outSps[6],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[6],AU],.N, by=AU]
+    birchEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[6],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check birch growth curves
+    birchM3 <- gcRIAm3[AU %in% birchEco$AU,]    
+    birchCurves <- ggplot(data=birchM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+###### birch DECISION: AU66, AU67, AU68, AU355, AU 707, AU708, AU1022 with AU274 #######################################
+    
+# aLarch##############################################################################################
+    # All aLarch
+    aLarchNames <- paste0("AU",gcMeta1[LDSPP == outSps[7],AU])
+    which(names(inc173AUs) %in% aLarchNames) # 15 aLarch in total
+    aLarchPlots <- as.list(inc173AUs[which(names(inc173AUs) %in% aLarchNames)])
+    # visually check all aLarch
+    clearPlot()
+    Plot(aLarchPlots)
+    gcMeta1[LDSPP == outSps[7],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[7],AU],.N, by=AU]
+    aLarchEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[7],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check aLarch growth curves
+    aLarchM3 <- gcRIAm3[AU %in% aLarchEco$AU,]    
+    aLarchCurves <- ggplot(data=aLarchM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+###### aLarch DECISION: AU722 and AU1023 with AU72#######################################
+    
+    # bSpruce##############################################################################################
+    # All bSpruce
+    bSpruceNames <- paste0("AU",gcMeta1[LDSPP == outSps[8],AU])
+    which(names(inc173AUs) %in% bSpruceNames) # 15 bSpruce in total
+    bSprucePlots <- as.list(inc173AUs[which(names(inc173AUs) %in% bSpruceNames)])
+    # visually check all bSpruce
+    clearPlot()
+    Plot(bSprucePlots)
+    gcMeta1[LDSPP == outSps[8],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[8],AU],.N, by=AU]
+    bSpruceEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[8],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check bSpruce growth curves
+    bSpruceM3 <- gcRIAm3[AU %in% bSpruceEco$AU,]    
+    bSpruceCurves <- ggplot(data=bSpruceM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+    ###### bSpruce DECISION: AU81-82-83 and 391 with AU310 and AU674-737-738 with 772 #######################################
+
+# eSpruce##############################################################################################
+    # All eSpruce
+    eSpruceNames <- paste0("AU",gcMeta1[LDSPP == outSps[9],AU])
+    which(names(inc173AUs) %in% eSpruceNames) # 15 eSpruce in total
+    eSprucePlots <- as.list(inc173AUs[which(names(inc173AUs) %in% eSpruceNames)])
+    # visually check all eSpruce
+    clearPlot()
+    Plot(eSprucePlots)
+    gcMeta1[LDSPP == outSps[9],]
+    ## They all seem too productive!!
+    
+    # would curves be better with another ecozone?
+    ecoAu[AU %in% gcMeta1[LDSPP == outSps[9],AU],.N, by=AU]
+    eSpruceEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[9],AU]], AU~ecozone)
+    ecoCheck1
+    # EcoBndr            ecozone
+    # 1:      12  Boreal Cordillera
+    # 2:       9      Boreal Plains
+    # 3:      14 Montane Cordillera
+    # 4:      13   Pacific Maritime
+    # 5:       4       Taiga Plains
+    
+    
+    ## check eSpruce growth curves
+    eSpruceM3 <- gcRIAm3[AU %in% eSpruceEco$AU,]    
+    eSpruceCurves <- ggplot(data=eSpruceM3, aes(x=age,y=value,group=AU, colour=AU)) +
+      geom_line()
+############## DECSION eSpruce: replace AU85-312-774 with AU393###########################
+
+#WRitting a function for each species
+# # this is a visual check but buy species
+    checkBiomBySps <- function(treeSps=outSps[1],meta=gcMeta1,m3Ha=gcRIAm3,incPlots=inc173AUs,ecoz=ecoAu){
+      # get a name to match with the plot names
+      # this list of names has to match the names of the plots of the increments for all the translated growth curves
+      pixNumToName <- paste0("AU",meta[LDSPP == treeSps,AU])
+      # all the plots for that species
+      plotsListForSps <- incPlots[which(names(incPlots) %in% pixNumToName)]
+      return(plotsListForSps)
+    }
+
+################# White Spruce #####################
+wSprucePlots <- checkBiomBySps(treeSps=outSps[10])
+clearPlot()
+Plot(wSprucePlots)
+gcMeta1[LDSPP == outSps[10],]
+wSpruceM3 <- gcRIAm3[AU %in% gcMeta1[LDSPP == outSps[10],AU],]
+wSpruceCurves <- ggplot(data=wSpruceM3, aes(x=age,y=value,group=AU, colour=AU)) +
+  geom_line()
+####### Decision: replace AU 89-90-91-317-318-775-777 with AU745#######################
+    
+## Balsam Fir#########################################################
+bFirPlots <- checkBiomBySps(treeSps=outSps[11])
+clearPlot()
+Plot(bFirPlots)
+gcMeta1[LDSPP == outSps[11],]
+bFirM3 <- gcRIAm3[AU %in% gcMeta1[LDSPP == outSps[11],AU],]
+bFirCurves <- ggplot(data=bFirM3, aes(x=age,y=value,group=AU, colour=AU)) +
+  geom_line()
+##only two of these. check ecozones
+ecoAu[AU %in% gcMeta1[LDSPP == outSps[11],AU],.N, by=AU]
+bFirEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[11],AU]], AU~ecozone)
+################ ONLY one eco - decsion: no change!##################
+
+############## Amabilis Fir############################
+amFirPlots <- checkBiomBySps(treeSps=outSps[12])
+clearPlot()
+Plot(amFirPlots)
+gcMeta1[LDSPP == outSps[12],]
+amFirM3 <- gcRIAm3[AU %in% gcMeta1[LDSPP == outSps[12],AU],]
+amFirCurves <- ggplot(data=amFirM3, aes(x=age,y=value,group=AU, colour=AU)) +
+  geom_line()
+#######Decsion: no change there is only one############
+    
+############## Recedar ############################
+redCPlots <- checkBiomBySps(treeSps=outSps[13])
+clearPlot()
+Plot(redCPlots)
+gcMeta1[LDSPP == outSps[13],]
+redCM3 <- gcRIAm3[AU %in% gcMeta1[LDSPP == outSps[13],AU],]
+redCCurves <- ggplot(data=redCM3, aes(x=age,y=value,group=AU, colour=AU)) +
+  geom_line()
+#######Decsion: no change, only shapes are funny, vallues are ok############
+
+############## whitebark ############################
+wbPPlots <- checkBiomBySps(treeSps=outSps[14])
+clearPlot()
+Plot(wbPPlots)
+gcMeta1[LDSPP == outSps[14],]
+wbPM3 <- gcRIAm3[AU %in% gcMeta1[LDSPP == outSps[14],AU],]
+wbPCurves <- ggplot(data=wbPM3, aes(x=age,y=value,group=AU, colour=AU)) +
+  geom_line()
+# both curves bad - any other ecozones?
+ecoAu[AU %in% gcMeta1[LDSPP == outSps[14],AU],.N, by=AU]
+wbPEco <- dcast(ecoAu[AU %in% gcMeta1[LDSPP == outSps[14],AU]], AU~ecozone)
+#######Decsion: all (2) bad, using alpine Larch replace AU296-727 with AU72 ############
+
+############## whitebark ############################
+sprucePlots <- checkBiomBySps(treeSps=outSps[15])
+clearPlot()
+Plot(sprucePlots)
+gcMeta1[LDSPP == outSps[15],]
+spruceM3 <- gcRIAm3[AU %in% gcMeta1[LDSPP == outSps[15],AU],]
+spruceCurves <- ggplot(data=spruceM3, aes(x=age,y=value,group=AU, colour=AU)) +
+  geom_line()
+########Decision: replace AU17-21-78-79-80-306-307-769-770-771-1008-1026-1085-1103-1161-1192-1203 with AU610 ################
+
+
+
+
+
+
+
+
+
+
+
+
+            
+## FUNCTIONS FOR PLOTTING #################
+# this saves them all to jpegs.
+# lapply(names(inc173AUs), FUN = function(x) {
+# 
+#   thePlot <- inc173AUs[[x]]
+#   ggsave(plot = thePlot, filename = paste0("data/RIA2019/", "plot",x, ".jpeg"), device = "jpeg")
+# })
+
+# just looking at the increments:
+m3ToBiomIncOnlyPlots <- function(inc=increments){
+  gInc <- as.data.table(inc)
+  idSim <- unique(gInc$id)
+  gcSim <- gInc[id %in% idSim,]
+  gc <- melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:8)
+  names(idSim) <- idSim
+  plots <- lapply(idSim, function(idLoop){
+    ggplot(data=gc[id == idLoop], 
+           aes(x=age,y=value,group=variable,colour=variable)) + geom_line() + theme(legend.position = "none")
+  })
+  
+  return(plots)
+}
+
 
 ## FUNCTIONS to process growth curves into growth increments--------------------------------------------
 # eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
@@ -540,22 +1091,26 @@ biomProp <- function(table6,vol){
   propVect <- cbind(pstem,pbark,pbranches,pfol)   
   return(propVect)
 }
-
-convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, params5,params6){
-  oneCurve <- gCvalues[GrowthCurveComponentID==meta$growth_curve_component_id,]
-  spec <- spsMatch[speciesName==meta$species,]$canfi_species
-  ez <- ecozones[SpatialUnitID==meta$spatial_unit_id,]$EcoBoundaryID
-  gen <- spsMatch[speciesName==meta$species,]$genus
+convertM3biomRIA <- function(meta,gCvalues,ecozones,params3, params4, params5,params6){
+  oneCurve <- gCvalues[AU==meta$AU,]
+  spec <- meta$canfi_species
+  ## need a map to match Au to ecozone (could be via TSA)
+  ez <- ecozones[AU==meta$AU,ecozone]
+  gen <- meta$genus
   
-  params3 <- params3[canfi_species== spec & ecozone == ez,] 
-  params4 <- params4[canfi_species== spec & ecozone == ez,]
+  ## CAREFULL selecting the first ecozone right now. 
+  ## Do I have to calculate biomass as many times are there are ecozones?
+  ## I am choosing not to.##############
+  params3 <- params3[canfi_species== spec & ecozone == ez[1],] 
+  params4 <- params4[canfi_species== spec & ecozone == ez[1],]
   # table 5 is different than the others
-  params5 <- params5[genus == gen & ecozone == ez,]
-  params6 <- params6[species == spec & eco == ez,]
-  
+  #browser()  
+  params5 <- params5[genus == gen & ecozone == ez[1],]
+  params6 <- params6[species == spec & eco == ez[1],]
+
   # eq1 returns the total stem wood biomass in metric tonnes/ha, when you give it
   # the gross merchantable volume/ha. Parameters a and b are in table3
-  eq1 <- b_m(params3, oneCurve$MerchVolume)
+  eq1 <- b_m(params3, oneCurve$value)
   # eq2 returns a two colum matrix giving the biomass of the non-merch sized
   # trees (b_n) and b_nm, the sum of the total stem wood biomass of merch size
   # live plus, the stem wood live of non merche-sized trees, given the total
@@ -572,7 +1127,7 @@ convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, para
   merch[which(is.nan(merch))] <- NA
   # calculate the 4 proportions that should be returned: proportion for
   # stemwood, prop for bark, prop for branches, and prop for foliage.
-  pVect <- biomProp(table6 = params6, vol = oneCurve$MerchVolume)  
+  pVect <- biomProp(table6 = params6, vol = oneCurve$value)  
   # translating this into biomass values for the carbon pools
   totMerch <- merch/pVect[,1]
   bark <- totMerch*pVect[,2]
@@ -583,5 +1138,47 @@ convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, para
   return(biomCumulative)
   
 }
-# END process growth curve functions-------------------------------------------------------------  
+# convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, params5,params6){
+#   oneCurve <- gCvalues[GrowthCurveComponentID==meta$growth_curve_component_id,]
+#   spec <- spsMatch[speciesName==meta$species,]$canfi_species
+#   ez <- ecozones[SpatialUnitID==meta$spatial_unit_id,]$EcoBoundaryID
+#   gen <- spsMatch[speciesName==meta$species,]$genus
+#   
+#   params3 <- params3[canfi_species== spec & ecozone == ez,] 
+#   params4 <- params4[canfi_species== spec & ecozone == ez,]
+#   # table 5 is different than the others
+#   params5 <- params5[genus == gen & ecozone == ez,]
+#   params6 <- params6[species == spec & eco == ez,]
+#   
+#   # eq1 returns the total stem wood biomass in metric tonnes/ha, when you give it
+#   # the gross merchantable volume/ha. Parameters a and b are in table3
+#   eq1 <- b_m(params3, oneCurve$MerchVolume)
+#   # eq2 returns a two colum matrix giving the biomass of the non-merch sized
+#   # trees (b_n) and b_nm, the sum of the total stem wood biomass of merch size
+#   # live plus, the stem wood live of non merche-sized trees, given the total
+#   # stem wood biomass per ha of live merch size trees (in tonnes/ha)
+#   eq2 <- nmfac(params4, eq1 = eq1)
+#   #some NAs where it was 0s. Leave these in place
+#   # eq3 is for biomass of the saplings, the smallest of the nonmerch trees. The
+#   # non-merch biomass from eq2, is needed. eq3 returns b_s, stem wood biomass of
+#   # live sapling-sized trees in tonnes/ha
+#   eq3 <- sapfac(params5, eq2 = eq2)
+#   #eq3[which(is.na(eq3))] <- 0
+#   # middle box flowchart3: total stem wood biomass (tonnes) /ha for all live trees
+#   merch <- eq1+eq2[,1] + eq3
+#   merch[which(is.nan(merch))] <- NA
+#   # calculate the 4 proportions that should be returned: proportion for
+#   # stemwood, prop for bark, prop for branches, and prop for foliage.
+#   pVect <- biomProp(table6 = params6, vol = oneCurve$MerchVolume)  
+#   # translating this into biomass values for the carbon pools
+#   totMerch <- merch/pVect[,1]
+#   bark <- totMerch*pVect[,2]
+#   branch <- totMerch*pVect[,3]
+#   fol <- totMerch*pVect[,4]
+#   other <- branch+bark
+#   biomCumulative <- as.matrix(cbind(totMerch,fol,other))
+#   return(biomCumulative)
+#   
+# }
+# # END process growth curve functions-------------------------------------------------------------  
 
