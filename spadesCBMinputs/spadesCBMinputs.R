@@ -112,6 +112,19 @@ Init <- function(sim) {
   #### Input data provided by user will always need adjusting. Eventually make this a module.
   #####################################################################################
 
+  
+#### RIA ##################
+  # # in .inputObjects
+  # dataPath <- file.path(modulePath(spadesCBMout),"data")
+  # # from user
+  # userGcMetafileName <- c("/RIA2019/gcMeta.csv")
+  # userGcM3 <- c("/RIA2019/gcRIAm3.csv")
+  # #sim$ 
+  #   gcurveFileName <- file.path(dataPath, userGcMetafileName)#gcMeta file name 
+  # #sim$
+  #   gcurveComponentsFileName <- file.path(dataPath, userGcM3)
+  
+  
   ## Rasters----------------------------------------------------------------------
   age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
   #This works
@@ -146,6 +159,9 @@ Init <- function(sim) {
   # add the gcID information-------------------------------
   #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
   gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
+# ### RIA
+#   gcID <- fread(gcurveFileName)
+#   ## NOT CHANGED YET
   gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
   setkey(gcID,rasterSps,Productivity,spatial_unit_id)
   # end add the gcID: each pixel has a growth curve now---

@@ -9,6 +9,7 @@ volInc <- fread(simOut$gcurveComponentsFileName)
 library(ggplot2)
 volCurves <- ggplot(data=volInc, aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
   geom_line()
+return(volCurves)
 }
 
 checkVol <- checkVolIn(simOut = spadesCBMout)
