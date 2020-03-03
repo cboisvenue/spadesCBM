@@ -479,67 +479,67 @@ which(riaAU$V1 %in% ecoAu$AU)
 ###### from m3.ha to biomass and carbon###############################
 ## RIA: will have to run each of the 204 AUs is the commun denominator (unique gc by AU)
     # 
-    # swInc <- NULL
-    # hwInc <- NULL
-    # ## could I write this in an lapply to generalise?? YES
-    # 
-    # # only process the 173 that have a match in the ecoAu
-    # gcMeta1 <- gcMeta[which(gcMeta$AU %in% ecoAu$AU),]
-    # # these are no parameters in table 5 for "SALI" genus
-    # gcMeta1 <- gcMeta1[-(which(genus=="SALI")),]
-    # ## 29 AUs that Greg said were in the RIA are not in the ecoAu list
-    # # gcMeta[!(which(gcMeta$AU %in% ecoAu$AU)),]
-    # # ## and table3 does not have canfi_species 201 in ecozone 9...it is in ecozones 12 13 or 14
-    # # # table(TSAspuEco[,4])
-    # # # 12 14  4  9 
-    # # # 3  4  2  2 
-    #  ecoAu[AU==218,"ecozone"] <- 14
-    # # # no canfi_species 3500 in eco 12 in table 3
-    #  ecoAu[AU==320,"ecozone"] <- 14
-    # 
-    # # now processing 173
-    # 
-    # 
-    # for(i in 1:length(gcMeta1$AU)){
-    #   ## can't run the ecozones like this..in the mean time using the first ecozone in the TSAspuEco
-    #   meta <- gcMeta1[i,]
-    #   # match the AU call it id with the actual m3
-    #   id <- gcRIAm3$AU[which(gcRIAm3$AU == meta$AU)]
-    #   age <- gcRIAm3[gcRIAm3$AU==id,"age"]
-    #   # temp remove age 0 to see if the Boudewyn et al params handle m3 values of 0
-    #   # need the ecozones attached to the AUs
-    #   cumBiom <- as.matrix(convertM3biomRIA(meta = meta,gCvalues = gcRIAm3, 
-    #                                      ecozones = ecoAu,params3=RIAtable3, params4=RIAtable4, 
-    #                                      params5=RIAtable5,params6=RIAtable6))
-    #   
-    #   cumBiom[which(is.na(cumBiom))] <- 0
-    #   # going from tonnes of biomass/ha to tonnes of carbon/ha here
-    #   cumBiom <- cumBiom*0.5
-    #   inc <- diff(cumBiom)
-    #   
-    #   if(meta$forest_type_id==1){
-    #     incs  <- cbind(id,age,rbind(rep(0,dim(inc)[2]),inc),rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
-    #     swInc <- rbind(swInc,incs)
-    #     #FYI:
-    #     # cbmTables$forest_type
-    #     # id           name
-    #     # 1  1       Softwood
-    #     # 2  2      Mixedwood
-    #     # 3  3       Hardwood
-    #     # 4  9 Not Applicable
-    #   } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),rbind(rep(0,dim(inc)[2]),inc))
-    #   hwInc <- rbind(hwInc,incs)}
-    #   
-    # }
-    # 
-    # colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-    # colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-    # increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
-    # interim <- as.matrix(increments)
-    # interim[is.na(interim)] <- 0
-    # increments <- as.data.table(interim)
-    # 
-    # inc173AUs <- m3ToBiomIncOnlyPlots(inc=increments)
+    swInc <- NULL
+    hwInc <- NULL
+    ## could I write this in an lapply to generalise?? YES
+
+    # only process the 173 that have a match in the ecoAu
+    gcMeta1 <- gcMeta[which(gcMeta$AU %in% ecoAu$AU),]
+    # these are no parameters in table 5 for "SALI" genus
+    gcMeta1 <- gcMeta1[-(which(genus=="SALI")),]
+    ## 29 AUs that Greg said were in the RIA are not in the ecoAu list
+    # gcMeta[!(which(gcMeta$AU %in% ecoAu$AU)),]
+    # ## and table3 does not have canfi_species 201 in ecozone 9...it is in ecozones 12 13 or 14
+    # # table(TSAspuEco[,4])
+    # # 12 14  4  9
+    # # 3  4  2  2
+     ecoAu[AU==218,"ecozone"] <- 14
+    # # no canfi_species 3500 in eco 12 in table 3
+     ecoAu[AU==320,"ecozone"] <- 14
+
+    # now processing 173
+
+
+    for(i in 1:length(gcMeta1$AU)){
+      ## can't run the ecozones like this..in the mean time using the first ecozone in the TSAspuEco
+      meta <- gcMeta1[i,]
+      # match the AU call it id with the actual m3
+      id <- gcRIAm3$AU[which(gcRIAm3$AU == meta$AU)]
+      age <- gcRIAm3[gcRIAm3$AU==id,"age"]
+      # temp remove age 0 to see if the Boudewyn et al params handle m3 values of 0
+      # need the ecozones attached to the AUs
+      cumBiom <- as.matrix(convertM3biomRIA(meta = meta,gCvalues = gcRIAm3,
+                                         ecozones = ecoAu,params3=RIAtable3, params4=RIAtable4,
+                                         params5=RIAtable5,params6=RIAtable6))
+
+      cumBiom[which(is.na(cumBiom))] <- 0
+      # going from tonnes of biomass/ha to tonnes of carbon/ha here
+      cumBiom <- cumBiom*0.5
+      inc <- diff(cumBiom)
+
+      if(meta$forest_type_id==1){
+        incs  <- cbind(id,age,rbind(rep(0,dim(inc)[2]),inc),rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
+        swInc <- rbind(swInc,incs)
+        #FYI:
+        # cbmTables$forest_type
+        # id           name
+        # 1  1       Softwood
+        # 2  2      Mixedwood
+        # 3  3       Hardwood
+        # 4  9 Not Applicable
+      } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),rbind(rep(0,dim(inc)[2]),inc))
+      hwInc <- rbind(hwInc,incs)}
+
+    }
+
+    colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+    colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+    increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
+    interim <- as.matrix(increments)
+    interim[is.na(interim)] <- 0
+    increments <- as.data.table(interim)
+
+     inc173AUs <- m3ToBiomIncOnlyPlots(inc=increments)
     #       # summary(increments[,swmerch:hwother])
     #       # swmerch               swfol               swother              hwmerch          
     #       # Min.   :-8.016e+09   Min.   :-1.294e+09   Min.   :-1.692e+09   Min.   :-1308.9061  
@@ -564,25 +564,25 @@ which(riaAU$V1 %in% ecoAu$AU)
     # 
     # # the Plot functions does not like it when names are numbers
     # # here I change the names to be able to plot many windows at a time
-    # names(inc173AUs) <- paste0("AU", names(inc173AUs))
-    # clearPlot()
-    # Plot(inc173AUs[1:28])
-    # dev.new()
-    # Plot(inc173AUs[29:56])
-    # dev.new()
-    # Plot(inc173AUs[57:88])
-    # dev.new()
-    # Plot(inc173AUs[89:100])
-    # dev.new()
-    # Plot(inc173AUs[101:115])
-    # dev.new()
-    # clearPlot()
-    # Plot(inc173AUs[116:148])
-    # dev.new()
-    # clearPlot()
-    # Plot(inc173AUs[149:173])
-    # 
-    # ## By visual assessment: there are 69 (of 173) curves that are unacceptable.
+    names(inc173AUs) <- paste0("AU", names(inc173AUs))
+    clearPlot()
+    Plot(inc173AUs[1:28])
+    dev.new()
+    Plot(inc173AUs[29:50])
+    dev.new()
+    Plot(inc173AUs[57:88])
+    dev.new()
+    Plot(inc173AUs[89:100])
+    dev.new()
+    Plot(inc173AUs[101:115])
+    dev.new()
+    clearPlot()
+    Plot(inc173AUs[116:148])
+    dev.new()
+    clearPlot()
+    Plot(inc173AUs[149:173])
+
+    ## By visual assessment: there are 69 (of 173) curves that are unacceptable.
     # ## They either have negative values or ridiculous shapes
     # ## Try to figure out rules to replace those with similar curves that work.
     # ## Similar here means by species ann other info in the gcMeta1 data.table

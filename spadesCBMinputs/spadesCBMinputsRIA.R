@@ -124,8 +124,8 @@ userGcM3 <- c("/RIA2019/gcRIAm3.csv")
 #sim$
   gcurveComponentsFileName <- file.path(dataPath, userGcM3)
   
-#HERE ## need to create my level3DT
-  rasters <- readRDS("G:/RES_Work/Work/SpaDES/RIA/data/fromGreg/landscape_year1.rds") 
+######HERE ## need to create my level3DT
+  rasters <- raster::stack("G:/RES_Work/Work/SpaDES/RIA/data/fromGreg/ria_landscapestack_init.tif") 
   masterRaster <- raster("G:/RES_Work/Work/SpaDES/RIA/data/RIA5tsaRTM/RIA5tsaRTM.tif")
   ## Note that the raster to match is here G:\RES_Work\Work\SpaDES\RIA\data\RIA5tsaRTM 
   # the study area (shape file) is G:\RES_Work\Work\SpaDES\RIA\data\RIA_fiveTSA and both are here
