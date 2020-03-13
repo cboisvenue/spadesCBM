@@ -12,12 +12,13 @@ names(rasters) <- c("TSA","THLB","AU","blockId","age")
 rasters$TSA
 rasters$THLB
 rasters$AU
-rasters$blockId # this one has huge values and won't Plot()
+rasters$blockId # this one has huge values and won't Plot()...not sure if I need this
 rasters$age
 
 
 
 masterRaster <- raster("G:/RES_Work/Work/SpaDES/RIA/data/RIA5tsaRTM/RIA5tsaRTM.tif")
+masterValues <- values(masterRaster)
 ## Note that the raster to match is here G:\RES_Work\Work\SpaDES\RIA\data\RIA5tsaRTM 
 # the study area (shape file) is G:\RES_Work\Work\SpaDES\RIA\data\RIA_fiveTSA and both are here
 #Ian's stuff
