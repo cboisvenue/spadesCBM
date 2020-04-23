@@ -1,0 +1,383 @@
+---
+title: "spadesCBMuserInput"
+author: "CBoisvenue"
+date: "26/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## spadesCBM user input
+
+This document in meant to help user create the necessary input to run spadesCBM for their location in Canada. All default parameters read-in by the spadesCBMdefault.r module are for Canada. There are three main pieces of information that a user needs to provide: study area location, leading species by pixel/stand, age of pixel/stand, and a growth curve per pixel/stand. To match all correct model default parameters (CBM-CFS3 legacy), all these have to be in a special format and matched with CBM-CFS3 spatial units and Canada-level ecozones. (***HELP BUILD THE LOCATION PART PLEASE?***). Described here are the steps I used in the RIA2019.
+
+
+## Study Area location
+
+For the RIA2019, I was provided with a stack of rasters by Greg Paradis. I also was given the location of the Raster To Match (RTM). From this information, I created the spatial data table needed to track the create the pixel groups and track changes. The urls for the rasters are in .inputObjects (***THIS IS NOT DONE YET***). The processing code is the following chunk. 
+* Pixel ages should be given for all pixels. A raster of ages for the study area is the best as in the rasters stack below.
+* Growth curve link to each pixel: Each pixel needs to have a link to a growth curve. Up to now, that has been constant (same growth curve regardless of disturbances). Analysis Units (AU) are provided as a raster layer in the stack below.
+* Timber supply Areas are provided in the rasters below, although these are not necessary for the run, they are useful information.
+* Canadien ecozones are read-in from the url (below)
+* Spatial units are a CBM-CFS3-specific identifier. THey are needed to link to the right disturbance matrices and to the right ecological parameters. They are an overlay of the administrative boundaries of canada and the ecozones.
+
+
+```{r location, eval=FALSE, echo=TRUE}
+masterRaster <- Cache(prepInputs,url = "https://drive.google.com/open?id=1dl1iS3eXWcMcc7ASI8eIrKyn-x3OM_Cx")
+
+rasters <- Cache(prepInputs,url = "https://drive.google.com/file/d/1DN31xcXh97u6v8NaVcy0O3vzKpLpld69/view?usp=sharing",
+                      fun = "raster::stack", rasterToMatch = masterRaster, useGDAL = FALSE) # this was Eliot's
+names(rasters) <- c("TSA","THLB","AU","blockId","age")
+
+ecozones <- prepInputs(# targetFile = asPath(ecodistrictFilename),
+                         #archive = asPath("ecodistrict_shp.zip"),
+                         url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
+                         #alsoExtract = ecodistrictAE,
+                         destinationPath = dataPath,
+                         rasterToMatch = masterRaster,
+                         overwrite = TRUE,
+                         fun = "raster::shapefile",
+                         filename2 = TRUE)#,
+                         #userTags = cacheTags)
+ecozones <- cropInputs(ecozones, rasterToMatch = masterRaster)
+ecozonesRas <- fasterize::fasterize(sf::st_as_sf(ecozones), raster = masterRaster,
+                                    field = "ECOZONE")
+writeRaster(ecozonesRas,"data/RIA2019/ecozones.tif")
+canadaSpu <- shapefile("data/spUnit_Locator.shp")
+spuShp <- postProcess(canadaSpu, rasterToMatch = masterRaster, targetCRS = crs(masterRaster),
+                      useCache = FALSE, filename2 = NULL)
+spuRas <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = masterRaster, field = "spu_id")
+writeRaster(spuRas,"data/RIA2019/spu.tif")
+```
+
+* I got the raster to match (RTM) here:
+```{r RTM, eval=FALSE, echo=TRUE}
+  # the study area (shape file) is G:\RES_Work\Work\SpaDES\RIA\data\RIA_fiveTSA and both are here
+  # https://drive.google.com/drive/folders/1I_G4DcLpMRwUwSE4rsEGnYWi5vLtEG06
+masterRaster <- raster("G:/RES_Work/Work/SpaDES/RIA/data/RIA5tsaRTM/RIA5tsaRTM.tif")
+```
+
+
+
+* which disturbance matrices depend on which SPU you are in and which disturbance you are modelling. The disturbance matrices in CBM-CFS3 are available per SPU and accessible with the functions bellow. Those functions are in the spadesCBMextraFunctions.r.
+```{r, disturbances, eval=FALSE,echo=TRUE}
+# this shows all disturbances for all the SPUs
+DMIDs <- unique(spuRas[])
+RIAdmidsAll <- spuDist(DMIDs)
+# we need a harvesting for each spatial units, fire will be the wild fire one
+# used in the spinup
+# this pulls out the wildfires
+RIAfires <- histDist(DMIDs)
+# THis would give everything with the word "Clear" in to
+clearCut <- RIAdmidsAll[grep("Clear",RIAdmidsAll[,3], ignore.case=TRUE),]
+# I selected clearcut with 94% utilization and 50% salvage for all except BC
+clearCut2 <- RIAdmidsAll[grep("clearcut with 94%",RIAdmidsAll[,3], ignore.case=TRUE),]
+#These for BC (SPU 38-39-40-42)
+bcSpu <- c(38,39,40,42)
+clearCut1 <- RIAdmidsAll[grep("Clear Cutting Matrix with Salvage",RIAdmidsAll[,3], ignore.case=TRUE),]
+clearCut1 <- clearCut1[clearCut1$spatial_unit_id %in% bcSpu,]
+mySpuDmids <- rbind(RIAfires,clearCut1,clearCut2)
+#mySpuDmids <- read.csv("C:/Celine/github/spadesCBM/data/RIA2019/mySpuDmids.csv")
+```
+
+
+```{r gcId, echo=TRUE, eval=FALSE}
+age <- postProcess(x = rasters$age, rasterToMatch = masterRaster)#, filename2 = "pixelAges.tif"
+writeRaster(age,"data/RIA2019/pixelAges.tif")
+```
+
+## Leading species
+
+Leading species are used for finding the right parameters for the Boudewyn et al 2007 equations used to translate the m3/ha into biomass. For the RIA, species parameters match was done manually. This information was added to the growth curve meta information file (gcMeta.csv). Here is the example of the file fot the RIA2019:
+
+```{r gcMeta, echo=TRUE, eval=FALSE}
+gcMeta <- fread("C:/Celine/github/spadesCBM/data/RIA2019/gcMeta.csv")
+```
+
+## Growth information
+
+In CBM-CFS3 and in spadesCBM, stand-level m3/ha are provided by the user. These are translated into biomass/ha before simulations. This is done using the Boudewyn et al 2007 stand-level parameters and needs leading species codes to match the Boudewyn et al 2007 (four tables). It is often the case that either the m3/ha curves provided are not realistic or that the translation of these is not realistic. For the RIA (and for now), visual assessments are necessary to get at least reasonable biomass increments prior to simulation. This is the most onorous part of user-input prep. Once the Boudewyn-species codes are associated with the growth curve (as in gcMeta for the RIA), for the RIA2019 all curves were "translated" into biomass. Corrections to biomass increments were done after the translation was done. 
+
+* the m3/ha associated with each pixel for the RIA looked like this
+```{r m3, echo=TRUE, eval=FALSE}
+gcRIAm3 <- as.data.table(read.csv("data/RIA2019/gcRIAm3.csv"))
+## Plot it out
+  library(ggplot2)
+  volCurves <- ggplot(data=gcRIAm3, aes(x=age,y=value,group=AU, colour=AU)) +
+    geom_line()
+```
+
+The curves were processed through the Boudewyn at al 2007 equations and parameters. This is currently in the spadesCBMinput.r module but needs to become its own module. The main functions are:
+```{r m3ToBiom, echo=TRUE, eval=FALSE}
+###### from m3.ha to biomass and carbon###############################
+## RIA: will have to run each of the 204 AUs is the commun denominator (unique gc by AU)
+    # 
+    swInc <- NULL
+    hwInc <- NULL
+    ## could I write this in an lapply to generalise?? YES
+
+    # only process the 173 that have a match in the ecoAu
+    gcMeta1 <- gcMeta[which(gcMeta$AU %in% ecoAu$AU),]
+    # these are no parameters in table 5 for "SALI" genus
+    gcMeta1 <- gcMeta1[-(which(genus=="SALI")),]
+    ## 29 AUs that Greg said were in the RIA are not in the ecoAu list
+    # gcMeta[!(which(gcMeta$AU %in% ecoAu$AU)),]
+    # ## and table3 does not have canfi_species 201 in ecozone 9...it is in ecozones 12 13 or 14
+    # # table(TSAspuEco[,4])
+    # # 12 14  4  9
+    # # 3  4  2  2
+     ecoAu[AU==218,"ecozone"] <- 14
+    # # no canfi_species 3500 in eco 12 in table 3
+     ecoAu[AU==320,"ecozone"] <- 14
+
+    # now processing 173
+
+    for(i in 1:length(gcMeta1$AU)){
+      ## can't run the ecozones like this..in the mean time using the first ecozone in the TSAspuEco
+      meta <- gcMeta1[i,]
+      # match the AU call it id with the actual m3
+      id <- gcRIAm3$AU[which(gcRIAm3$AU == meta$AU)]
+      age <- gcRIAm3[gcRIAm3$AU==id,"age"]
+      # temp remove age 0 to see if the Boudewyn et al params handle m3 values of 0
+      # need the ecozones attached to the AUs
+      ## convertM3biomRIA() defined below in this code chunk
+      cumBiom <- as.matrix(convertM3biomRIA(meta = meta,gCvalues = gcRIAm3,
+                                         ecozones = ecoAu,params3=RIAtable3, params4=RIAtable4,
+                                         params5=RIAtable5,params6=RIAtable6))
+
+      cumBiom[which(is.na(cumBiom))] <- 0
+      # going from tonnes of biomass/ha to tonnes of carbon/ha here
+      cumBiom <- cumBiom*0.5
+      inc <- diff(cumBiom)
+
+      if(meta$forest_type_id==1){
+        incs  <- cbind(id,age,rbind(rep(0,dim(inc)[2]),inc),rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
+        swInc <- rbind(swInc,incs)
+        #FYI:
+        # cbmTables$forest_type
+        # id           name
+        # 1  1       Softwood
+        # 2  2      Mixedwood
+        # 3  3       Hardwood
+        # 4  9 Not Applicable
+      } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),rbind(rep(0,dim(inc)[2]),inc))
+      hwInc <- rbind(hwInc,incs)}
+
+    }
+
+    colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+    colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+    increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
+    interim <- as.matrix(increments)
+    interim[is.na(interim)] <- 0
+    increments <- as.data.table(interim)
+    ## m3ToBiomIncOnlyPlots() defined below - this is to help with the visual assessment
+    inc173AUs <- m3ToBiomIncOnlyPlots(inc=increments)
+
+## FUNCTIONS to process growth curves into growth increments--------------------------------------------
+# eq1 gives the total stem wood biomass in metric tonnes/ha, when you give it
+# the gross merchantable volume/ha. Parameters a and b are in table3
+b_m <- function(paramTable1, vol){
+  b_m <- unique(paramTable1$a) * vol ^ unique(paramTable1$b)
+  return(b_m)
+}
+# eq2 is for non-merch sized trees.
+nmfac <- function(table4,eq1){
+  nmFac <- unique(table4$k) + (unique(table4$a) * eq1 ^ unique(table4$b))
+  b_nm <- nmFac * eq1
+  b_n <- b_nm - eq1
+  return(cbind(b_n,b_nm))
+}
+# eq3 is for the saplings and it needs b_nm from the previous eq2
+sapfac <- function(table5, eq2){
+  sapFac <- table5$k + (table5$a * eq2[,2] ^ table5$b)
+  b_snm <- sapFac * eq2[,2]
+  b_s <- b_snm - eq2[,2]
+  return(b_s)
+}
+# calculate the 4 proportions that should be returned
+# will eventually add species, ecozone
+# vol = gross merchantable volume per ha
+# lvol = natural logarithm of (vol+5)
+biomProp <- function(table6,vol){
+  lvol <- log(vol+5)
+  a <- c(7:9)
+  b <- c(10:12)
+  c <- c(13:15)
+  pstem <- 1 / ( 1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+                   exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+                   exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  
+  pbark <- exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) /
+    (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+       exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+       exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  
+  pbranches <- exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) /
+    (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+       exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+       exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  
+  pfol <- exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol) /
+    (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
+       exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
+       exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
+  propVect <- cbind(pstem,pbark,pbranches,pfol)   
+  return(propVect)
+}
+convertM3biomRIA <- function(meta,gCvalues,ecozones,params3, params4, params5,params6){
+  oneCurve <- gCvalues[AU==meta$AU,]
+  spec <- meta$canfi_species
+  ## need a map to match Au to ecozone (could be via TSA)
+  ez <- ecozones[AU==meta$AU,ecozone]
+  gen <- meta$genus
+  
+  ## CAREFULL selecting the first ecozone right now. 
+  ## Do I have to calculate biomass as many times are there are ecozones?
+  ## I am choosing not to.##############
+  params3 <- params3[canfi_species== spec & ecozone == ez[1],] 
+  params4 <- params4[canfi_species== spec & ecozone == ez[1],]
+  # table 5 is different than the others
+  #browser()  
+  params5 <- params5[genus == gen & ecozone == ez[1],]
+  params6 <- params6[species == spec & eco == ez[1],]
+
+  # eq1 returns the total stem wood biomass in metric tonnes/ha, when you give it
+  # the gross merchantable volume/ha. Parameters a and b are in table3
+  eq1 <- b_m(params3, oneCurve$value)
+  # eq2 returns a two colum matrix giving the biomass of the non-merch sized
+  # trees (b_n) and b_nm, the sum of the total stem wood biomass of merch size
+  # live plus, the stem wood live of non merche-sized trees, given the total
+  # stem wood biomass per ha of live merch size trees (in tonnes/ha)
+  eq2 <- nmfac(params4, eq1 = eq1)
+  #some NAs where it was 0s. Leave these in place
+  # eq3 is for biomass of the saplings, the smallest of the nonmerch trees. The
+  # non-merch biomass from eq2, is needed. eq3 returns b_s, stem wood biomass of
+  # live sapling-sized trees in tonnes/ha
+  eq3 <- sapfac(params5, eq2 = eq2)
+  #eq3[which(is.na(eq3))] <- 0
+  # middle box flowchart3: total stem wood biomass (tonnes) /ha for all live trees
+  merch <- eq1+eq2[,1] + eq3
+  merch[which(is.nan(merch))] <- NA
+  # calculate the 4 proportions that should be returned: proportion for
+  # stemwood, prop for bark, prop for branches, and prop for foliage.
+  pVect <- biomProp(table6 = params6, vol = oneCurve$value)  
+  # translating this into biomass values for the carbon pools
+  totMerch <- merch/pVect[,1]
+  bark <- totMerch*pVect[,2]
+  branch <- totMerch*pVect[,3]
+  fol <- totMerch*pVect[,4]
+  other <- branch+bark
+  biomCumulative <- as.matrix(cbind(totMerch,fol,other))
+  return(biomCumulative)
+  
+}
+
+
+# just looking at the increments:
+m3ToBiomIncOnlyPlots <- function(inc=increments){
+  gInc <- as.data.table(inc)
+  idSim <- unique(gInc$id)
+  gcSim <- gInc[id %in% idSim,]
+  gc <- melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:8)
+  names(idSim) <- idSim
+  plots <- lapply(idSim, function(idLoop){
+    ggplot(data=gc[id == idLoop], 
+           aes(x=age,y=value,group=variable,colour=variable)) + geom_line() + theme(legend.position = "none")
+  })
+  
+  return(plots)
+}
+
+```
+
+* the corrections done for the RIA2019 were:
+```{r incCorrections, echo=TRUE, eval=FALSE}
+    # #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
+    #   # AU 60, AU 61 and AU268 with AU265
+    sfir <- c(60,61,268)
+    increments[id %in% sfir,3:8] <- rbind(increments[id==265,3:8],increments[id==265,3:8],increments[id==265,3:8])
+      # AU15 with AU 378, AU1025, 1102, 1191, 1202 with AU602
+    increments[id==15,3:8] <- increments[id==378,3:8]
+    lpol <- c(1025, 1102, 1191, 1202)
+    increments[id %in% lpol,3:8] <- rbind(increments[id==602,3:8],increments[id==602,3:8],increments[id==602,3:8],increments[id==602,3:8])
+      # poplar DECISION: replace ALL with AU51
+    pop <- gcMeta1[LDSPP == outSps[4],AU]
+    increments[id %in% pop,3:8] <- rbind(increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8],
+                                         increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8],
+                                         increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8],
+                                         increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8],
+                                         increments[id==51,3:8],increments[id==51,3:8])
+      # replace AU52, Au254, AU685, AU686 with AU51
+    cott <- c(52,254,685,686)
+    increments[id %in% cott,3:8] <- rbind(increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8],increments[id==51,3:8])
+      # AU66, AU67, AU68, AU355, AU 707, AU708, AU1022 with AU274
+    birc <- c(66,67,68,355,707,708,1022)
+    increments[id %in% birc,3:8] <- rbind(increments[id==274,3:8],increments[id==274,3:8],increments[id==274,3:8],increments[id==274,3:8],
+                                         increments[id==274,3:8],increments[id==274,3:8],increments[id==274,3:8])
+      # AU722 and AU1023 with AU72
+    alar <- c(722,1023)
+    increments[id %in% alar,3:8] <- rbind(increments[id==72,3:8],increments[id==72,3:8])
+      # AU81-82-83 and 391 with AU310 and AU674-737-738 with 772
+    bsp1 <- c(81,82,83)
+    increments[id %in% bsp1,3:8] <- rbind(increments[id==391,3:8],increments[id==391,3:8],increments[id==391,3:8])
+    bsp2 <- c(674,737,738)
+    increments[id %in% bsp2,3:8] <- rbind(increments[id==772,3:8],increments[id==772,3:8],increments[id==772,3:8])
+      # AU85-312-774 with AU393
+    esp <- c(85,312,774)
+    increments[id %in% esp,3:8] <- rbind(increments[id==393,3:8],increments[id==393,3:8],increments[id==393,3:8])
+      # AU 89-90-91-317-318-775-777 with AU745
+    wsp <- c(89,90,91,317,318,775,777)
+    increments[id %in% wsp,3:8] <- rbind(increments[id==745,3:8],increments[id==745,3:8],increments[id==745,3:8],increments[id==745,3:8],
+                                          increments[id==745,3:8],increments[id==745,3:8],increments[id==745,3:8])
+      # AU296-727 with AU72
+    wbar <- c(296,727)
+    increments[id %in% wbar,3:8] <- rbind(increments[id==72,3:8],increments[id==72,3:8])
+      # AU17-21-78-79-80-306-307-769-770-771-1008-1026-1085-1103-1161-1192-1203 with AU610
+    spr <- c(17,21,78,79,80,306,307,769,770,771,1008,1026,1085,1103,1161,1192,1203)
+    increments[id %in% spr,3:8] <- rbind(increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8],
+                                         increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8],
+                                         increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8],
+                                         increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8],
+                                         increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8],increments[id==610,3:8])
+
+    ## NEGATIVES PRIOR TO 80 become 0
+    #gc[value < 0 & age<80, value := 0]
+    increments[age<80 & swmerch < 0, swmerch := 0]
+    increments[age<80 & swfol < 0, swfol := 0]
+    increments[age<80 & swother < 0, swother := 0]
+    increments[age<80 & hwmerch < 0, hwmerch := 0]
+    increments[age<80 & hwfol < 0, hwfol := 0]
+    increments[age<80 & hwother < 0, hwother := 0]
+
+    #post correction increments check plots
+    inc173AUsFixed <- m3ToBiomIncOnlyPlots(inc=increments)
+    names(inc173AUsFixed) <- paste0("AU", names(inc173AUsFixed))
+    clearPlot()
+    Plot(inc173AUsFixed[1:28])
+    dev.new()
+    Plot(inc173AUsFixed[29:56])
+    dev.new()
+    Plot(inc173AUsFixed[57:88])
+    dev.new()
+    Plot(inc173AUsFixed[89:100])
+    dev.new()
+    Plot(inc173AUsFixed[101:115])
+    clearPlot()
+    Plot(inc173AUsFixed[116:148])
+    clearPlot()
+    Plot(inc173AUsFixed[149:173])
+```
+
+* the corrected file can be read here:
+```{r incrementsForSim, echo=TRUE, eval=FALSE}
+increments <- fread("data/RIA2019/increments.csv")
+# still need to put-in an error message if the gcid
+```
+
+##Next
+*get the fire composite .tif in the google drive RIA folder under Ana's folder - use prepInputs()
+*add prepInput and urls to .inputObjects
+*make a m3 to biomass module

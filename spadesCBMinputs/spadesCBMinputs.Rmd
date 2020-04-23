@@ -51,7 +51,7 @@ paths <- list(
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-outSim <- spades(mySim)
+outRIAinputs <- spades(mySim, debug = TRUE)
 ```
 
 # Events

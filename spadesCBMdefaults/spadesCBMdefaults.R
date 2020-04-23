@@ -32,7 +32,6 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = NA, objectClass = NA, desc = NA),
     createsOutput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one"),
     createsOutput(objectName = "PoolCount", objectClass = "numeric", desc = "Length of pooldef"),
     createsOutput(objectName = "cbmData", objectClass = "dataset", desc = NA),
