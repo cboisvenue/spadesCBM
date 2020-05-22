@@ -5,8 +5,8 @@
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
   name = "spadesCBMdefaults",
-  description = NA, #"insert module description here",
-  keywords = NA, # c("insert key words here"),
+  description = "Reads in all the default values for CBM-CFS3 for Canada", #"insert module description here",
+  keywords = c("CBM-CFS3", "forest carbon","Canada parameters"), # c("insert key words here"),
   authors = person("Celine", "Boisvenue", email = "celine.boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMdefaults = "0.0.1"),
@@ -190,7 +190,7 @@ plot <- function(sim) {
 .inputObjects = function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   if(!suppliedElsewhere(sim$sqlDir))
-    sim$sqlDir <- file.path(file.path(modulePath(sim),"data","cbm_defaults"))
+    sim$sqlDir <- file.path(file.path(modulePath(sim), "spadesCBMdefaults","data","cbm_defaults"))
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(sim$sqlDir, "cbm_defaults.db")
   
