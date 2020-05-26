@@ -120,16 +120,18 @@ This happens inside the `.inputObjects` function.
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
 library(magrittr) # this is needed to use "%>%" below
-library(SpaDES)
+library(SpaDES.core)
 # library(CBMVolumeToBiomass)
 # library(RSQLite)
+# library(pemisc)
 
 options("reproducible.useRequire" = FALSE) #Require doesn't seem to work with RSQLite
 
-cacheDir <- file.path(outputDir, "cache")#C:/Celine/SpaDEScacheOutputs/cache")
-moduleDir <- file.path(getwd()) #"~/GitHub/spadesCBM")
+moduleDir <- file.path(normalizePath(".")) #"~/GitHub/spadesCBM")
 inputDir <- file.path(moduleDir, "data") %>% reproducible::checkPath(create = TRUE) #"~/GitHub/spadesCBM/data")
 outputDir <- file.path(moduleDir, "outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
+
+cacheDir <- file.path(outputDir, "cache")#C:/Celine/SpaDEScacheOutputs/cache")
 scratchDir <- if (pemisc::user("achubaty")) reproducible::checkPath("/mnt/scratch/CBM", create = TRUE) else tempdir()
 
 times <- list(start = 1990.00, end = 1993.00)
@@ -144,8 +146,8 @@ parameters <- list(
 
 modules <- list("spadesCBM")
 objects <- list(
-  dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
-  sqlDir = file.path(inputDir,"cbm_defaults")
+  dbPath = file.path(inputDir, "cbm_defaults", "cbm_defaults.db"),
+  sqlDir = file.path(inputDir, "cbm_defaults")
 )
 
 setPaths(
@@ -160,20 +162,22 @@ spadesCBMSim <- simInit(times = times,
                         params = parameters,
                         modules = modules, 
                         objects = objects)
-dev()
+quickPlot::dev.useRSGD(FALSE)
+#dev()
 clearPlot()
 spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
 ```
 
 # Functions
 
-### Disturbance matrices
+## Disturbance matrices
+
 A series of functions were built to help get details on CBM-CFS3 default disturbances.
 There are `spuDist()`, `histDist()`, `seeDist()` and `simDist()`.
 They are stored here `exploringCode/spadesCBMextraFunctions.R`.
 
 The `spuDist()` function identifies the ID number of the matrices (CBM-CFS3 legacy) that are possible in the specific spatial unit you are in.
-You give the spatial units id(s) you are targetting (mySpu) and it gives you the disturbance matrix id(s) that are possible/default in that specific spu and a descriptive name of that disturbance matrix.
+You give the spatial units id(s) you are targeting (mySpu) and it gives you the disturbance matrix id(s) that are possible/default in that specific spu and a descriptive name of that disturbance matrix.
 It returns a data.frame.
 This is useful for identifying the lastPass disturbance possibilities in a specific spu, or the right clearcut or fire for that specific spu.
 

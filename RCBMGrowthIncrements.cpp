@@ -1,5 +1,5 @@
 #include <Rcpp.h>
-#include <string> 
+#include <string>
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
@@ -22,49 +22,49 @@ template < typename T > std::string to_string( const T& n )
 class Coomatrix
 {
 private:
-  
+
   /**
   * identifier of this matrix
   */
   int Id;
-  
+
   /**
   * The coordinate storage for off-diagonal row indices
   */
   int* RowIndices;
-  
+
   /**
   * The coordinate storage for off-diagonal column indices
   */
   int* ColIndices;
-  
+
   /**
   * The values for each row and off-diagonal column index
   */
   double* Values;
-  
+
   /**
   * The diagonal values (of constant length Order)
   */
   double* Diagonal;
-  
+
   /**
   * the n by n square dimension of the matrix
   */
   int Order;
-  
+
   /**
   * The allocated size of the row, col, and value arrays. This may be greater
   * than or equal to the number of defined values specified by Count.
   */
   int AllocatedSize;
-  
+
   /**
   * the number of defined off-diagonal entries in the matrix RowIndices,
   * ColIndices, and Values arrays
   */
   int Count;
-  
+
   /**
   * allocate additional memory to store values by doubling the allocated size
   */
@@ -87,15 +87,15 @@ private:
     Values = _values;
     AllocatedSize = _size;
   }
-  
-  
+
+
 public:
   /**
   * Gets the matrix id
   * @return the matrix id
   */
   int GetId() { return Id; }
-  
+
   /**
   * Initialize a new coordinate matrix with specified identifier, and order
   * @param id the identifier for the matrix
@@ -107,7 +107,7 @@ public:
     {
       throw std::invalid_argument("order must be > 0");
     }
-    
+
     Id = id;
     AllocatedSize = coomatrixInitialSize;
     RowIndices = new int[AllocatedSize];
@@ -121,7 +121,7 @@ public:
     }
     Order = order;
   }
-  
+
   /**
   * Destroy the coordinate matrix, all allocated memory is freed
   */
@@ -137,7 +137,7 @@ public:
   void Reset() {
     Count = 0;
   }
-  
+
   /**
   * Add an entry to the matrix.
   * @param rowIndex the 0 based row position of the value within the matrix
@@ -169,7 +169,7 @@ public:
       Count++;
     }
   }
-  
+
   /**
   * Initialize this matrix with values and a default diagonal init value.
   * If the
@@ -197,7 +197,7 @@ public:
       AddValue(rowIndices[i], colIndices[i], values[i]);
     }
   }
-  
+
   /**
   * Initialize this matrix with values.
   * @param init the value to assign to each diagonal element not specified in
@@ -223,7 +223,7 @@ public:
       AddValue(rowIndices[i], colIndices[i], values[i]);
     }
   }
-  
+
   /**
   * Get the defined values in this matrix as coordinate and value arrays.  The
   * number of defined values the return value.  The rows columns and values
@@ -254,7 +254,7 @@ public:
     }
     return size;
   }
-  
+
   /**
   * compute the vector by matrix operation @f$ v_1 = v_0 \times M @f$
   * v1 and v0 must be of length Order as specified in this instance
@@ -264,7 +264,7 @@ public:
   */
   void Compute(double* v0, double* v1){
     memset(v1, 0, Order*sizeof(double));
-    
+
     for (int i = 0; i < Order; i++)
     {
       v1[i] += v0[i] * Diagonal[i];
@@ -274,7 +274,7 @@ public:
       v1[ColIndices[index]] += v0[RowIndices[index]] * Values[index];
     }
   }
-  
+
   /**
   * compute the flux operation:
   *
@@ -295,9 +295,9 @@ public:
   void Flux(double* v0, double* v1, Coomatrix* M){
     //reset this matrix to zero
     Reset();
-    
+
     memset(v1, 0, Order*sizeof(double));
-    
+
     for (int i = 0; i < M->Count; i++)
     {
       int col = M->ColIndices[i];
@@ -307,7 +307,7 @@ public:
       AddValue(row, col, t);
       v1[col] += t;
     }
-    
+
     for (int i = 0; i < Order; i++)
     {
       v1[i] += v0[i] * M->Diagonal[i];
@@ -331,18 +331,18 @@ void FillMatrix(int maxIndex, Coomatrix& coomat, Rcpp::NumericMatrix& mat){
 
 
 // [[Rcpp::export]]
-void StepPoolsRef(Rcpp::NumericMatrix& pools, Rcpp::IntegerMatrix& opMatrix, 
+void StepPoolsRef(Rcpp::NumericMatrix& pools, Rcpp::IntegerMatrix& opMatrix,
                Rcpp::List& flowMatrices) {
-  
+
   auto npools = pools.ncol();
   auto nstands = pools.nrow();
-  
-  
+
+
   //check bounds of opMatrix row (should always match nstands)
   if(nstands != opMatrix.nrow()){
     throw std::invalid_argument("number of rows in pools and number of opMatrix rows do not match");
   }
-  
+
   std::vector<double> workingPools(npools,0.0);
   //iterate over the opMatrix performing the dynamics
   Coomatrix _mat(0,npools);
@@ -350,7 +350,7 @@ void StepPoolsRef(Rcpp::NumericMatrix& pools, Rcpp::IntegerMatrix& opMatrix,
     //get the current pools for the row
     Rcpp::NumericVector _currentPools = pools(row, Rcpp::_);
     std::vector<double> currentPools(_currentPools.begin(), _currentPools.end());
-    
+
     for(auto col = 0; col < opMatrix.ncol(); col ++ ){
       size_t id = opMatrix(row,col);
       if(id<=0){
@@ -365,33 +365,33 @@ void StepPoolsRef(Rcpp::NumericMatrix& pools, Rcpp::IntegerMatrix& opMatrix,
         Rcpp::NumericMatrix mat = hash[to_string(id)];
         FillMatrix(npools, _mat, mat);
       }
-      else 
+      else
       { //assume list
         Rcpp::List list = (Rcpp::List)flowCol;
-        
+
         Rcpp::NumericMatrix mat = list[id-1];
         FillMatrix(npools, _mat, mat);
       }
-      
+
       _mat.Compute(currentPools.data(), workingPools.data());
       currentPools = workingPools;
       _mat.Reset();
     }
-    
+
     Rcpp::NumericVector res(currentPools.begin(), currentPools.end());
-    
+
     pools(row, Rcpp::_) = res;
   }
 }
 // [[Rcpp::export]]
-Rcpp::NumericMatrix StepPools(Rcpp::NumericMatrix& pools, Rcpp::IntegerMatrix& opMatrix, 
+Rcpp::NumericMatrix StepPools(Rcpp::NumericMatrix& pools, Rcpp::IntegerMatrix& opMatrix,
                               Rcpp::List& flowMatrices){
   Rcpp::NumericMatrix poolsClone(clone(pools));
   StepPoolsRef(poolsClone, opMatrix, flowMatrices);
   return poolsClone;
 }
 //// [[Rcpp::export]]
-//Rcpp::List StepFlux(Rcpp::List& data, Rcpp::IntegerMatrix& opMatrix, 
+//Rcpp::List StepFlux(Rcpp::List& data, Rcpp::IntegerMatrix& opMatrix,
 //    Rcpp::List& flowMatrices, Rcpp::IntegerMatrix& fluxIndicators) {
 //
 //  TODO
@@ -415,8 +415,8 @@ struct AGBiomassIncrement {
 };
 
 struct TotalBiomassIncrement {
-	TotalBiomassIncrement(double swm, double swf, double swo, double swfr, 
-		double swcr, double hwm, double hwf, double hwo, double hwfr, 
+	TotalBiomassIncrement(double swm, double swf, double swo, double swfr,
+		double swcr, double hwm, double hwf, double hwo, double hwfr,
 		double hwcr) {
 		SWM = swm;
 		SWF = swf;
@@ -1032,7 +1032,7 @@ Rcpp::NumericMatrix Spinup(Rcpp::NumericMatrix& pools,
 
 		for (R_len_t i = 0; i < nstands; i++){
 		  stepNum[i] ++;
-			
+
 			double totalSlowC = poolsClone[pn.BelowGroundSlowSoil] + poolsClone[pn.AboveGroundSlowSoil];
 
 			SpinupState newState = UpdateSpinupState(state[i], ages[i], stepNum[i],
@@ -1065,7 +1065,7 @@ Rcpp::NumericMatrix Spinup(Rcpp::NumericMatrix& pools,
 				  break;
 				case EndOfFinalRotationThenStop:
 				  //do last pass disturbance
-				  disturbanceMatrixIds(i, 0) = lastPassdmids[i]; 
+				  disturbanceMatrixIds(i, 0) = lastPassdmids[i];
 				  //turn off all dynamics
 				  opMatrix(i, Rcpp::_) = Rcpp::IntegerVector(opMatrix.ncol(), 0);
 				  finishedCount++;
