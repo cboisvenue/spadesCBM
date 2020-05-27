@@ -5,9 +5,9 @@
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
   name = "spadesCBMinputs",
-  description = NA, #"insert module description here",
+  description = "User input preperation for the family of modules spadesCBM", #"insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputs = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("data.table","raster", "PredictiveEcology/LandR"),
+  reqdPkgs = list("RSQLite","data.table","raster", "PredictiveEcology/LandR"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),

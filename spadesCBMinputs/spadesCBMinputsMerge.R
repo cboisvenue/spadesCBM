@@ -5,9 +5,9 @@
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
   name = "spadesCBMinputs",
-  description = NA, #"insert module description here",
+  description = "A data preparation module to format all the user-provided input to the SpaDES forest-carbon modelling familly.", #"insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputs = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -109,208 +109,73 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
   
-  #### Input data provided by user will always need adjusting. Eventually make this a module.
-  #####################################################################################
-
   ## Rasters----------------------------------------------------------------------
-  age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
-  #This works
-  ages <- getValues(age)
-  # read-in species
-  ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
-  rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
-  # read-in productivity  levels
-  prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
-  Productivity <- getValues(prodRaster)#1 2 3 0
-    # read-in spatial units
-  spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
-  spatial_unit_id <- getValues(spuRaster) #28 27
-  sim$masterRaster <- ldSpsRaster
-  ## END Rasters--------------------------------------------------------------------
-  
+  ### user provides age raster, raster linking each growth curve to pixels, a
+  ### raster to match (masterRaster)
+  masterRaster <- sim$masterRaster
+  # see .inputObjects
+  age <- sim$ageRaster
+  gcIndex <- sim$gcIndexRaster
+  spuRaster <- sim$spuRaster
+  ecoRaster <- sim$ecoRaster
   # in one data table-------------------------------------
-  level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
-  level2DT <- level2DT[level2DT$rasterSps>0]
+  #level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
+  level2DT <- Cache(data.table,spatial_unit_id = spuRaster[],ages = age[],pixelIndex = 1:ncell(age),
+                    growth_curve_component_id= gcIndex[], growth_curve_id = gcIndex[],
+                    ecozones = ecoRaster[])
+  #level2DT <- level2DT[level2DT$rasterSps>0]
+  level2DT <- level2DT[!is.na(ages) & !is.na(growth_curve_id)]
+  spatialDT <- level2DT
+  
   # END data.table----------------------------------------
   
-  # not all species have 3 levels of productivity - adjust productivity---
-  oneProdlevel <- c(1,2,4,6) ## danger hard coded these are the species with one level##
-  Prod2 <- which(level2DT$rasterSps %in% oneProdlevel)
-  level2DT$Productivity[Prod2] <- 1
-  level2DT <- level2DT[level2DT$Productivity==3, Productivity:=2]
-  level2DT$pixelIndex <- 1:nrow(level2DT)
-  setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
-  level2DT <- level2DT[order(pixelIndex),]
-  # END adjustment of productivity to match data----------------
-  
-  # add the gcID information-------------------------------
-  #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
-  gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
-  gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
-  setkey(gcID,rasterSps,Productivity,spatial_unit_id)
-  # end add the gcID: each pixel has a growth curve now---
-  
   # create the pixel group---------------
-  spatialDT <- level2DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
   spatialDT <- spatialDT[order(pixelIndex),]
-  spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,0,
-                                                     columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
+  spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,maxPixelGroup = 0,
+                                                     columns = c("ages","spatial_unit_id", "growth_curve_component_id","ecozones" ))
   spatialDT <- spatialDT[order(pixelIndex),]
-  ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
-  # why the number starts at the number you are asking for? not logical to me -
-  # max is the max value your groups should have.@..?
-  spatialDT <- spatialDT[,.(ages, rasterSps, spatial_unit_id, pixelIndex,
-                            growth_curve_component_id, growth_curve_id,Productivity, pixelGroup)]
+  spatialDT <- spatialDT[,.(ages, spatial_unit_id, pixelIndex,
+                            growth_curve_component_id, growth_curve_id, ecozones,pixelGroup)]
   spatialDT <- spatialDT[order(pixelIndex),]
+  ###RIA
   sim$spatialDT <- spatialDT
   # end create pixel groups-------------
   
   # make the data.table that will be used in simulations and checks that have 1
   # row per pixel group-------------------------------------------------------
+  
   level3DT <- unique(spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
   # might have to keep this when we integrate the disturbances
+  ###RIA 
   sim$level3DT <- level3DT
   # end level3DT-------------------------------------------------------------
   
-  #### process growth curves #########--------------------------------------------------------------
-  
-  # first reduce to the curves applicable to the study area----
-  ecoToSpu <- as.data.table(sim$cbmData@spatialUnitIds)
-  ecozones <- ecoToSpu[which(ecoToSpu$SpatialUnitID %in% unique(sim$level3DT$spatial_unit_id)),]
-  gcID <- gcID[spatial_unit_id %in% ecozones$SpatialUnitID,]
-  # END study area---------------------------------------------
-  
-  # reduce curves to the species we have--------------------------
-  gcID <- gcID[rasterSps %in% sim$level3DT$rasterSps,]
-  # END reduce to species-----------------------------------------
-  
-  # read-in the m3/ha values-----------------------------
-  growthCurveComponents <- fread(sim$gcurveComponentsFileName)
-  # END read-in m3/ha------------------------------------
-  
-  # read-in Boudewyn et al parameters for conversion from m3/ha to biomass in
-  # the three main carbon pools that make-up the $growth_increments used to move
-  # spadesCBM forward in growth from year to year
-  # https://nfi.nfis.org/en/biomass_models-------------------------------------
-  ## danger hard coded## need to change this to read URL or cache these.
-  table3 <- read.csv("data/appendix2_table3.csv")#)file.path(paths(sim)$inputPath,"appendix2_table3.csv"
-  table4 <- read.csv("data/appendix2_table4.csv")
-  table5 <- read.csv("data/appendix2_table5.csv")
-  table6 <- read.csv("data/appendix2_table6_v2.csv")
-  
-  # identify jurisdiction matching CBM-legacy numbering with Boudewyn
-  # jurisdiction params----------------------------------------------
-  # choices are: 
-  # table3$juris_id and table4$juris_id and table6$jur
-  # AB BC MB NB NF NS NT NU ON PE QC SK YK
-  # table5$juris_id
-  # AB BC NB NF NT
-  cbmAdmin <- c(10,11,8,5,1,2,3,13,14,7,4,6,9,12)## danger hard coded##
-  paramJur <- c("AB","BC","MB","NB","NF","NF","NS" ,"NT" ,"NU" ,"ON" ,"PE", "QC", "SK", "YK")
-  adminMatch <- as.data.table(cbind(cbmAdmin,paramJur))
-  jurisdiction <- as.character(adminMatch[which(cbmAdmin %in% unique(ecoToSpu[SpatialUnitID %in% unique(gcID$spatial_unit_id),2])),2])
-  sktable3 <- as.data.table(table3[table3$juris_id==jurisdiction,])
-  sktable4 <- as.data.table(table4[table4$juris_id==jurisdiction,])
-  # table5 is weird since they did not have enough data for SK. I am selecting AB
-  # instead. Another catch is that they don't have the same species match. I
-  # manually check and ABIES is genus 3 (used below)
-  #### PUT error message if the specified jurisdiction is not found #### GIVE CHOICES
-  sktable5 <- as.data.table(table5[table5$juris_id=="AB",])
-  sktable6 <- as.data.table(table6[table6$jur==jurisdiction,])
-  # END jurisdiction-----------------------------------------------
-  
-  # read-in species match with canfi_species code and genus to get rigth
-  # Boudewyn params---------------------------------------------------
-  ## danger this is hard coded ## Species match will have to be checked by user
-  spsMatch <- fread("data/spsMatchNameRasterGfileBiomParams.csv")#file.path(paths(sim)$inputPath,"spsMatchNameRasterGfileBiomParams.csv"
-  # Match gcID$species to spsMatch$speciesName, then sktable3-4 have
-  # $canfi_species, sktable5 $genus, sktable6 has $species which is equilvalent
-  # to $canfi_species
-  
-  fullSpecies <- unique(gcID$species)
-  swInc <- NULL
-  hwInc <- NULL
-  
-  for(i in 1:length(fullSpecies)){
-    speciesMeta <- gcID[species==fullSpecies[i],]
-    for(j in 1:length(unique(speciesMeta$growth_curve_component_id))){
-      meta <- speciesMeta[j,]
-      id <- growthCurveComponents$GrowthCurveComponentID[which(growthCurveComponents$GrowthCurveComponentID == meta$growth_curve_component_id)][-1]
-      ### IMPORTANT BOURDEWYN PARAMETERS FOR NOT HANDLE AGE 0 ###
-      age <- growthCurveComponents[GrowthCurveComponentID==meta$growth_curve_component_id,Age][-1]
-      cumBiom <- as.matrix(convertM3biom(meta = meta,gCvalues = growthCurveComponents,spsMatch=spsMatch, 
-                                         ecozones = ecozones,params3=sktable3, params4=sktable4, 
-                                         params5=sktable5,params6=sktable6))
-      # going from tonnes of biomass/ha to tonnes of carbon/ha here
-      cumBiom <- cumBiom*0.5
-      inc <- diff(cumBiom)
-      if(meta$forest_type_id==1){
-        incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
-        swInc <- rbind(swInc,incs)
-        #FYI:
-        # cbmTables$forest_type
-        # id           name
-        # 1  1       Softwood
-        # 2  2      Mixedwood
-        # 3  3       Hardwood
-        # 4  9 Not Applicable
-      } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),inc)
-      hwInc <- rbind(hwInc,incs)}
-    }
-  }
-  colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-  colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-  increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
-  interim <- as.matrix(increments)
-  interim[is.na(interim)] <- 0
-  increments <- as.data.table(interim)
-  
-  #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
-  ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
-  ## id 49 becomes 28
-  ## id 50 becomes 29
-  ## white birch does not work at all, so take lower productivity trembling aspen
-  ## ids 38 and 58 become 34
 
-  increments[id==49,3:8] <- increments[id==28,3:8]
-  increments[id==50,3:8] <- increments[id==29,3:8]
-  increments[id==37,3:8] <- increments[id==34,3:8]
-  increments[id==58,3:8] <- increments[id==34,3:8]
-  ## NEGATIVES PRIOR TO 80 become 0
-  #gc[value < 0 & age<80, value := 0]
-  increments[age<80 & swmerch < 0, swmerch := 0]
-  increments[age<80 & swfol < 0, swfol := 0]
-  increments[age<80 & swother < 0, swother := 0]
-  increments[age<80 & hwmerch < 0, hwmerch := 0]
-  increments[age<80 & hwfol < 0, hwfol := 0]
-  increments[age<80 & hwother < 0, hwother := 0]
-  
-
-  sim$growth_increments <- as.matrix(increments)
-  # END process growth curves -------------------------------------------------------------------------------
-
-  sim$gcHash <- matrixHash(sim$growth_increments)
-  #create a nested hash (by gcid/by age)
-  ## used in SpinUp function later...
-  for(item in ls(sim$gcHash)){
-    sim$gcHash[[item]] <- hash(sim$gcHash[[item]])
-  }
-  
-  
   
 
   ############################################################
-  ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
-  ## it gets stuck in the spinup. Here is my therory: there is a mismatch in the
-  ## pinup disturbances which creates problems with this specific growth curve
-  ## (id 58). Because the first few years of growth are 0 it does not grow and
-  ## it does not fill-up the soil pools.
-  ## this is a problem to tackle once we have some insight into the cpp code
+  ## SK: can't seem to solve why growth curve id 58 (white birch, good
+  ## productivity) will not run with ages=1 it gets stuck in the spinup. Here is
+  ## my therory: there is a mismatch in the pinup disturbances which creates
+  ## problems with this specific growth curve (id 58). Because the first few
+  ## years of growth are 0 it does not grow and it does not fill-up the soil
+  ## pools. this is a problem to tackle once we have some insight into the cpp
+  ## code
   ###########################################################
   # temp fix:
   sim$level3DT[ages==1 & growth_curve_component_id==58,ages:=3]
+  
   sim$level3DT[order(pixelGroup),]
+  ## TRYING TO DEBUG THE SPINUP: solution to set all ages that are 1 to 3.
+  # shorten the level3DT - start with 100st lines
+  #sim$level3DT <- sim$level3DT[1:5000,]
+  sim$level3DT[ages==1,ages:=3]
   sim$ages <- sim$level3DT[,ages]
+  ## DECISION: there are stands over 350 years old and we do not have growth
+  ## curves past 350. So I am setting all ages about 350 to 350. This means that
+  ## we are not tracking old stands but also, this problem will go away once we
+  ## use LandR for the biomass increments
+  sim$ages[sim$ages>350] <- 350
   sim$nStands <- length(sim$ages)
   
   ## the pooldef needs to be a sim$ because if will be used in the spatial data portion later
@@ -319,38 +184,50 @@ Init <- function(sim) {
   sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
   
   sim$gcids <- sim$level3DT[,growth_curve_component_id]
+  ## NEED an error message here if this vector any of the gcids are NOT 
+  # in the increments (and therefore in the gcHash)
+  # gcidUnique <- unique(sim$gcids)
+  # sim$gcids[!(sim$gcids %in% gcidUnique)]
   sim$delays <-  rep.int(0,sim$nStands)
   sim$minRotations <- rep.int(10,sim$nStands)
   sim$maxRotations <- rep.int(30,sim$nStands)
   retInt <- merge(sim$level3DT[,],sim$cbmData@spinupParameters[,c(1,2)], by="spatial_unit_id", all.x=TRUE) %>% .[order(pixelGroup)]
   sim$returnIntervals <- retInt[,"return_interval"]
   sim$spatialUnits <- sim$level3DT[,spatial_unit_id]
-  spu <- as.data.frame(sim$cbmData@spatialUnitIds)
+  #spu <- as.data.frame(sim$cbmData@spatialUnitIds)
   
   # need an ecozone vector
-  names(ecoToSpu) <- c("spatial_unit_id","admin","ecozones")
-  sim$spatialDT <- merge(sim$spatialDT,ecoToSpu,by="spatial_unit_id") %>% .[order(pixelIndex),]
-  ecozones <- unique(sim$spatialDT[, .(pixelGroup,ecozones)]) %>% .[order(pixelGroup),]
-  sim$ecozones <- ecozones[,ecozones]
+  sim$ecozones <- sim$level3DT$ecozones
   
+  ################################################################################
+  ## matching the disturbances with the Disturbance Matrix IDs in CBM-CFS3 defaults
+  ################################################################################
   # Matching disturbances to CBM disturbance matrix id---------------------------------
   # make the disturbance look-up table to the disturbance_matrix_id(s)
   # making sim$mySpuDmids
-  #raster values 1 to 5
-  #C:\Celine\GitHub\spadesCBM\data\forIan\SK_data\disturbance_Sask\ReadMe.txt
-  # Fire =  1
-  # Harvest = 2
-  # Lcondition = 3
-  # Road = 4
-  # Unclass = 5
   
-  spu <- unique(sim$spatialDT$spatial_unit_id)
+  ## SK specific from HERE TO
+  # #raster values 1 to 5
+  # #C:\Celine\GitHub\spadesCBM\data\forIan\SK_data\disturbance_Sask\ReadMe.txt
+  # # Fire =  1
+  # # Harvest = 2
+  # # Lcondition = 3
+  # # Road = 4
+  # # Unclass = 5
+  # 
+  # Disturbance Matrices are specific to spatial_units_ids
+  spu <- sim$unique(spatialDT$spatial_unit_id)
   # what disturbances in those spu(s)?
+  # this function is in spadesCBMinputsFunctions.R
+  # it lists all the possible disturbances in the CBM-CFS3 archive for that/those
+  # spatial unit with the name of the disturbance in the 3rd colum.
   listDist <- spuDist(spu)
-  
-  #get the right ones
+
+  #This extras all with wildfire in the name 
   fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
+## NEED A CHECK AND MESSAGE HERE - more then one per spu? if so user has to pick
   
+  ## Clearcut
   #had to figure this one out by hand...there were 12 clearcut types...took the
   #one that said 50% salvage got that from looking at the published paper Boivenue
   #et al 2016...and the word salvage is misspelled in the database (sigh). In the
@@ -359,22 +236,33 @@ Init <- function(sim) {
   #only used in precommercial thinning Sylva EPC
   clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
   clearCut <- clearCut[7:8,]
-  
+
   # Again, there are 12 deforestation, but only two are not called "Fixed
   # Deforestation-Hydro", so I picked these two
   defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
   defor <- defor1[1:2,]
-  
+
   generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
-  
+
   mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
   #creating a vector of the pixel values to be able to match the disturbance_matrix_id
   events <- c(1,1,2,2,4,4,3,3,5,5)
+  # ## TO HERE
+  
   # need to match the historic and last past dist to the spatial unit
   # DECISION: both the last pass and the historic disturbance will be the same for these runs
+  # setkey(sim$level3DT,spatial_unit_id)
+  # setkey(as.data.table(fire[,1:2]),spatial_unit_id)
+  # histLastDMIDs <- merge(sim$level3DT,fire)
+
+  sim$mySpuDmids <- fread(file.path(getwd(),"/spadesCBMinputs/data/mySpuDmids.csv"))
+  mySpuFires <- sim$mySpuDmids[grep("wildfire",sim$mySpuDmids$distName, ignore.case=TRUE),]
+
+  myFires <- mySpuFires[spatial_unit_id %in% unique(sim$level3DT$spatial_unit_id),]
+  setkey(myFires,spatial_unit_id)
   setkey(sim$level3DT,spatial_unit_id)
-  setkey(as.data.table(fire[,1:2]),spatial_unit_id)
-  histLastDMIDs <- merge(sim$level3DT,fire)
+  
+  histLastDMIDs <- merge(sim$level3DT,myFires)
 
   sim$historicDMIDs <- histLastDMIDs$disturbance_matrix_id
   sim$lastPassDMIDS <- histLastDMIDs$disturbance_matrix_id
@@ -384,19 +272,19 @@ Init <- function(sim) {
   #sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
   #sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
    
+  ## STILL HAVE TO FIGURE THIS OUT  - what identifies what disturbance ##RIA
+  #sim$mySpuDmids <- cbind(mySpuDmids,events)
   
-  sim$mySpuDmids <- cbind(mySpuDmids,events)
-  
- 
-  # old bogus disturbance
-  #sim$disturbanceEvents <- cbind(sim$level3DT$PixelGroupID,rep(2001,sim$nStands),rep(214,sim$nStands))
-  #colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
-  
-  # changing them
-  sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
-                                   full.names = TRUE) %>%
-    grep(., pattern = ".grd$", value = TRUE)
-  
+
+  ###RIA: I do not have the harvest or fire layers for the RIA. For now, I will
+  #try to disturbe pixels using a fire composite that was created for Ana
+  #Raymundo. The raster composite is here:
+  #https://drive.google.com/open?id=10aQUa_QCS6UMvoeFV-WnBSFk8YCqOBsT
+  sim$disturbanceRasters <- raster(file.path(dataPath,"/RIA2019/firesComposite.tif"))
+    # list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
+    #                                full.names = TRUE) %>%
+    # grep(., pattern = ".grd$", value = TRUE)
+    # 
   
   # ! ----- STOP EDITING ----- ! #
 
@@ -482,8 +370,81 @@ Save <- function(sim) {
                     "Products")
   sim$PoolCount <- length(sim$pooldef)
   }
-
+  
+    #needRTM <- FALSE
+ # if (is.null(sim$masterRaster)) {
+    if (!suppliedElsewhere("masterRaster",sim)){
+    # local file here Cache(raster,file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
+    # here should be all the fixes needed (if any). For SK, the RTM is the
+    # leading species raster with the 0 needing to be changed to NAs
+    sim$masterRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/ldSp_TestArea.tif"))
+    sim$masterRaster[masterRaster == 0] <- NA
+    
+      # help - can't get this to work.                  
+      # prepInputs( # Cache
+      # url ="https://drive.google.com/file/d/17D76wWir5dCFWb3AFEPiEMz5Q64JorPz/view?usp=sharing",
+      # fun = raster::raster)
+    }
+    ## comments below taken from BiomassSpeciesData.R - will add messages when things work
+    # if (!suppliedElsewhere("masterRaster", sim)) {      ## if one is not provided, re do both (safer?)
+    #   needRTM <- TRUE
+    #   message("There is no masterRaster supplied; will attempt to use rawBiomassMap")
+    # } else {
+    #   stop("masterRaster is going to be supplied, but ", currentModule(sim), " requires it ",
+    #        "as part of its .inputObjects. Please make it accessible to ", currentModule(sim),
+    #        " in the .inputObjects by passing it in as an object in simInit(objects = list(masterRaster = aRaster)",
+    #        " or in a module that gets loaded prior to ", currentModule(sim))
+    # }
+#	}
+  if(!suppliedElsewhere(sim$ageRaster)){
+    sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/age_TestArea.tif"))
+      # Cache(prepInputs, 
+      #                         url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
+      #                         fun = raster::raster)
+      # 
+  
+  }
+  
+  if(!suppliedElsewhere(sim$gcIndexRaster)){
+    # in Sk, the gcID is defined by the leading species the productivity level
+    # there are 1,2 and 3 productivity levels, but we only have a few species that have 2 levels,
+    # the others have one
+    sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/gcIndex.tif"))
+    # Cache(prepInputs, 
+    #                         url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
+    #                         fun = raster::raster)
+    # 
+  }
+  if(!suppliedElsewhere(sim$spuRaster)){
+    # canadaSpu <- shapefile("data/spUnit_Locator.shp")
+    # spuShp <- postProcess(canadaSpu, rasterToMatch = masterRaster, targetCRS = crs(masterRaster),
+    #                       useCache = FALSE, filename2 = NULL)
+    # spuRaster <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = masterRaster, field = "spu_id")
+    
+    sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/spUnits_TestArea.tif"))
+    # For this raster the "big" spatial unit map for Canada would need to be
+    # cropped to the study area
+    
+  }
+  if(!suppliedElsewhere(sim$ecoRaster)){
+    sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/ecoRaster.tif"))
+    # ecozones <- prepInputs(# targetFile = asPath(ecodistrictFilename),
+    #   #archive = asPath("ecodistrict_shp.zip"),
+    #   url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
+    #   #alsoExtract = ecodistrictAE,
+    #   destinationPath = file.path(getwd(),"spadesCBMinputs/data/"),
+    #   rasterToMatch = masterRaster,
+    #   overwrite = TRUE,
+    #   fun = "raster::shapefile",
+    #   filename2 = TRUE)#,
+    # #userTags = cacheTags)
+    # ecozones <- cropInputs(ecozones, rasterToMatch = masterRaster)
+    # ecozonesRas <- fasterize::fasterize(sf::st_as_sf(ecozones), raster = masterRaster,
+    #                                     field = "ECOZONE")
+    
+  }
   # ! ----- STOP EDITING ----- ! #
+  
   return(invisible(sim))
 }
 ### add additional events as needed by copy/pasting from above

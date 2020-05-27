@@ -7,7 +7,7 @@ defineModule(sim, list(
   name = "spadesCBMdefaults",
   description = "Reads in all the default values for CBM-CFS3 for Canada", #"insert module description here",
   keywords = c("CBM-CFS3", "forest carbon","Canada parameters"), # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.0.9007", spadesCBMdefaults = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),

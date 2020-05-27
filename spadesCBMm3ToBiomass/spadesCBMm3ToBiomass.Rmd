@@ -1,0 +1,98 @@
+---
+title: "spadesCBMm3ToBiomass"
+author: "CBoisvenue"
+date: "14 May 2020"
+output: pdf_document
+---
+
+# Overview
+
+This module translates the m3/ha values into the biomass/ha increments that spadesCBMcore needs to simulate annual carbon fluxes and estimate stocks. The Boudewyn et al 2007 parameters are used for this stand-level translation. Like many statistical models, this translation is not always successful and will propbably need user-decisions to create the biomass increment values needed. This is a tricky process because many of
+
+## User input
+
+The user must provide two files for the growth information and one location file: 
+* one metadata file (userGcMeta) that has at a minimum an identifier that links each specific growth curve to a pixel on the study area raster (gcId) and the leading species for that curve.
+* one file that gives the m3 per ha by age (**does this have to be yearly?? maybe**) for each of the identified growth curves. 
+* a location file (preferrably a raster) that help identify the jurisdiction (province or territory) and the ecozone each gcId is in, which in turn are used to determine the appropriate parameters for teh stand-level conversion from m#/ha to biomass per hectar in the Boudewyn et al. approach.
+
+## Pseudocode: the general steps
+
+This module reads in the user userGcMeta, then reads in the userGcM3. It provides a plot of all the curves in userGcM3 for visual inspection. It then matches the jurisdiction with each gcId, and matches the leading attaching a canfi_species and a genus to each leading species. canfi_species and genus the key to associating the correct parameters for conversion (Boudewyn et al). Once all the species matches are complete, a series of functions are used to go from the provided m3/ha for each curve into annual increments.
+
+##Units
+
+The user provides growth curves in m3/ha of cumulative m3/ha over time. Those curves are fed into the Boudewyn algorithms (spadesCBMinputs module) with its results multiplied by 0.5 to give carbon. That gives us the cumBiom, line 240 in spadesCBMinputs, that is the cumulative biomass for the three above-ground live pools in tonnes of carbon/ha.
+
+##Output
+
+This module provides the `sim$growth_increments` and its hashed version, ` sim$gcHash` available for the spadesCBMinputs module.
+
+##SpaDES
+
+There is only one event in this module (init), and this module is only scheduled once.
+
+# Usage
+
+```{r module_usage}
+library(SpaDES)
+
+moduleDir <- getwd()
+inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(moduleDir, "outputs")
+cacheDir <- file.path(outputDir, "cache")
+times <- list(start = 0, end = 10)
+
+parameters <- list(
+  #.progress = list(type = "text", interval = 1), # for a progress bar
+  ## If there are further modules, each can have its own set of parameters:
+  #module1 = list(param1 = value1, param2 = value2),
+  #module2 = list(param1 = value1, param2 = value2)
+)
+
+modules <- list("spadesCBMm3ToBiomass")
+objects <- list(
+  userGcMetafileName <- c("/RIA2019/gcMetaRuns.csv"),
+  userGcM3 <- c("/RIA2019/gcRIAm3.csv")
+
+)
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+myBiomassOut <- spades(mySim)
+```
+
+# Events
+
+Describe what happens for each event type.
+
+## Plotting
+
+Write what is plotted.
+
+## Saving
+
+Write what is saved.
+
+# Data dependencies
+
+## Input data
+
+How to obtain input data, and a description of the data required by the module.
+If `sourceURL` is specified, `downloadData("spadesCBMm3ToBiomass", "path/to/modules/dir")` may be sufficient.
+
+## Output data
+
+Description of the module outputs.
+
+# Links to other modules
+
+Describe any anticipated linkages to other modules.
