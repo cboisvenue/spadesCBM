@@ -335,7 +335,7 @@ Init <- function(sim) {
   ############################################################
   ## can't seem to solve why growth curve id 58 (white birch, good productivity) will not run with ages=1
   ## it gets stuck in the spinup. Here is my therory: there is a mismatch in the
-  ## pinup disturbances which creates problems with this specific growth curve
+  ## spinup disturbances which creates problems with this specific growth curve
   ## (id 58). Because the first few years of growth are 0 it does not grow and
   ## it does not fill-up the soil pools.
   ## this is a problem to tackle once we have some insight into the cpp code
@@ -371,7 +371,7 @@ Init <- function(sim) {
   # make the disturbance look-up table to the disturbance_matrix_id(s)
   # making sim$mySpuDmids
   # raster values 1 to 5
-  # C:\Celine\GitHub\spadesCBM\data\forIan\SK_data\disturbance_Sask\ReadMe.txt
+  # data/forIan/SK_data/disturbance_Sask/ReadMe.txt
   # Fire =  1
   # Harvest = 2
   # Lcondition = 3
