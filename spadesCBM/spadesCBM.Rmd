@@ -49,19 +49,36 @@ The `spadesCBMcore` module (`spadesCBMcore.R`) compiles the `Rcpp` code in `.inp
 
 Many more details of this three-modules family are in this prezi `G:/RES_Work/Work/SpaDES/spadesCBM/Prezi WIN spadesCBM modules ov.exe`, which is a map and working document.
 
-### spadesCBMdefaults
+## spadesCBMdefaults
 
-This module loads all the CBM-CFS3 default parameters (Canadian defaults that is akin to the ArchiveIndex access database in CBM-CFS3).
+This module loads all the CBM-CFS3 default parameters (Canadian defaults that is akin to the `ArchiveIndex` access database in CBM-CFS3).
 These parameters are then stored in an S4 object called `cbmData` and accessed throughout the simulations.
-This object has the following slot names "turnoverRates" (15byb13 full), "rootParameters" (48by7 full), "decayParameters" (11X6 full), "spinupParameters"(48by4 full), "classifierValues"(0X0), "climate" (48by2 full - mean annual temp), "spatialUnitIds" (48by3 full), "slowAGtoBGTransferRate"(1by1 0.006), "biomassToCarbonRate"(1by1 0.5),"ecoIndices" (0by0), "spuIndices" (0by0), "stumpParameters" (48by5 full), "overmatureDeclineParameters" (48by4 full), "disturbanceMatrix" (426X3 - character matrix with word descriptions of disturbances ["id" "name" "description"]).
+This object has the following slot names:
+
+- "turnoverRates" (15byb13 full);
+- "rootParameters" (48by7 full);
+- "decayParameters" (11X6 full);
+- "spinupParameters"(48by4 full);
+- "classifierValues"(0X0);
+- "climate" (48by2 full - mean annual temp);
+- "spatialUnitIds" (48by3 full);
+- "slowAGtoBGTransferRate"(1by1 0.006);
+- "biomassToCarbonRate"(1by1 0.5);
+- "ecoIndices" (0by0);
+- "spuIndices" (0by0);
+- "stumpParameters" (48by5 full);
+- "overmatureDeclineParameters" (48by4 full);
+- "disturbanceMatrix" (426X3 - character matrix with word descriptions of disturbances ["id" "name" "description"]).
+
 The whole sqlite db that contains the defaults is stored in this RStudio project (`spadesCBM.Rproj`) in the data folder `spadesCBM/data/cbm_defaults`.
 The script /spadesCBM/exploringCode/readInSQLiteData.r further explores the data in the sql database.
 *All parameters used in these simulations are the general Canadian defaults, and are searchable with common R functionality*.
-In the SpaDES environment, this module has one event (init) and does not schedule anything else.
-It requires the "dbPath" and "sqlDir" to run.
-This present `.Rmd` file creates "dbPath" and "sqlDir" (see below) and so does the `.inputObjects` section of `spadesCBMdefault.R` so that the `spadesCBMdefault` can run independently from the two other modules or from this parent module. 
+In the SpaDES environment, this module has one event (`init`) and does not schedule anything else.
+It requires the `dbPath` and `sqlDir` to run.
+This present `.Rmd` file creates `dbPath` and `sqlDir` (see below) and so does the `.inputObjects` section of `spadesCBMdefault.R` so that the `spadesCBMdefault` can run independently from the two other modules or from this parent module. 
 
-### spadesCBMinputs
+## spadesCBMinputs
+
 This module reads in information that is expected to be provided by the user similarly to CBM-CFS3: the growth curves, the ages of the stands/pixels, links between each stand and the growth curves, and where these stands are in Canada (which provides a link to the default parameters read-in by the previous module).
 It translates the $m^3/ha$ of the growth curves into the biomass pools for stem wood, bark, branches and foliage using the `CBMVolumeToBiomass` library (by Scott Morken).
 This library is based on the stand-level parameters of Boudewyn _et al._ [-@Boudewyn:2007].
@@ -71,20 +88,20 @@ The volume to biomass translations will eventually be a separate module to incre
 This module reads-in user-provided spatially explicit data (in this case: age, leading species, productivity level, `cbm_default` spatial unit, growth curve identification for each pixel) which define the unique pixel groups for modelling.
 It also reads-in min and max rotation lengths, mean fire return interval, and provides a place for regeneration delays.
 Disturbance events must also be spatially explicit and will redefine the pixel groups post-disturbance.
-Disturbances information needs to specify the type of disturbance using cbm_default disturbance matrix numbers (see cbmData), the year of disturbance and the pixel or stands disturbed.
-This module has one event (init) and does not schedule anything else.
+Disturbances information needs to specify the type of disturbance using `cbm_default` disturbance matrix numbers (see `cbmData`), the year of disturbance and the pixel or stands disturbed.
+This module has one event (`init`) and does not schedule anything else.
 
 ## spadesCBMcore
 
 This module completes the simulations of the `spadesCBM.`
 It has six SpaDES-events: `spinup`, `postSpinup`, `saveSpinup`, `annual`, `plot`, and `savePools`, with `saveSpinup` and `plot` being optional.
 The spinup event is the `init` event run by default in SpaDES modules.
-The event "spinup" runs the traditional spinup of CBM-CFS3: where each stand/pixel is disturbed using the disturbance specified in "historicDMIDs" (usually wildfire for the ecozone) and re-grown using the provided five aboveground biomass pools, until the dead organic matter (DOM) pools values stabilize.
-A user can set a minimun and a maximum number of rotations, and the disturbance return interval ("minRotations", "maxRotations", "returnIntervals") for the spinup.
-Once the DOM pools have stabilized, the spinup event grows the stand (still using the same growth curve) to the user-provided age of that stand/pixel ("ages" created in spadesCBMinputs module).
-If spinupDebug is set to FALSE, the spinup event provides a line for each stand with the intial pool values to initialize the stands/pixels for the annual simulations.
-These are assigned in the postSpinup event.
-In the postSpinup event, matrices are set up for the processes that will happen in the annual event (disturbance, half growth, `DOMturnover`, `BioTurnover`, `OverMatureDecline`, second half of growth, `DOMDecay`, `SlowDecay`, `SlowMixing`).
+The event `spinup` runs the traditional spinup of CBM-CFS3: where each stand/pixel is disturbed using the disturbance specified in "historicDMIDs" (usually wildfire for the ecozone) and re-grown using the provided five aboveground biomass pools, until the dead organic matter (DOM) pools values stabilize.
+A user can set a minimum and a maximum number of rotations, and the disturbance return interval ("minRotations", "maxRotations", "returnIntervals") for the spinup.
+Once the DOM pools have stabilized, the spinup event grows the stand (still using the same growth curve) to the user-provided age of that stand/pixel ("ages" created in `spadesCBMinputs` module).
+If `spinupDebug` is set to `FALSE`, the spinup event provides a line for each stand with the initial pool values to initialize the stands/pixels for the annual simulations.
+These are assigned in the `postSpinup` event.
+In the `postSpinup` event, matrices are set up for the processes that will happen in the annual event (disturbance, half growth, `DOMturnover`, `BioTurnover`, `OverMatureDecline`, second half of growth, `DOMDecay`, `SlowDecay`, `SlowMixing`).
 The event spinupDebug was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles.
 Please refer to the next paragraph for warnings about this event.
 The annual event is where all the processes are applied.
@@ -95,7 +112,7 @@ The event `savePools` is scheduled last.
 It currently creates a `.csv` file (`cPoolsPixelYear.csv`) that contains the carbon pool values for each unique stand/pixel type at the end of each simulation year.
 Outputs can modified as needed.
 
-#### DANGER with the `spinupDebug` parameter
+### DANGER with the `spinupDebug` parameter
 
 The `spinupDebug` parameter is a logical parameter defined in the metadata of the `spadesCBMcore.R` module.
 It determines if the results from the spinup will be saved as an external file.
@@ -104,9 +121,9 @@ If this is set to `TRUE`, the `postSpinup` event re-runs the C++ `Spinup` functi
 This could take a long time if you have a lot of stands/pixels.
 This will be modified once C++ script is modularized.
 
-#### Known Errors to eventually fix in the Rcpp scripts
+### Known Errors to eventually fix in the Rcpp scripts
 
-```{r,eval=FALSE, echo=TRUE}
+```{r, eval=FALSE, echo=TRUE}
 Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$processes,  : 
   Expecting a single value: [extent=0].
 ```
@@ -177,50 +194,51 @@ There are `spuDist()`, `histDist()`, `seeDist()` and `simDist()`.
 They are stored here `exploringCode/spadesCBMextraFunctions.R`.
 
 The `spuDist()` function identifies the ID number of the matrices (CBM-CFS3 legacy) that are possible in the specific spatial unit you are in.
-You give the spatial units id(s) you are targeting (mySpu) and it gives you the disturbance matrix id(s) that are possible/default in that specific spu and a descriptive name of that disturbance matrix.
-It returns a data.frame.
-This is useful for identifying the lastPass disturbance possibilities in a specific spu, or the right clearcut or fire for that specific spu.
+You give the spatial units id(s) you are targeting (`mySpu`) and it gives you the disturbance matrix id(s) that are possible/default in that specific SPU and a descriptive name of that disturbance matrix.
+It returns a `data.frame`.
+This is useful for identifying the `lastPass` disturbance possibilities in a specific SPU, or the right clearcut or fire for that specific SPU.
 
 The function `histDist()`, identifies the stand-replacing wildfire disturbance in each spatial unit.
 By default the most recent is selected, but the user can change that.
-As per spuDist, you need to specify your spatial unit.
+As per `spuDist`, you need to specify your spatial unit.
 Historical disturbances in CBM-CFS3 are used for "filling-up" the soil-related carbon pools.
 Boudewyn _et al._ [-@Boudewyn:2007] translate the $m^3/ha$ curves into biomass per $ha$ in each of four pools: total biomass for stem wood, total biomass for bark, total biomass for branches and total biomass for foliage.
 Biomass in coarse and fine roots, in aboveground- and belowground- very-fast, -fast, -slow, in medium-soil, and in snags still need to be estimated.
 In all spatial units in Canada, the historical disturbance is set to fire.
-In the spinup event, a stand-replacing fire disturbance is used in a disturb-grow cycle, where stands are disturbed and regrown with turnover, overmature, and decay processes, until the dead organic matter pools values stabilise (+ or - 10% I think, that is in the Rcpp-RCMBGrowthIncrements.cpp).
+In the spinup event, a stand-replacing fire disturbance is used in a disturb-grow cycle, where stands are disturbed and regrown with turnover, overmature, and decay processes, until the dead organic matter pools values stabilise (+/- 10% I think, that is in `RCMBGrowthIncrements.cpp`).
 
 You give the `seeDist()` function one or more disturbance matrix id, and it will return the descriptive name of the disturbance, the source pools, the sink pools, and the proportions transferred.
-It returns a list of data frames, one data.frame per disturbance matrix id, similarly to simDist().
+It returns a list of `data.frame`s, one `data.frame` per disturbance matrix id, similarly to `simDist()`.
 
-`simDist()` is an R function that requires a simulation list (from the SpaDES functions simList() or spades()) and returns a list of data.frames.
-Each data.frame has the descriptive name of a disturbance used in the simulation.
-Each data.frame has the disturbance matrix identification number from cbm_defaults, the pool from which carbon is taken (source pools) in this specific disturbance, the pools into which carbon goes, and the proportion in which the carbon-transfers are completed.
+`simDist()` is an R function that requires a simulation list (from the `SpaDES` functions `spades()`; see `?simList`) and returns a list of `data.frame`s.
+Each `data.frame` has the descriptive name of a disturbance used in the simulation.
+Each `data.frame` has the disturbance matrix identification number from `cbm_defaults`, the pool from which carbon is taken (source pools) in this specific disturbance, the pools into which carbon goes, and the proportion in which the carbon-transfers are completed.
 
-### Spatial location and maps
+## Spatial location and maps
 
-The `retrieveSpuRaster()` function in spadesCBMextraFunctions.r let's you figure out what spatial unit(s) (spu) you are in.
+The `retrieveSpuRaster()` function in `spadesCBMextraFunctions.R` let's you figure out what spatial unit(s) (SPU) you are in.
 Spatial units are an overlay of administrative boundaries (provinces and territories) and ecozones.
-Spus are the link back to the default ecological parameters assembled for CBM-CFS3 simulations in Canada.
+SPUs are the link back to the default ecological parameters assembled for CBM-CFS3 simulations in Canada.
 These parameters are necessary to be able to perform a simulation, you either use the defaults or have to provide alternative values for all the parameters.
-This function requires the file `spUnit_Locator.shp` to be in spadesCBM/data.
+This function requires the file `spUnit_Locator.shp` to be in `spadesCBM/data/`.
 The function has two arguments, `UserArea` and `rasterRes.`
 `UserArea` must be a raster or `SpatialPolygonsDataFrame.`
-`rasterRes` refers to the resolution of the output raster, and is measured in the spatial units of UserArea.
+`rasterRes` refers to the resolution of the output raster, and is measured in the spatial units of `UserArea`.
 
 There is a function to create maps of the results from a simulation called `plotCarbonRasters ()`.
 It accepts multiple years and pools.
 Currently it relies on the output (`sim$cbmPools`), `$pixelKeep` and `$masterRaster` to build the rasters.
 
-### Flux related calculations
+## Flux related calculations
 
 `calcTurnoverRates()` extracts the turnover rates for the specific SPU you are in.
-These are used to in the core module to calculate the specific rates, which are the used to calculate Net Primary Productiviy (NPP) both in the core module and in the next function.
+These are used to in the core module to calculate the specific rates, which are the used to calculate Net Primary Productivity (NPP) both in the core module and in the next function.
 
-`NPP()` calculated the net primary productivity from the output of sim$cbmPools.
+`NPP()` calculated the net primary productivity from the output of `sim$cbmPools`.
 
 # Data dependencies
-These three modules require the cbm_defaults data and user defined inputs.
+
+These three modules require the `cbm_defaults` data and user defined inputs.
 Eventually, some of the inputs may come from other modules (growth and yield modules, biomass dynamics modules, etc.).
 
 ## Input data
@@ -233,17 +251,18 @@ Similarly, all user-defined inputs will eventually be able to be sourced elsewhe
 
 ## Output data
 
-The stand carbon pools at the end of each simluation year can be found here: `spadesCBM/outputs/cPoolsPixelYear.csv`.
+The stand carbon pools at the end of each simulation year can be found here: `spadesCBM/outputs/cPoolsPixelYear.csv`.
 
 # Links to other modules
+
 This will be linked to the SpaDES caribou models and to the SpaDES version of LANDIS-II (LandR-biomass).
 SpaDES modules are designed to be linked, so any current or future modules can be linked.
 
 # Other important information
 
 `MasterRaster`: this is the raster that we use to show results of simulations.
-In the present SK project, it is created in spadesCBMinputs.R (line 184) and for these SK simulations is it the ldSpsRaster, so it has 0 for no-species pixels (we can't model these), and 1 to 7.
-The species code table (`~/GitHub/spadesCBM/data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/species_map_to_codes_v2_6.xls`) is:
+In the present SK project, it is created in `spadesCBMinputs.R` (line 184) and for these SK simulations is it the `ldSpsRaster`, so it has 0 for no-species pixels (we can't model these), and 1 to 7.
+The species code table (`data/forIan/SK_data/SK_ReclineRuns30m/LookupTables/species_map_to_codes_v2_6.xls`) is:
 
 `species_code`:
 
@@ -260,21 +279,20 @@ The species code table (`~/GitHub/spadesCBM/data/forIan/SK_data/SK_ReclineRuns30
 
 `standIndex`: this comes out of the C++ functions.
 It is always on the right-hand side of the of assignments in the R scripts.
-Presently, to make sure that `standIndex` matches `PixelGroupID`, rows are orderd by `PixelGroupID` before going into C++ functions.
+Presently, to make sure that `standIndex` matches `PixelGroupID`, rows are ordered by `PixelGroupID` before going into C++ functions.
 
-`pixelGroupC`  : this is the `data.table` that gets updated every year and from which the `pixelGroupForAnnual` is created.
-`pixelGroupForAnnual` is fed into the Rcpp functions (matrix operations of annual processes and disturbances).
-Each line represents a `PixelGroupID`, i.e.
-a group of unique pixels.
+`pixelGroupC`: this is the `data.table` that gets updated every year and from which the `pixelGroupForAnnual` is created.
+`pixelGroupForAnnual` is fed into the `Rcpp` functions (matrix operations of annual processes and disturbances).
+Each line represents a `PixelGroupID`, _i.e._, a group of unique pixels.
 It has unique combinations of `growth_curve_component_id`, `rasterSps`, `Productivity`, `spatial_unit_id` and `PixelGroupID`, the unique identifier for the group.
 `pixelGroupC` and `pixelGroupForAnnual` populates the vectors needed for the C++ functions (`ages`, `gcids`, `spatialUnits`, etc.).
 This `data.table` is remade annually because annual disturbances reset the age of the disturbed pixel to 0 and age is one of the unique identifier.
 
-`spatialDT`: this has all the modelled pixels numbered from 1 to npixels (test area 1 347 529 modelled pixels out of 3 705 000 ncells in the masterRaster).
+`spatialDT`: this has all the modelled pixels numbered from 1 to `npixels` (test area 1,347,529 modelled pixels out of 3,705,000 `ncells` in the `masterRaster`).
 The `pixelKeep`, a `data.table` that has `rowOrder` from `spatialDT`, `rowOrder` as the 1st column, and a column for each simulated year starting with the `level3DT` `PixelGroupID` our of the `spinUp` (`PixelGroupID0`), followed by one per simulated year (e.g., `PixelGroupID1990`).
-pixelKeep gets build 1 column at a time for each year of the simulation.
+`pixelKeep` gets build 1 column at a time for each year of the simulation.
 `spatialDT` is rebuilt every year because disturbances change ages, one of the unique identifiers.
-`spatialDT` is used to add a column called events that is extractor each year from the disturbance rasters stack (`sim$disturbanceRasters`).
+`spatialDT` is used to add a column called events that is extractor each year from the disturbance raster stack (`sim$disturbanceRasters`).
 
 `disturbance rasters`: Disturbance rasters, from White and Wulder, are use for disturbances in these simulations.
 The disturbance raster names are read in the `spadesCBMinputs` module as a list.
@@ -285,7 +303,7 @@ The `PixelGroupID` is then calculated using unique combinations of `spatial_unit
 # Units
 
 The user provides growth curves in $m^3/ha$ of cumulative $m^3/ha$ over time.
-Those curves are fed into the Boudewyn algorithms (spadesCBMinputs module) with its results multiplied by 0.5 to give carbon.
+Those curves are fed into the Boudewyn algorithms (`spadesCBMinputs` module) with its results multiplied by 0.5 to give carbon.
 That gives us the `cumBiom`, line ~240 in `spadesCBMinputs`, that is the cumulative biomass for the three above-ground live pools in tonnes of carbon/ha.
 The `$growth_increments` then calculated by the difference between two years on the `cumBiom*0.5` curve.
 These are in tonnes of carbon per ha and these MATCH the values if you calculate the differences between two years in the `cPoolsYears.csv` (output of `$cbmPools`, assuming no overmature decline).

@@ -209,16 +209,14 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
       ### (use `checkObject` or similar)
 
       # do stuff for this event
-      # sim <- Init(sim) #? can I call the function something else then Init?
       sim <- spinup(sim) ## this is the spinup
       if (P(sim)$spinupDebug) {
         sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "saveSpinup")
       }
-      # sim <- postSpinup(sim)
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "postSpinup")
-      # sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual")
+      # sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual") ## scheduled in postSpinup?
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMcore", "plot", eventPriority = 9)
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMcore", "save")
     },
@@ -241,10 +239,9 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
       sim <- annual(sim)
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot",.last())
       sim <- scheduleEvent(sim, time(sim) + 1, "spadesCBMcore", "annual")
       if (time(sim) == end(sim)) {
-        sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last())
+        sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last()) ## TODO: schedule saving in init or in savePools event
       }
       # ! ----- STOP EDITING ----- ! #
     },
@@ -257,7 +254,7 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
         spatialUnitIds = sim$cbmData@spatialUnitIds, spatialUnits = sim$spatialUnits
       )
       # sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
-      sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual")
+      sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual") ## TODO: schedule in init
       # ! ----- STOP EDITING ----- ! #
     },
     plot = {
@@ -272,6 +269,7 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
           cbmPools = sim$cbmPools,
           masterRaster = sim$masterRaster
         )
+
         NPPPlot(
           changeInNPP = sim$NPP,
           masterRaster = sim$masterRaster,
@@ -303,35 +301,7 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMcore", "save")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    save = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMcore", "templateEvent")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    event2 = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMcore", "templateEvent")
+      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMcore", "savePools")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -351,13 +321,13 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
 ### template initialization
 spinup <- function(sim) {
   opMatrix <- cbind(
-    1:sim$nStands, # growth 1
-    sim$ecozones, # domturnover
-    sim$ecozones, # bioturnover
-    1:sim$nStands, # overmature
-    1:sim$nStands, # growth 2
-    sim$spatialUnits, # domDecay
-    sim$spatialUnits, # slow decay
+    1:sim$nStands,      # growth 1
+    sim$ecozones,       # domturnover
+    sim$ecozones,       # bioturnover
+    1:sim$nStands,      # overmature
+    1:sim$nStands,      # growth 2
+    sim$spatialUnits,   # domDecay
+    sim$spatialUnits,   # slow decay
     rep(1, sim$nStands) # slow mixing
   )
 
@@ -470,16 +440,6 @@ postSpinup <- function(sim) {
   sim$spatialDT <- sim$spatialDT[order(sim$spatialDT$pixelIndex), ]
   sim$pixelKeep <- sim$spatialDT[, .(pixelIndex, pixelGroup)]
   setnames(sim$pixelKeep, c("pixelIndex", "pixelGroup0"))
-
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
-
-### template for save events
-Save <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # do stuff for this event
-  sim <- saveFiles(sim)
 
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
@@ -607,7 +567,7 @@ annual <- function(sim) {
   # 1. Read-in the disturbances
   # this raster is where we get our disturbances
 
-  annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(sim)[1], ".grd$"), value = TRUE))
+  annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(sim)[1], "[.]grd$"), value = TRUE))
   pixels <- getValues(sim$masterRaster)
   yearEvents <- getValues(annualDisturbance) %>% .[pixels != 0] # same length as spatialDT
 
@@ -669,10 +629,9 @@ annual <- function(sim) {
   # setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)))
 
   # change the vector of pixel group in $spatialDT to match trackPix for next annual cycle
-
   sim$spatialDT$pixelGroup <- trackPix2$pixelGroup
-  # count the pixels in each new pixel group
 
+  # count the pixels in each new pixel group
   pixelCount <- sim$spatialDT[, .N, by = pixelGroup][order(pixelGroup), ]
   pixelCount[which(is.na(pixelCount$N)), "N"] <- 0
   # THIS IS WHERE IS THERE IS A PIXEL GROUP WITH 0 PIXELS, WE SHOULD GET RID OF IT
@@ -688,7 +647,6 @@ annual <- function(sim) {
 
   # this is where the equivalent of sim$level3DT and C pools for new groups are
   # put together
-
   toAdd <- merge(uniqueNewGroup, groupToAddC, all.x = TRUE) # ,on = c("pixelGroup")]
   toAdd <- toAdd[, c("pixelGroup", "newGroup") := list(newGroup, NULL)]
   toAdd <- toAdd[order(pixelGroup), ]
@@ -763,7 +721,7 @@ annual <- function(sim) {
   ## DISTURBANCES CALCULATED
 
   # # for a visual check
-  # distPg740 <- toAddDist[pixelGroup==740,.(row, calcDist)]
+  # distPg740 <- toAddDist[pixelGroup==740, .(row, calcDist)]
   # distPg740 <- distPg740[, row:= as.numeric(as.character(row))][order(row),]
   # chgVect <- cbind(toAdd1[pixelGroup==740],distPg740)
 
@@ -789,9 +747,10 @@ annual <- function(sim) {
   # names(inC) <- c("pixelGroup","row","inC")
   domTfluxes <- inC[outC, on = c("pixelGroup", "row")]
 
-  toAddDomT <- toAddDist[domTfluxes, on = c("pixelGroup", "row")][, .(calcDomT = (calcDist - outC + inC)), by = c("pixelGroup", "row")]
+  toAddDomT <- toAddDist[domTfluxes, on = c("pixelGroup", "row")][
+    , .(calcDomT = (calcDist - outC + inC)), by = c("pixelGroup", "row")]
   # pools can't go negative
-  toAddDomT [calcDomT < 0, "calcDomT"] <- 0
+  toAddDomT[calcDomT < 0, "calcDomT"] <- 0
   ## END calculate domTurn ########################
 
   # # for a visual check
@@ -816,15 +775,16 @@ annual <- function(sim) {
   # names(inC) <- c("pixelGroup","row","inC")
   bioTfluxes <- inC[outC, on = c("pixelGroup", "row")]
 
-  toAddbioT <- toAddDomT[bioTfluxes, on = c("pixelGroup", "row")][, .(calcbioT = (calcDomT - outC + inC)), by = c("pixelGroup", "row")]
+  toAddbioT <- toAddDomT[bioTfluxes, on = c("pixelGroup", "row")][
+    , .(calcbioT = (calcDomT - outC + inC)), by = c("pixelGroup", "row")]
   # pools can't go negative
   toAddbioT[calcbioT < 0, "calcbioT"] <- 0
   ## END calculate bioTurn ########################
 
   # # for a visual check
-  # bioTpg740 <- toAddbioT[pixelGroup==740,.(row, calcbioT)]
-  # bioTpg740 <- bioTpg740[, row:= as.numeric(as.character(row))][order(row),]
-  # chgVect[,bioTpg740:=bioTpg740$calcbioT]
+  # bioTpg740 <- toAddbioT[pixelGroup == 740, .(row, calcbioT)]
+  # bioTpg740 <- bioTpg740[, row := as.numeric(as.character(row))][order(row), ]
+  # chgVect[, bioTpg740 := bioTpg740$calcbioT]
 
   ## calculate domDecay ########################
   # match with spatial units
@@ -864,14 +824,16 @@ annual <- function(sim) {
   slowDecayMats[, row := as.character(row)]
   # spuAdd <- toAdd[,.(pixelGroup,spatial_unit_id)][,spu := as.character(spatial_unit_id)]
   slowD1 <- toAddDomD[spuAdd, on = "pixelGroup"]
-  slowD2 <- slowD1[slowDecayMats, on = c("spu", "row"), allow.cartesian = TRUE][, fluxOut := (calcDomD * slowDecayValue)]
+  slowD2 <- slowD1[slowDecayMats, on = c("spu", "row"), allow.cartesian = TRUE][
+    , fluxOut := (calcDomD * slowDecayValue)]
   outC <- slowD2[, .(outC = sum(fluxOut)), by = c("pixelGroup", "row")]
   inC <- slowD2[, .(inC = sum(fluxOut)), by = c("pixelGroup", "col")]
   inC[, row := as.character(col)]
   # names(inC) <- c("pixelGroup","row","inC")
   slowDfluxes <- inC[outC, on = c("pixelGroup", "row")]
 
-  toAddslowD <- toAddDomD[slowDfluxes, on = c("pixelGroup", "row")][, .(calcSlowD = (calcDomD - outC + inC)), by = c("pixelGroup", "row")]
+  toAddslowD <- toAddDomD[slowDfluxes, on = c("pixelGroup", "row")][
+    , .(calcSlowD = (calcDomD - outC + inC)), by = c("pixelGroup", "row")]
   # pools can't go negative
   toAddslowD[calcSlowD < 0, "calcSlowD"] <- 0
   ## END calculate slowDecay ########################
@@ -894,7 +856,8 @@ annual <- function(sim) {
   # names(inC) <- c("pixelGroup","row","inC")
   slowMfluxes <- inC[outC, on = c("pixelGroup", "row")]
 
-  toAddslowM <- toAddslowD[slowMfluxes, on = c("pixelGroup", "row")][, .(calcSlowM = (calcSlowD - outC + inC)), by = c("pixelGroup", "row")]
+  toAddslowM <- toAddslowD[slowMfluxes, on = c("pixelGroup", "row")][
+    , .(calcSlowM = (calcSlowD - outC + inC)), by = c("pixelGroup", "row")]
   # pools can't go negative
   toAddslowM[calcSlowM < 0, "calcSlowM"] <- 0
   toAddslowM[, row := as.numeric(as.character(row))]

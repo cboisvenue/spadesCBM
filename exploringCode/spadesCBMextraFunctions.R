@@ -35,7 +35,7 @@ mySpu <- unique(spatial_unit_id) ## 28, 27
 # or
 mySpu <- unique(gcIn[, 1]) ## 26 27 28 29 30
 
-# the function has the defaults from the Sk managed forest example. These can my
+# the function has the defaults from the Sk managed forest example. These can be
 # changed by feeding in other spu
 spuDist <- function(mySpu = c(27, 28), dbPath = file.path("data", "cbm_defaults", "cbm_defaults.db")) {
   sqlite.driver <- dbDriver("SQLite")

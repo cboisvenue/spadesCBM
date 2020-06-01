@@ -760,7 +760,6 @@ Rcpp::NumericMatrix ComputeGrowthIncrements(Rcpp::Environment& growthIncrements,
 		"Id", "SWMerch", "SWFoliage", "SWOther", "SWFineRoot", "SWCoarseRoot",
 		"HWMerch", "HWFoliage", "HWOther", "HWFineRoot", "HWCoarseRoot");
 	return totalIncrements;
-
 }
 
 //' transforms growth matrix into coordinate format matrix in terms of CBM pools
@@ -904,7 +903,7 @@ enum SpinupState {
 	EndOfHistoricRotation = 1, // reached the end of a regular rotation, but not the last rotation, so apply the historic disturbance event
 	EndOfFinalRotationThenGrow = 2, //reached the end of the final rotation, so apply the last pass disturbance event and grow the stand to final age
 	EndOfFinalRotationThenDelay = 3, //reached the end of the final rotation, and the final stand age is 0, but there is delay
-	EndOfFinalRotationThenStop = 4, //reached the end of the final rotation, and the final stand age is 0, but there is delay
+	EndOfFinalRotationThenStop = 4, //reached the end of the final rotation, and the final stand age is 0, but there is delay #TODO: stop vs delay?
 	GrowToAge = 5, //after the last pass disturbance event, grow to the stand age
 	Delay = 6, //run the delay procedure (decays DOM pools in a deforested stand)
 	Disabled = 7 // no more C dynamics
@@ -1012,7 +1011,6 @@ Rcpp::NumericMatrix Spinup(Rcpp::NumericMatrix& pools,
 	std::vector<Rcpp::NumericVector> debugRows;
 
 	while (finishedCount != nstands) {
-
 		Rcpp::List growthAndDecline = ComputeGrowthAndDeclineMatrices2(growthIncrements, stepNum,
 			gcids, poolsClone, rootParameters, turnoverParams, biomassToCarbonRate, 0.5, 0.5);
 
@@ -1025,9 +1023,9 @@ Rcpp::NumericMatrix Spinup(Rcpp::NumericMatrix& pools,
 			constantProcesses["domDecayMatrices"],
 			constantProcesses["slowDecayMatrices"],
 			constantProcesses["slowMixingMatrix"]
-			);
+		);
 
-		//todo: apply the growth/annual processes step function call here
+		// #TODO: apply the growth/annual processes step function call here
 		StepPoolsRef(poolsClone, opMatrix, annualprocesses);
 
 		for (R_len_t i = 0; i < nstands; i++){
@@ -1110,7 +1108,6 @@ Rcpp::NumericMatrix Spinup(Rcpp::NumericMatrix& pools,
 		return poolsClone;
 	}
 	else{
-
 		Rcpp::NumericMatrix debugMat(debugRows.size(), pn.NPools + 2);
 		for (R_len_t r = 0; r < debugMat.nrow(); r++){
 			debugMat(r, Rcpp::_) = debugRows[r];
@@ -1119,4 +1116,3 @@ Rcpp::NumericMatrix Spinup(Rcpp::NumericMatrix& pools,
 		return debugMat;
 	}
 }
-
