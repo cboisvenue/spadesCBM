@@ -468,6 +468,21 @@ annual <- function(sim) {
   # DISTURBANCES COME IN HERE
   ###################################
   # 
+  ## TO DO: disturbances for both SK and RIA were read-in for the whole
+  ## simulation horizon in spadesCBMinputs. To permit "on-the-fly" disturbances,
+  ## they need to be read in here.
+  
+  # ###RIA: I do not have the harvest or fire layers for the RIA. For now, I will
+  # #try to disturbe pixels using a fire composite that was created for Ana
+  # #Raymundo. The raster composite is here:
+  # #https://drive.google.com/open?id=10aQUa_QCS6UMvoeFV-WnBSFk8YCqOBsT
+  # sim$disturbanceRasters <- raster(file.path(dataPath,"/RIA2019/firesComposite.tif"))
+  # ### SK:
+  # # list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
+  # #                                full.names = TRUE) %>%
+  # # grep(., pattern = ".grd$", value = TRUE)
+  # # 
+  
   # 1. Read-in the disturbances
   # this raster is where we get our disturbances 
   

@@ -186,6 +186,8 @@ spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defa
     cbmTables[[i]] <- dbReadTable(cbmDefaults,alltables[i])
   }
   # match mySpu with the disturbance_matrix_association table
+  # this could be done with sim$cbmData@disturbanceMatrixAssociation and would
+  # not require RSQLite
   dmid <- unique(cbmTables[[7]][which(cbmTables[[7]][,1] %in% mySpu),c(1,3)])
   
   # add the descriptive names

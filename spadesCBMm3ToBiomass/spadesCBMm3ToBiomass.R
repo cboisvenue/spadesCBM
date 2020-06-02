@@ -33,7 +33,8 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
+    expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
+    expectsInput(objectName = "gcurveComponentsFileName", objectClass = "character", desc = "User file name for the files containing: GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -125,6 +126,8 @@ doEvent.spadesCBMm3ToBiomass = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
   ## Read-in user
+  
+  
   #OLD#### process growth curves #########--------------------------------------------------------------
   
   # first reduce to the curves applicable to the study area----
@@ -241,6 +244,29 @@ Init <- function(sim) {
   
   sim$growth_increments <- as.matrix(increments)
   # END process growth curves -------------------------------------------------------------------------------
+  
+  ## AGE ISSUE: if stands are older than growth curves repeat the last growth curve values to past the max age
+  # old code to help
+  # check is there are stands that are older then the growth curve we have
+  userGcM3 <- fread("data/userGcM3.csv")#fread(sim$gcurveComponentsFileName)
+  if(max(sim$ages) > max(userGcM3[,2])){
+    stop("there are more than one wildfire in one or more of the spatial units, the user needs to pick one")
+  }
+  
+  ## DECISION: there are stands over 350 years old and we do not have growth
+  ## curves past 350. So I am setting all ages about 350 to 350. This means that
+  ## we are not tracking old stands but also, this problem will go away once we
+  ## use LandR for the biomass increments
+  sim$ages[sim$ages>350] <- 350
+  ## END AGE
+  
+  ### missing gcID error message needed
+  ## NEED an error message here if this vector any of the gcids are NOT 
+  # in the increments (and therefore in the gcHash)
+  # gcidUnique <- unique(sim$gcids)
+  # sim$gcids[!(sim$gcids %in% gcidUnique)]
+  ### missing end
+  
   
   sim$gcHash <- matrixHash(sim$growth_increments)
   #create a nested hash (by gcid/by age)
