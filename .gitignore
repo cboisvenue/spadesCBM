@@ -1,4 +1,9 @@
+data/
+outputs/
 
+exploringCode/scratchErrorsCBMinputs.R
+exploringCode/scraptGC.r
+exploringCode/errorsFromCpp.r
 spadesCBMcore/data/SK_ReclineRuns30m/
 
 Thumbs.db
@@ -92,9 +97,3 @@ sshkeygen
 .httr-oauth
 *.gri
 *.grd
-
-exploringCode/scratchErrorsCBMinputs\.R
-
-exploringCode/scraptGC.r
-
-exploringCode/errorsFromCpp.r
