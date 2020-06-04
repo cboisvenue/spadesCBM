@@ -4,17 +4,17 @@
 # to all modules. Functions can be used without sim$ as they are namespaced, like functions
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
-  name = "spadesCBMinputs",
+  name = "spadesCBMinputsMerge",
   description = "A data preparation module to format all the user-provided input to the SpaDES forest-carbon modelling familly.", #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputs = "0.0.1"),
+  version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputsMerge = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "spadesCBMinputs.Rmd"),
+  documentation = list("README.txt", "spadesCBMinputsMerge.Rmd"),
   reqdPkgs = list("RSQLite","data.table","raster", "PredictiveEcology/LandR"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -32,7 +32,8 @@ defineModule(sim, list(
     expectsInput(objectName = "PoolCount", objectClass = "numeric", desc = "count of the length of the Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "userDist", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files", sourceURL = NA)
+    expectsInput(objectName = "userDist", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files", sourceURL = NA),
+    expectsInput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -53,16 +54,16 @@ defineModule(sim, list(
     #createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
     createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table linking the spu id, with the disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White"),
     createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),
-    createsOutput(objectName = "mySpuDmids", objectClass = "data.frame", desc = "the table containing one line per pixel"),
-    createsOutput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
-    createsOutput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
+    createsOutput(objectName = "mySpuDmids", objectClass = "data.frame", desc = "the table containing one line per pixel")
+    #createsOutput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
+    
   )
 ))
 
 ## event types
 #   - type `init` is required for initialiazation
 
-doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.spadesCBMinputsMerge = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
@@ -73,7 +74,7 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- Init(sim)
 
       # schedule future event(s)
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMinputs", "save")
+      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMinputsMerge", "save")
     },
     
     save = {
@@ -86,7 +87,7 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMinputs", "save")
+      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMinputsMerge", "save")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -144,7 +145,7 @@ Init <- function(sim) {
   # the spadesCBMcore spinup event
   level3DT <- unique(spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
   sim$level3DT <- level3DT
-  ## End data.tbale for simulations-------------------------------------------
+  ## End data.table for simulations-------------------------------------------
   
   
   ############################################################
@@ -181,13 +182,22 @@ Init <- function(sim) {
   # make the disturbance look-up table to the disturbance_matrix_id(s)
   # making sim$mySpuDmids
   
+  userDist <- fread(sim$userDist)
+  
   # Most cases will only require fire (wildfire) and a clearcut. There are 426
   # disturbance matrices identified in the archive of CBM
   # (sim$cbmData@disturbanceMatrix). Matrices are associated with spatial units
   # (sim$cbmData@disturbanceMatrixAssociation). User can select any disturbance
   # they want to represent. Some disturbance matrices are based on data but most
   # are expert opinion in the CBM-CFS3 archive.
-  
+  # Disturbance Matrices are specific to spatial_units_ids--------------
+  spu <- unique(sim$spatialDT$spatial_unit_id)
+  # what disturbances in those spu(s)?
+  # spuDist() function is in spadesCBMinputsMergeFunctions.R
+  # it lists all the possible disturbances in the CBM-CFS3 archive for that/those
+  # spatial unit with the name of the disturbance in the 3rd colum.
+  listDist <- spuDist(spu)
+ 
   ## Example specific for SK (as per Boisvenue et al 2016)
   # Disturbances are from White and Wulder and provided as yearly rasters
   # raster values 1 to 5
@@ -200,72 +210,34 @@ Init <- function(sim) {
   # Whatever number of disturbances identified that will be used in the
   # simulation, each disturbance has to have one one disturbance matrix id
   # associated with it.
+  # make mySpuDmids (distNames,rasterId,spatial_unit_id,disturbance_matrix_id)
+  distName <- c(rep(userDist$distName,length(spu)))
+  rasterId <- c(rep(userDist$rasterId,length(spu)))
+  spatial_unit_id <- c(sort(rep(spu,length(userDist$distName))))
+  mySpuDmids <- as.data.table(cbind(
+    distName,
+    rasterId,
+    spatial_unit_id)
+  )
+  dmid <- data.frame(spatial_unit_id=integer(),disturbance_matrix_id=integer())  
   
-  # Disturbance Matrices are specific to spatial_units_ids--------------
-  spu <- unique(sim$spatialDT$spatial_unit_id)
-  # what disturbances in those spu(s)?
-  # spuDist() function is in spadesCBMinputsFunctions.R
-  # it lists all the possible disturbances in the CBM-CFS3 archive for that/those
-  # spatial unit with the name of the disturbance in the 3rd colum.
-  listDist <- spuDist(spu)
-  # End spu DMIDs-------------------------------------------------------
+  for(i in 1:length(mySpuDmids$distName)){
+    getDist <- listDist[grep(mySpuDmids$distName[i],listDist[,3], ignore.case=TRUE),1:2]
+    ## TO DO: this has not been tested AND I want the user to select if there are many
+    # if(dim(getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],])[1]>1){
+    #   message("There is more then one disturbance named", mySpuDmids$distName[i],
+    #           "the user must select one from",
+    #           getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],])
+    # }
+    ### DANGER HARD CODED FIXES
+    if(mySpuDmids$distName[i]=="clearcut"){
+      dmid[i,] <- cbind(mySpuDmids$spatial_unit_id[i],409)
+    }else dmid[i,] <- getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],]
+  } ## bunch of warnings here...
   
-  userDist <- sim$userDist
-
-  ## TO DO: process each dist as dist1, dist2, etc. with defaults being wildfire
-  ## and harvest.
-  
-  ## Wildfire-------------------
-  #This extracts all with wildfire in the name 
-  fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
-  # There should be only one wildfire selected for each spu. This wildfire
-  # disturbance is the one that will be used on the spinup
-  if(NROW(spu) != NROW(fire)){
-    stop("there are more than one disturbance of this type per spu, the user needs to select one per spu")
-  }
-  # user modifies: fire <- so that there is one wildfire per spu.
-  ## end wildfire--------------
-  
-  ## Clearcut-------------
-  # there are almost always more than one clearCut per spu.
-  clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
-  # 12 clearcut types, 6 per spu in SK
-  # lines 7 and 8 ("clearcut with 94% utilization rate and 50% salvage of
-  # snags") are selected for the SK example simulations.
-  clearCut <- clearCut[7:8,]
-  if(NROW(spu) != NROW(clearCut)){
-    stop("there are more than one disturbance of this type per spu, the user needs to select one per spu")
-  }
-  ## End clearCut---------
-
-  ## Deforestation--------------------
-  defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
-  # There are 12 deforestation, but only two are not called "Fixed
-  # Deforestation-Hydro", so I picked these two
-  defor <- defor1[1:2,]
-  if(NROW(spu) != NROW(defor)){
-    stop("there are more than one disturbance of this type per spu, the user needs to select one per spu")
-  }
-  ## End deforestation---------------
-  
-  ## generic 20% mortality--------------------
-  generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
-  
-  if(NROW(spu) != NROW(generic)){
-    stop("there are more than one disturbance of this type per spu, the user needs to select one per spu")
-  }
-  ## generic 20% mortality--------------------
-  
-  ## TO DO: modify this so it can take the dist1, dist2, etc.
-  mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
-  #creating a vector of the pixel values to be able to match the disturbance_matrix_id
-  ## TO DO: if raster values are given by use in userDist, this will be needed
-  ## but provided by user. But chances are all different disturbances will be
-  ## comming in individual rasters. This step won't be needed. Need to put
-  ## options if/else here.
-  events <- c(1,1,2,2,4,4,3,3,5,5)
-  # ## TO HERE
-  
+  mySpuDmids <- cbind(mySpuDmids,dmid$disturbance_matrix_id)
+  names(mySpuDmids) <- c("distName","rasterId","spatial_unit_id","disturbance_matrix_id")
+  sim$mySpuDmids <- mySpuDmids
   # need to match the historic and last past dist to the spatial unit
   # DECISION: both the last pass and the historic disturbance will be the same
   # for these runs
@@ -274,7 +246,7 @@ Init <- function(sim) {
   ## not, it could be harverst. Make this optional and give the user a message
   ## saying these are the defaults.
 
-  sim$mySpuDmids <- fread(file.path(getwd(),"/spadesCBMinputs/data/mySpuDmids.csv"))
+  #sim$mySpuDmids <- fread(file.path(getwd(),"/spadesCBMinputsMerge/data/mySpuDmids.csv"))
   mySpuFires <- sim$mySpuDmids[grep("wildfire",sim$mySpuDmids$distName, ignore.case=TRUE),]
 
   myFires <- mySpuFires[spatial_unit_id %in% unique(sim$level3DT$spatial_unit_id),]
@@ -322,11 +294,18 @@ Save <- function(sim) {
     ## PUT A MESSAGE HERE CHECKING IF THE USE PROVIDED THE G&Y and m3 FILE
     ## NAMES. IF NOT PROMPT USER.
     sim$gcurveComponentsFileName <- file.path(dataPath, "userGcM3.csv")
-  
-  if(!suppliedElsewhere(sim$userDist))
-    ## message needed here to confirm that user wants to use the defaults: fire and clearcut.
-    sim$userDist <- fread(file.path(dataPath,"userDist.csv"))#
-    ## alternative userDist <- c("fire", "cleacut"), c(1,2)
+
+  ## TO CHECK: first attempt at getting messages out and user to provide data
+
+  if(!suppliedElsewhere(sim$userDist)){
+    message("There is no disturbance information provided; default will be used (fire and clearcut)")
+    # make a default
+    distName <- c("fire", "clearcut")
+    rasterId <- c(1,2)
+    sim$userDist <- data.table(distName,rasterId)
+    # post a warning
+    warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
+  } 
   
   if(!suppliedElsewhere(sim$cbmData)){
     spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
@@ -386,8 +365,8 @@ Save <- function(sim) {
     # local file here Cache(raster,file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
     # here should be all the fixes needed (if any). For SK, the RTM is the
     # leading species raster with the 0 needing to be changed to NAs
-    sim$masterRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/ldSp_TestArea.tif"))
-    sim$masterRaster[masterRaster == 0] <- NA
+    sim$masterRaster <- raster(file.path(getwd(),"/spadesCBMinputsMerge/data/ldSp_TestArea.tif"))
+    sim$masterRaster[sim$masterRaster == 0] <- NA
     
       # help - can't get this to work.                  
       # prepInputs( # Cache
@@ -406,7 +385,7 @@ Save <- function(sim) {
     # }
 #	}
   if(!suppliedElsewhere(sim$ageRaster)){
-    sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/age_TestArea.tif"))
+    sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputsMerge/data/age_TestArea.tif"))
       # Cache(prepInputs, 
       #                         url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
       #                         fun = raster::raster)
@@ -418,7 +397,7 @@ Save <- function(sim) {
     # in Sk, the gcID is defined by the leading species the productivity level
     # there are 1,2 and 3 productivity levels, but we only have a few species that have 2 levels,
     # the others have one
-    sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/gcIndex.tif"))
+    sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/gcIndex.tif"))
     # Cache(prepInputs, 
     #                         url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
     #                         fun = raster::raster)
@@ -430,18 +409,18 @@ Save <- function(sim) {
     #                       useCache = FALSE, filename2 = NULL)
     # spuRaster <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = masterRaster, field = "spu_id")
     
-    sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/spUnits_TestArea.tif"))
+    sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/spUnits_TestArea.tif"))
     # For this raster the "big" spatial unit map for Canada would need to be
     # cropped to the study area
     
   }
   if(!suppliedElsewhere(sim$ecoRaster)){
-    sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/ecoRaster.tif"))
+    sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/ecoRaster.tif"))
     # ecozones <- prepInputs(# targetFile = asPath(ecodistrictFilename),
     #   #archive = asPath("ecodistrict_shp.zip"),
     #   url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
     #   #alsoExtract = ecodistrictAE,
-    #   destinationPath = file.path(getwd(),"spadesCBMinputs/data/"),
+    #   destinationPath = file.path(getwd(),"spadesCBMinputsMerge/data/"),
     #   rasterToMatch = masterRaster,
     #   overwrite = TRUE,
     #   fun = "raster::shapefile",
