@@ -340,7 +340,12 @@ Event2 <- function(sim) {
   #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
-
+  
+  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
+    ## PUT A MESSAGE HERE CHECKING IF THE USE PROVIDED THE G&Y and m3 FILE
+    ## NAMES. IF NOT PROMPT USER.
+    sim$gcurveComponentsFileName <- file.path(dataPath, "userGcM3.csv")
+  
   # ! ----- EDIT BELOW ----- ! #
 
   # ! ----- STOP EDITING ----- ! #

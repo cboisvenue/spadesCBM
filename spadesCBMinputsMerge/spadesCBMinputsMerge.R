@@ -33,7 +33,15 @@ defineModule(sim, list(
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "userDist", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files", sourceURL = NA),
-    expectsInput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
+    expectsInput(objectName = "ageRasterURL", objectClass = "character", desc = "URL for ageRaster - optional, need this or a ageRaster"),
+    expectsInput(objectName = "ageRaster", objectClass = "raster", desc = "Raster ages for each pixel", sourceURL = "https://drive.google.com/file/d/1hylk0D1vO19Dpg4zFtnSNhnyYP4j-bEA/view?usp=sharing"),
+    expectsInput(objectName = "gcIndexRasterURL", objectClass = "character", desc = "URL for ageRaster - optional, need this or a ageRaster"),
+    expectsInput(objectName = "gcIndexRaster", objectClass = "raster", desc = "Raster ages for each pixel", sourceURL = "https://drive.google.com/file/d/1yunkaYCV2LIdqej45C4F9ir5j1An0KKr/view?usp=sharing"),
+    expectsInput(objectName = "spuRaster", objectClass = "raster", desc = "Raster has spatial units for each pixel"),
+    expectsInput(objectName = "ecoRaster", objectClass = "raster", desc = "Raster has ecozones for each pixel"),
+    expectsInput(objectName = "masterRasterURL", objectClass = "character", desc = "URL for masterRaster - optional, need this or a masterRaster"),
+    expectsInput(objectName = "masterRaster", objectClass = "raster", sourceURL = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW/view?usp=sharing",
+                 desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -110,7 +118,6 @@ Init <- function(sim) {
   ## These spatial units (or spu) and the ecozones link the CBM-CFS3 ecological
   ## parameters to the right location (example: decomposition rates).
   ## 
-  masterRaster <- sim$masterRaster # see .inputObjects
   age <- sim$ageRaster
   gcIndex <- sim$gcIndexRaster
   spuRaster <- sim$spuRaster # made in the .inputObjects
@@ -119,7 +126,7 @@ Init <- function(sim) {
   
   
   ## Create the data table of all pixels and all values for the study area----------------
-  level2DT <- Cache(data.table,spatial_unit_id = spuRaster[],ages = age[],pixelIndex = 1:ncell(age),
+  level2DT <- data.table(spatial_unit_id = spuRaster[],ages = age[],pixelIndex = 1:ncell(age),
                     growth_curve_component_id= gcIndex[], growth_curve_id = gcIndex[],
                     ecozones = ecoRaster[])
   # keep only the pixels that have all the information: the pixels that will be simulated
@@ -214,28 +221,24 @@ Init <- function(sim) {
   distName <- c(rep(userDist$distName,length(spu)))
   rasterId <- c(rep(userDist$rasterId,length(spu)))
   spatial_unit_id <- c(sort(rep(spu,length(userDist$distName))))
-  mySpuDmids <- as.data.table(cbind(
-    distName,
-    rasterId,
-    spatial_unit_id)
-  )
+  mySpuDmids <- data.table(distName,rasterId,spatial_unit_id)
+  
   dmid <- data.frame(spatial_unit_id=integer(),disturbance_matrix_id=integer())  
   
   for(i in 1:length(mySpuDmids$distName)){
-    getDist <- listDist[grep(mySpuDmids$distName[i],listDist[,3], ignore.case=TRUE),1:2]
-    ## TO DO: this has not been tested AND I want the user to select if there are many
-    # if(dim(getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],])[1]>1){
-    #   message("There is more then one disturbance named", mySpuDmids$distName[i],
-    #           "the user must select one from",
-    #           getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],])
-    # }
     ### DANGER HARD CODED FIXES
+    ## to do: present the user with options that live in listDist for the
+    ## specific spu or in sim$cbmData@disturbanceMatrix
     if(mySpuDmids$distName[i]=="clearcut"){
       dmid[i,] <- cbind(mySpuDmids$spatial_unit_id[i],409)
-    }else dmid[i,] <- getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],]
+    }else{
+      getDist <- listDist[grep(mySpuDmids$distName[i],listDist[,3], ignore.case=TRUE),1:2]
+      getDist <- getDist[getDist$spatial_unit_id == mySpuDmids$spatial_unit_id[i],]
+      dmid[i,] <- getDist[1,]
+    }
   } ## bunch of warnings here...
-  
-  mySpuDmids <- cbind(mySpuDmids,dmid$disturbance_matrix_id)
+
+  mySpuDmids <- data.table(mySpuDmids,dmid$disturbance_matrix_id)
   names(mySpuDmids) <- c("distName","rasterId","spatial_unit_id","disturbance_matrix_id")
   sim$mySpuDmids <- mySpuDmids
   # need to match the historic and last past dist to the spatial unit
@@ -247,6 +250,7 @@ Init <- function(sim) {
   ## saying these are the defaults.
 
   #sim$mySpuDmids <- fread(file.path(getwd(),"/spadesCBMinputsMerge/data/mySpuDmids.csv"))
+
   mySpuFires <- sim$mySpuDmids[grep("wildfire",sim$mySpuDmids$distName, ignore.case=TRUE),]
 
   myFires <- mySpuFires[spatial_unit_id %in% unique(sim$level3DT$spatial_unit_id),]
@@ -289,11 +293,6 @@ Save <- function(sim) {
     sim$sqlDir <- file.path(dataPath,"cbm_defaults")
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  
-  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
-    ## PUT A MESSAGE HERE CHECKING IF THE USE PROVIDED THE G&Y and m3 FILE
-    ## NAMES. IF NOT PROMPT USER.
-    sim$gcurveComponentsFileName <- file.path(dataPath, "userGcM3.csv")
 
   ## TO CHECK: first attempt at getting messages out and user to provide data
 
@@ -359,76 +358,67 @@ Save <- function(sim) {
   sim$PoolCount <- length(sim$pooldef)
   }
   
-    #needRTM <- FALSE
- # if (is.null(sim$masterRaster)) {
-    if (!suppliedElsewhere("masterRaster",sim)){
-    # local file here Cache(raster,file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
-    # here should be all the fixes needed (if any). For SK, the RTM is the
-    # leading species raster with the 0 needing to be changed to NAs
-    sim$masterRaster <- raster(file.path(getwd(),"/spadesCBMinputsMerge/data/ldSp_TestArea.tif"))
-    sim$masterRaster[sim$masterRaster == 0] <- NA
-    
-      # help - can't get this to work.                  
-      # prepInputs( # Cache
-      # url ="https://drive.google.com/file/d/17D76wWir5dCFWb3AFEPiEMz5Q64JorPz/view?usp=sharing",
-      # fun = raster::raster)
+  if (!suppliedElsewhere("masterRaster",sim)){
+    if(!suppliedElsewhere("masterRasterURL",sim)){
+      sim$masterRasterURL <- extractURL("masterRaster")
+      ## TO DO: why is this
+      message("User has not supplied a masterRaster or a URL for a masterRaster (masterRasterURL object).",
+              "masterRaster is going to be read from the default URL given in the inputObjects for",
+              currentModule(sim))
     }
-    ## comments below taken from BiomassSpeciesData.R - will add messages when things work
-    # if (!suppliedElsewhere("masterRaster", sim)) {      ## if one is not provided, re do both (safer?)
-    #   needRTM <- TRUE
-    #   message("There is no masterRaster supplied; will attempt to use rawBiomassMap")
-    # } else {
-    #   stop("masterRaster is going to be supplied, but ", currentModule(sim), " requires it ",
-    #        "as part of its .inputObjects. Please make it accessible to ", currentModule(sim),
-    #        " in the .inputObjects by passing it in as an object in simInit(objects = list(masterRaster = aRaster)",
-    #        " or in a module that gets loaded prior to ", currentModule(sim))
-    # }
-#	}
+    sim$masterRaster <- Cache(
+      prepInputs ,
+      url = sim$masterRasterURL,
+      fun = "raster::raster")
+    # sim$masterRaster <- raster(file.path(getwd(),"/spadesCBMinputsMerge/data/ldSp_TestArea.tif"))
+    
+    sim$masterRaster[sim$masterRaster == 0] <- NA
+  }
+
   if(!suppliedElsewhere(sim$ageRaster)){
-    sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputsMerge/data/age_TestArea.tif"))
-      # Cache(prepInputs, 
-      #                         url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
-      #                         fun = raster::raster)
-      # 
-  
+    if(!suppliedElsewhere(sim$ageRasterURL)){
+      sim$ageRasterURL <- extractURL("ageRaster")
+    }
+    #sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputsMerge/data/age_TestArea.tif"))
+    sim$ageRaster <- Cache(prepInputs,
+                           url = sim$ageRasterURL,
+                           fun = "raster::raster")
   }
   
   if(!suppliedElsewhere(sim$gcIndexRaster)){
-    # in Sk, the gcID is defined by the leading species the productivity level
-    # there are 1,2 and 3 productivity levels, but we only have a few species that have 2 levels,
-    # the others have one
-    sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/gcIndex.tif"))
-    # Cache(prepInputs, 
-    #                         url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
-    #                         fun = raster::raster)
-    # 
+    if(!suppliedElsewhere(sim$gcIndexRasterURL)){
+      sim$gcIndexRasterURL <- extractURL("gcIndexRaster")
+    }
+    #sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/gcIndex.tif"))
+    sim$gcIndexRaster <- prepInputs(#Cache(
+                               url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
+                               fun = "raster::raster")
+    
   }
   if(!suppliedElsewhere(sim$spuRaster)){
-    # canadaSpu <- shapefile("data/spUnit_Locator.shp")
-    # spuShp <- postProcess(canadaSpu, rasterToMatch = masterRaster, targetCRS = crs(masterRaster),
-    #                       useCache = FALSE, filename2 = NULL)
-    # spuRaster <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = masterRaster, field = "spu_id")
+    canadaSpu <- shapefile("data/spUnit_Locator.shp")
+    spuShp <- postProcess(canadaSpu, rasterToMatch = sim$masterRaster, targetCRS = crs(sim$masterRaster),
+                          useCache = FALSE, filename2 = NULL)
+    sim$spuRaster <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = sim$masterRaster, field = "spu_id")
     
-    sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/spUnits_TestArea.tif"))
-    # For this raster the "big" spatial unit map for Canada would need to be
-    # cropped to the study area
-    
+    #sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/spUnits_TestArea.tif"))
   }
+  
   if(!suppliedElsewhere(sim$ecoRaster)){
-    sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/ecoRaster.tif"))
-    # ecozones <- prepInputs(# targetFile = asPath(ecodistrictFilename),
-    #   #archive = asPath("ecodistrict_shp.zip"),
-    #   url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
-    #   #alsoExtract = ecodistrictAE,
-    #   destinationPath = file.path(getwd(),"spadesCBMinputsMerge/data/"),
-    #   rasterToMatch = masterRaster,
-    #   overwrite = TRUE,
-    #   fun = "raster::shapefile",
-    #   filename2 = TRUE)#,
-    # #userTags = cacheTags)
-    # ecozones <- cropInputs(ecozones, rasterToMatch = masterRaster)
-    # ecozonesRas <- fasterize::fasterize(sf::st_as_sf(ecozones), raster = masterRaster,
-    #                                     field = "ECOZONE")
+    #sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/ecoRaster.tif"))
+    ecozones <- prepInputs(# targetFile = asPath(ecodistrictFilename),
+      #archive = asPath("ecodistrict_shp.zip"),
+      url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
+      #alsoExtract = ecodistrictAE,
+      destinationPath = file.path(getwd(),"spadesCBMinputsMerge/data/"),
+      rasterToMatch = sim$masterRaster,
+      overwrite = TRUE,
+      fun = "raster::shapefile",
+      filename2 = TRUE)#,
+    #userTags = cacheTags)
+    ecozones <- cropInputs(ecozones, rasterToMatch = sim$masterRaster)
+    sim$ecoRaster <- fasterize::fasterize(sf::st_as_sf(ecozones), raster = sim$masterRaster,
+                                        field = "ECOZONE")
     
   }
   # ! ----- STOP EDITING ----- ! #

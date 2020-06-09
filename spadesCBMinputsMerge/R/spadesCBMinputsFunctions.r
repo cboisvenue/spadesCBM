@@ -81,7 +81,8 @@ spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defa
   sqlite.driver <- dbDriver("SQLite")
   
   cbmDefaults <- dbConnect(sqlite.driver,
-                           dbname = dbPath)
+                           dbname = dbPath)# in the folder cbm_defaults like:
+                                           # file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")
   
   alltables = dbListTables(cbmDefaults)
   cbmTables <- list()
