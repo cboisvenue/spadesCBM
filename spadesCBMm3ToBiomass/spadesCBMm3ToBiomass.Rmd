@@ -36,8 +36,8 @@ There is only one event in this module (init), and this module is only scheduled
 
 ```{r module_usage}
 library(SpaDES)
-
-moduleDir <- getwd()
+library(magrittr) # this is needed to use "%>%" below
+moduleDir <- "C:/Celine/github/spadesCBM"
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
@@ -52,8 +52,8 @@ parameters <- list(
 
 modules <- list("spadesCBMm3ToBiomass")
 objects <- list(
-  userGcMetafileName <- c("/RIA2019/gcMetaRuns.csv"),
-  userGcM3 <- c("/RIA2019/gcRIAm3.csv")
+  #userGcMetafileName <- c("/RIA2019/gcMetaRuns.csv"),
+  #userGcM3 <- c("/RIA2019/gcRIAm3.csv")
 
 )
 paths <- list(
@@ -62,12 +62,18 @@ paths <- list(
   inputPath = inputDir,
   outputPath = outputDir
 )
+options(
+    rasterTmpDir = inputDir,
+    reproducible.cachePath = cacheDir,
+    spades.inputPath = inputDir,
+    spades.outputPath = outputDir,
+    spades.modulePath = moduleDir
+  )
 
-
-mySim <- simInit(times = times, params = parameters, modules = modules,
+myBiomass <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
 
-myBiomassOut <- spades(mySim)
+myBiomassOut <- spades(myBiomass)
 ```
 
 # Events

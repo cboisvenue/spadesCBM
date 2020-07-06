@@ -5,7 +5,7 @@
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
   name = "spadesCBMinputsMerge",
-  description = "A data preparation module to format all the user-provided input to the SpaDES forest-carbon modelling familly.", #"insert module description here",
+  description = "A data preparation module to format and prepare user-provided input to the SpaDES forest-carbon modelling familly.", #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
@@ -32,7 +32,8 @@ defineModule(sim, list(
     expectsInput(objectName = "PoolCount", objectClass = "numeric", desc = "count of the length of the Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "userDist", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files", sourceURL = NA),
+    expectsInput(objectName = "userDistFile", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files, if not there the userDist will be created with defaults", sourceURL = NA),
+    expectsInput(objectName = "userDist", objectClass = "data.table", desc = "User provided file that identifies disturbances for simulation, if not there it will use userDistFile", sourceURL = NA),
     expectsInput(objectName = "ageRasterURL", objectClass = "character", desc = "URL for ageRaster - optional, need this or a ageRaster"),
     expectsInput(objectName = "ageRaster", objectClass = "raster", desc = "Raster ages for each pixel", sourceURL = "https://drive.google.com/file/d/1hylk0D1vO19Dpg4zFtnSNhnyYP4j-bEA/view?usp=sharing"),
     expectsInput(objectName = "gcIndexRasterURL", objectClass = "character", desc = "URL for ageRaster - optional, need this or a ageRaster"),
@@ -118,6 +119,7 @@ Init <- function(sim) {
   ## These spatial units (or spu) and the ecozones link the CBM-CFS3 ecological
   ## parameters to the right location (example: decomposition rates).
   ## 
+
   age <- sim$ageRaster
   gcIndex <- sim$gcIndexRaster
   spuRaster <- sim$spuRaster # made in the .inputObjects
@@ -189,7 +191,7 @@ Init <- function(sim) {
   # make the disturbance look-up table to the disturbance_matrix_id(s)
   # making sim$mySpuDmids
   
-  userDist <- fread(sim$userDist)
+  userDist <- sim$userDist
   
   # Most cases will only require fire (wildfire) and a clearcut. There are 426
   # disturbance matrices identified in the archive of CBM
@@ -294,18 +296,6 @@ Save <- function(sim) {
   if(!suppliedElsewhere(sim$dbPath))
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
 
-  ## TO CHECK: first attempt at getting messages out and user to provide data
-
-  if(!suppliedElsewhere(sim$userDist)){
-    message("There is no disturbance information provided; default will be used (fire and clearcut)")
-    # make a default
-    distName <- c("fire", "clearcut")
-    rasterId <- c(1,2)
-    sim$userDist <- data.table(distName,rasterId)
-    # post a warning
-    warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
-  } 
-  
   if(!suppliedElsewhere(sim$cbmData)){
     spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
     disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
@@ -358,6 +348,18 @@ Save <- function(sim) {
   sim$PoolCount <- length(sim$pooldef)
   }
   
+  if(!suppliedElsewhere(sim$userDist)){
+    if(!suppliedElsewhere(sim$userDistFile)){
+      message("There is no disturbance information provided; default will be used (fire and clearcut)")
+      # make a default
+      distName <- c("fire", "clearcut")
+      rasterId <- c(1,2)
+      sim$userDist <- data.table(distName,rasterId)
+      warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
+    } else{
+      sim$userDist <- fread(sim$userDistFile)}
+  }
+  
   if (!suppliedElsewhere("masterRaster",sim)){
     if(!suppliedElsewhere("masterRasterURL",sim)){
       sim$masterRasterURL <- extractURL("masterRaster")
@@ -383,6 +385,10 @@ Save <- function(sim) {
     sim$ageRaster <- Cache(prepInputs,
                            url = sim$ageRasterURL,
                            fun = "raster::raster")
+    ## TO DO: put in a message to out pointing out the max age (this has to be
+    ## sinked to the max age on the growth curve max age for the spinup)
+    #maxAge <- max(sim$ageRaster)
+    # message(max age on the raster is XX)
   }
   
   if(!suppliedElsewhere(sim$gcIndexRaster)){
@@ -391,7 +397,7 @@ Save <- function(sim) {
     }
     #sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputsMerge/data/gcIndex.tif"))
     sim$gcIndexRaster <- prepInputs(#Cache(
-                               url = "https://drive.google.com/file/d/1XhnF6s_V350Z916NKg9nX9Lw1WyTtC0s/view?usp=sharing",
+                               url = sim$gcIndexRasterURL,
                                fun = "raster::raster")
     
   }
