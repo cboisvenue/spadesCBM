@@ -547,12 +547,12 @@ annual <- function(sim) {
     swMult = 0.5, hwMult = 0.5
   )
 
-  sim$allProcesses$Growth1 <- growthAndDecline$Growth
-  sim$allProcesses$Growth2 <- growthAndDecline$Growth
+  sim$allProcesses$Growth1 <- growthAndDecline$Growth ## this is 50% of the growth
+  sim$allProcesses$Growth2 <- growthAndDecline$Growth ## this is 50% of the growth
   sim$allProcesses$OvermatureDecline <- growthAndDecline$OvermatureDecline
 
   # this has to be the same length as the DT going in for processing
-  # sim$opMatrixCBM[,"disturbance"]<-eventDMIDS
+  # sim$opMatrixCBM[, "disturbance"] <- eventDMIDS
 
   sim$pools <- StepPools(
     pools = sim$pools,
@@ -574,7 +574,6 @@ annual <- function(sim) {
   # Add this year's events to the spatialDT, so each disturbed pixels has its event
   sim$spatialDT <- sim$spatialDT[order(sim$spatialDT$pixelIndex)]
   sim$spatialDT <- sim$spatialDT[, events := yearEvents]
-
 
   ################################
 
@@ -664,12 +663,11 @@ annual <- function(sim) {
 
   ################# PROCESSING DISTURBANCES AND ANNUAL PROCESS FOR DISTURBED PIXELS ###################
 
-
   distMatrices <- mget(unique(toAdd$DMIDS), envir = sim$allProcesses$Disturbance)
   distMatrices <- lapply(distMatrices, as.data.table)
   distMats <- rbindlist(distMatrices, idcol = "DMIDS")
   # what is each column?
-  # lapply(distMats,is)
+  # lapply(distMats, is)
 
   setnames(distMats, old = "value", new = "distValue")
   distMats[, row := as.character(row)]
@@ -751,6 +749,7 @@ annual <- function(sim) {
     , .(calcDomT = (calcDist - outC + inC)), by = c("pixelGroup", "row")]
   # pools can't go negative
   toAddDomT[calcDomT < 0, "calcDomT"] <- 0
+  # toAddDomT ## TODO: this section just checks that DOM turnover for disturbed pixels; confirm the C++ version
   ## END calculate domTurn ########################
 
   # # for a visual check
@@ -848,7 +847,7 @@ annual <- function(sim) {
   slowMixMatrices <- as.data.table(mget(as.character(1), envir = sim$allProcesses$SlowMixing))
   slowMixMats <- setnames(slowMixMatrices, names(slowMixMatrices), new = c("row", "col", "slowMixValue"))
   slowMixMats[, row := as.character(row)]
-  # spuAdd <- toAdd[,.(pixelGroup,spatial_unit_id)][,spu := as.character(spatial_unit_id)]
+  # spuAdd <- toAdd[,.(pixelGroup,spatial_unit_id)][, spu := as.character(spatial_unit_id)]
   slowM1 <- toAddslowD[slowMixMats, on = "row", allow.cartesian = TRUE][, fluxOut := (calcSlowD * slowMixValue)]
   outC <- slowM1[, .(outC = sum(fluxOut)), by = c("pixelGroup", "row")]
   inC <- slowM1[, .(inC = sum(fluxOut)), by = c("pixelGroup", "col")]

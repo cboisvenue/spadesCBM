@@ -217,6 +217,7 @@ domTurnOverMatrix <- function(turnoverParam, PoolCount) {
 
   return(mat)
 }
+
 computeDomTurnoverMatrices <- function(turnoverParameters, PoolCount) {
   matrices <- NULL
   for (x in 1:nrow(turnoverParameters)) {
@@ -228,6 +229,7 @@ computeDomTurnoverMatrices <- function(turnoverParameters, PoolCount) {
   colnames(matrices) <- c("id", "row", "col", "value")
   return(matrices)
 }
+
 biomassTurnoverMatrix <- function(turnoverParam, PoolCount) {
   mat <- getIdentityCoordinateMatrix(PoolCount)
 
