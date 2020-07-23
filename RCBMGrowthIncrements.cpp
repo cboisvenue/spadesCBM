@@ -893,8 +893,8 @@ bool SlowRotationThreshold(double lastSlow, double currentSlow)
 	}
 	else
 	{
-        return currentSlow / lastSlow > 0.999
-            && currentSlow / lastSlow < 1.001;
+    return currentSlow / lastSlow > 0.999 &&
+      currentSlow / lastSlow < 1.001;
 	}
 }
 

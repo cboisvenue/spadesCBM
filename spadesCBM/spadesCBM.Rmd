@@ -179,10 +179,15 @@ spadesCBMSim <- simInit(times = times,
                         params = parameters,
                         modules = modules, 
                         objects = objects)
+
 quickPlot::dev.useRSGD(FALSE)
 #dev()
 clearPlot()
 spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
+```
+
+```{r, debugging-testing}
+names(spadesCBMout$allProcesses) ## this is correct order of processes
 ```
 
 # Functions
@@ -197,6 +202,12 @@ The `spuDist()` function identifies the ID number of the matrices (CBM-CFS3 lega
 You give the spatial units id(s) you are targeting (`mySpu`) and it gives you the disturbance matrix id(s) that are possible/default in that specific SPU and a descriptive name of that disturbance matrix.
 It returns a `data.frame`.
 This is useful for identifying the `lastPass` disturbance possibilities in a specific SPU, or the right clearcut or fire for that specific SPU.
+
+```{r, spuDist}
+## for SK
+spuDist(27)
+spuDist(28)
+```
 
 The function `histDist()`, identifies the stand-replacing wildfire disturbance in each spatial unit.
 By default the most recent is selected, but the user can change that.

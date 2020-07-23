@@ -392,7 +392,7 @@ postSpinup <- function(sim) {
 
   ## THIS IS WRONG
   # sim$pools for the next round needs have the spinupResult and the pixels
-  # that will be disturbed in seperate lines
+  # that will be disturbed in separate lines
   sim$pools <- sim$spinupResult
   ## DO I NEED TO MAKE THIS sim$??
   sim$level3DT <- sim$level3DT[order(pixelGroup), ]
@@ -585,12 +585,11 @@ annual <- function(sim) {
   )]
   setkey(distPixels, pixelGroup)
 
-  ## The ages can be changed prior to the
-  ## processing in the C++ functions because the first thing that happens is
-  ## disturbances and presently **all disturbances are stand replacing**. Set
-  ## all ages to 0 in the disturbed pixels
-  ## note that ages will be updated by 1 at the end of the annual event. This is
-  ## necessary because the growth curves won't work is everything is at 0
+  ## The ages can be changed prior to the processing in the C++ functions because the first
+  ## thing that happens is disturbances and presently **all disturbances are stand replacing**.
+  ## Set all ages to 0 in the disturbed pixels.
+  ## NOTE: ages will be updated by 1 at the end of the annual event.
+  ## This is necessary because the growth curves won't work if everything is at 0.
   distPixels$ages <- 0
 
   # get the carbon info from the old pixelGroup for the disturbed pixels
@@ -644,8 +643,7 @@ annual <- function(sim) {
   uniqueNewGroup <- unique(distPixels[, -("pixelIndex")])
   setkey(uniqueNewGroup, oldGroup)
 
-  # this is where the equivalent of sim$level3DT and C pools for new groups are
-  # put together
+  ## this is where the equivalent of sim$level3DT and C pools for new groups are put together
   toAdd <- merge(uniqueNewGroup, groupToAddC, all.x = TRUE) # ,on = c("pixelGroup")]
   toAdd <- toAdd[, c("pixelGroup", "newGroup") := list(newGroup, NULL)]
   toAdd <- toAdd[order(pixelGroup), ]
@@ -706,27 +704,29 @@ annual <- function(sim) {
   # ### INCONSISTENT NUMBER OF DECIMALS. NEED MAKE THE ROWS THAT ARE 100%
   # ### DISTURBED go to 0 - NOT DONE: the correct4$diffs that are NAs need to be
   # ### set to 0 before other c transactions occur. FIX ANOTHER TIME.
-  # correct1 <- distMats[,.(sumR = sum(distValue)),by=c("DMIDS","row")]
-  # correct2 <- distMats[,.(sumC = sum(distValue)),by=c("DMIDS","col")][,row:= as.character(col)]
-  # correct3 <- correct2[correct1, on= c("DMIDS","row")]
-  # correct4 <- correct3[,.(diffs = sumR - sumC), by=c("DMIDS","row")]
+  # correct1 <- distMats[, .(sumR = sum(distValue)), by = c("DMIDS", "row")]
+  # correct2 <- distMats[, .(sumC = sum(distValue)), by = c("DMIDS", "col")][, row := as.character(col)]
+  # correct3 <- correct2[correct1, on = c("DMIDS","row")]
+  # correct4 <- correct3[, .(diffs = sumR - sumC), by = c("DMIDS", "row")]
   # # failing here b/c the DMIDS are not in the toAddDist
-  # #c5 <- correct4[,.(to0 = which(is.na(correct4$diffs)), by=c("DMIDS","row"))]
+  # #c5 <- correct4[, .(to0 = which(is.na(correct4$diffs)), by = c("DMIDS", "row"))]
 
 
   toAddDist
   setorderv(toAddDist, keycol)
   ## DISTURBANCES CALCULATED
 
-  # # for a visual check
-  # distPg740 <- toAddDist[pixelGroup==740, .(row, calcDist)]
-  # distPg740 <- distPg740[, row:= as.numeric(as.character(row))][order(row),]
-  # chgVect <- cbind(toAdd1[pixelGroup==740],distPg740)
+
+##### "assertions": verify in R what is being done in C++ ------------------------------------------
+  ## for a visual check
+  # distPg740 <- toAddDist[pixelGroup == 740, .(row, calcDist)]
+  # distPg740 <- distPg740[, row := as.numeric(as.character(row))][order(row), ]
+  # chgVect <- cbind(toAdd1[pixelGroup == 740], distPg740)
 
 
   ## calculate domTurn ########################
   # match with ecozones
-  # toAdd[,ecoz:=as.character(spatial_unit_id)]
+  # toAdd[, ecoz := as.character(spatial_unit_id)]
   ecoToSpu <- as.data.table(ecoToSpu)
   tri1 <- merge(toAdd, ecoToSpu, by = c("spatial_unit_id"))
   tri2 <- tri1[, .(pixelGroup, ecozones)][, ecoz := as.character(ecozones)]
@@ -871,6 +871,8 @@ annual <- function(sim) {
   # from long to wide
   setorderv(toAddslowM, keycol)
   toAddOut <- dcast(toAddslowM, pixelGroup ~ row, value.var = "calcSlowM")
+
+  ### END assertions ## TODO: verify with Celine
 
   names(toAddOut) <- c("pixelGroup", as.character(poolsToRows$variable))
   toAddOut[order(pixelGroup), ]
@@ -1223,12 +1225,3 @@ annual <- function(sim) {
 
   return(invisible(sim))
 }
-### add additional events as needed by copy/pasting from above
-
-Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")
-# sourceCpp(file='RCBMStep.cpp')
-Rcpp::sourceCpp(
-  file = "RCBMGrowthIncrements.cpp", ## TODO: source from module directory, not main repo
-  cacheDir = cachePath(sim),
-  env = envir(sim)[["spadesCBMcore"]]
-)
