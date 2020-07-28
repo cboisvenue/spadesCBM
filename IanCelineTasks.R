@@ -22,7 +22,7 @@
 #person: Ian (but wait until Celine done)
 
 #6.make the user input clearer: clean-up spadesCBMinputs.r...
-#person: either/both 
+#person: either/both
 
 #8.unit tests on master branch (create separate branch for tests)
 #person: Ian
@@ -31,7 +31,7 @@
 
 # Tasks completed-----------------------------------------------------------------------------------------
 # 1.THIS PART IS DONE--------------------
-#plotCarbonRasters() and lives in/spadesCBM/exploringCode/spadesCBMextrafunctions
+#plotCarbonRasters()
 #b) change the master so that the years that we need to plot can be defined by
 #the user and saved in the cPoolsPixelYear.csv or somewhere we can access them.
 #The plots are not saved? If I change the plotting interval, I see the plots flash by but can't go back to them...
@@ -46,10 +46,10 @@
 #3.Task completed. Create pre-calculated values for mapping: NPP. All details are in task3NPPetc.r
 
 #4.Taks completed. histogram/bar plot of total carbon etc.
-#person: Ian 
+#person: Ian
 
 #5.Task completed. spu locator needs to be functional for users. For now, make it a separate function.
-#person: Ian 
+#person: Ian
 
 #9.FIXED. library(RSQLite) and library(CBMVolumeToBiomass), still need to be loaded
 #using options() to fix the pckgs issues (Require vs require) this is problem
@@ -63,7 +63,7 @@
 #7.POSTPONED. run for all of SK, not just the test area. Locate the large rasters and try just 2 years.
 #person: Celine
 
-#10.POSTPONED. make sure/check that the spinup debug event in the spadesCBMcore works. 
+#10.POSTPONED. make sure/check that the spinup debug event in the spadesCBMcore works.
 #person: Celine
 
 #11.POSTPONED. Rehomogenation of pixelGroups: We don't seem to be getting rid of pixels
@@ -78,7 +78,7 @@
 #this is the result from using all the growth curves and “translating” them into
 #biomass compartments using SMorken’s CBMVolumeToBiomass library
 
-#14.POSTPONED. fix all the warnings so that caching works reliably. 
+#14.POSTPONED. fix all the warnings so that caching works reliably.
 
 #15.POSTPONED. make a separate growth and yield module.
 
@@ -101,14 +101,14 @@
 # would be affected if we added transition growth curves, i.e., when a pixel
 # changes growth curve after being disturbed. That is for later, when we link to LandR-biomass
 
-#19.Maybe. disturbance rasters are currently read-in every year. This might slow down 
-# things but would make it easier if the rasters are provided by other modules 
+#19.Maybe. disturbance rasters are currently read-in every year. This might slow down
+# things but would make it easier if the rasters are provided by other modules
 # down the line. If not all rasters can be read-in as a stack and looked-up each
 # year.
 
-#20. Maybe. the bar plotting uses pixelKeep, but we need to move away from this for memory purposes. 
+#20. Maybe. the bar plotting uses pixelKeep, but we need to move away from this for memory purposes.
 # instead the values should be calculated for time(sim) and added to a plotting object
-# using rbind 
+# using rbind
 #
 # Notes:
 # - in sim$allProcesses (list of 9), only three, the growth (Growth1 and

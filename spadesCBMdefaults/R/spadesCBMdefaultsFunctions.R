@@ -1,74 +1,7 @@
-# functions to be used in the carb1 module
-# CBoisvenue January 18
-# with Eliot
-matrixHash <- function(x) {
-  keys <- unique(x[, 1])
-  e <- new.env(hash = TRUE, size = length(keys), parent = emptyenv())
-  apply(as.matrix(keys), 1, function(key) {
-    assign(toString(key), x[x[, 1] == key, 2:ncol(x)], envir = e)
-  })
-  return(e)
-}
-
-# step 1 functions
-# this class stores all CBM-CFS3 parameters in matrices
-setClass("dataset", where = envir(sim), slots = list(
-  turnoverRates = "matrix",
-  rootParameters = "matrix",
-  decayParameters = "matrix",
-  spinupParameters = "matrix",
-  classifierValues = "matrix",
-  climate = "matrix",
-  spatialUnitIds = "matrix",
-  slowAGtoBGTransferRate = "matrix",
-  biomassToCarbonRate = "matrix",
-  ecoIndices = "matrix",
-  spuIndices = "matrix",
-  stumpParameters = "matrix",
-  overmatureDeclineParameters = "matrix",
-  disturbanceMatrix = "matrix",
-  disturbanceMatrixAssociation = "matrix",
-  disturbanceMatrixValues = "matrix",
-  disturbanceMatrixIndices = "matrix",
-  disturbanceEvents = "matrix",
-  landclasses = "matrix",
-  pools = "matrix",
-  domPools = "matrix"
-))
-
-readSqlFile <- function(filePath) {
-  fileconn <- file(filePath, "r")
-  sqlString <- readLines(fileconn)
-  sqlString <- paste(sqlString, collapse = " ")
-  gsub("\t", "", sqlString)
-  close(fileconn)
-  return(sqlString)
-}
-
-query <- function(dbPath, sql) {
-  con <- dbConnect(dbDriver("SQLite"), dbPath)
-  table <- dbGetQuery(con, sql)
-  dbDisconnect(con)
-  return(table)
-}
-
-getTable <- function(filename, dbPath, sqlDir) {
-  con <- dbConnect(dbDriver("SQLite"), dbPath)
-  filePath <- file.path(sqlDir, filename)
-  table <- query(dbPath, readSqlFile(filePath))
-  dbDisconnect(con)
-  return(table)
-}
-
-# step 2 functions
-getIdentityCoordinateMatrix <- function(size) {
-  return(cbind(1:size, 1:size, rep(1.0, size)))
-}
-
 #' calculates the decay rate based on mean annual temperature
 #' and other parameters
 #'
-#' @param meanAnnualTemp scalar temperature in deg Celcius
+#' @param meanAnnualTemp scalar temperature in degrees Celsius
 #' @param baseDecayRate scalar base decay rate constant
 #' @param q10 the scalar q10 value
 #' @param tref the reference temperature

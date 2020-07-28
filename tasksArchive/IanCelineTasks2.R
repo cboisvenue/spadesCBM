@@ -1,15 +1,15 @@
-##----------------------------------------------- 
+##-----------------------------------------------
 #List of tasks or discussion
 #points between CBoisvenue and IEddy for the spadesCBM family development
 #
-#CBoisvenue 
+#CBoisvenue
 #------------------------------------------------
 
 # Oct.17,2018
 # Creating maps from outputs
 #We have a table "level3DT", that has a unique pixel groups We need to be able
 #to make maps with this output maps per year and per pools or combinations of
-#pools 
+#pools
 #Status: There was discussion of making sure "standindex" column in the
 #output1stand.csv (in outputs folder) matched the pixel groups. And apparently
 #Ian wrote code about this but Celine can't find it
@@ -31,7 +31,7 @@ species <- getValues(ldSpsMap)
 prodMap <- raster(file.path("data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
 prod <- getValues(prodMap)
 
-#iv . Spatial units - Must run spadesCBM to get spuNames 
+#iv . Spatial units - Must run spadesCBM to get spuNames
 #This exists for the small study area - we can always generate the raster for other areas as in Task3
 spuMap <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
 spatial_unit_id <- as.integer(getValues(spuMap)) #28 27
@@ -54,15 +54,15 @@ level3DT <- level3DT[level3DT$LeadingSp>0,] # removes values that should be NA
 setkey(level3DT, LeadingSp, Productivity,spatial_unit_id)
 
 #4 Make level 3DT
-level3DT <- level3DT[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5   
+level3DT <- level3DT[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5
 
-#4 ii add PixelGroupID: 
+#4 ii add PixelGroupID:
 level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
                                                  level3DT$growth_curve_component_id,
                                                  level3DT$Age)))
 
 #5 Prepare raster that will have location of pixelGroupIds
-#5 i make spatial data table 
+#5 i make spatial data table
 setkey(gcID, NULL) #have to unkey before a join
 spatialDT <- gcID[level2DT, on = c("LeadingSp", "Productivity", "spatial_unit_id")]
 spatialDT <- spatialDT[order(rowOrder)]
@@ -116,16 +116,16 @@ plot(BGSS_Map)
 # do we follow what LandR-biomass does?
 # Discussion needed
 #There may be a faster or more memory-efficient way to do this, but this method works for now...
-#1. Load rasters 
+#1. Load rasters
 disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
                                 full.names = TRUE) %>%
   grep(., pattern = ".tif$", value = TRUE)
-  
+
 #2. pluck out the disturbance at time(sim) e.g. 1995. Note 1995 would be replaced by "time(sim)"
 annualDisturbance <- raster(grep(disturbanceRasters, pattern = paste0("1995", ".tif$"), value = TRUE))
 
 
-#3 i  prepare disturbance values 
+#3 i  prepare disturbance values
 #disturbacne Types: Fire = 1, Harvest =2 , LCondition = 3, Road = 4, 5 = Unclassified
 disturbance <- getValues(annualDisturbance) %>%
   .[species != 0] #ditch pixels that aren't treed to make same length as level2DT
@@ -141,9 +141,9 @@ level2DT$Age[level2DT$Fire == 1] <- 0
 #4 i Make level3DT with updated table (have to remove newly added rows)
 level3DT <- unique(level2DT[,-c("rowOrder", "disturbance", "Fire")]) #now 761 unique rows
 #4 ii join with gcID
-level3DT <- level3DT[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5   
+level3DT <- level3DT[gcID, on = c("LeadingSp", "Productivity", "spatial_unit_id"), nomatch = 0] #dim: 759 5
 
-#4 iii add PixelGroupID: 
+#4 iii add PixelGroupID:
 level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
                                                  level3DT$growth_curve_component_id,
                                                  level3DT$Age)))
@@ -158,7 +158,7 @@ level3DT$PixelGroupID <- as.numeric(factor(paste(level3DT$spatial_unit_id,
 
 #1 Create the spatial unit shapefile for all of Canada
 #1 i Source the data with correct spatial unit IDs
-inputDir <- file.path("data/12_Spades_run") 
+inputDir <- file.path("data/12_Spades_run")
 dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db")
 sqlite.driver <- dbDriver("SQLite")
 cbmDefaults <- dbConnect(sqlite.driver, dbname = dbPath)
@@ -178,7 +178,7 @@ spuNames <- merge(adminNames,cbmTables$spatial_unit,by="admin_boundary_id")
 names(spuNames) <- c("admin_boundary_id","stump_parameter_id", "province","id",
                      "eco_boundary_id","root_parameter_id", "climate_time_series_id","spinup_parameter_id")
 spuNames1 <- merge(ecoNames,spuNames,by="eco_boundary_id")
-names(spuNames1) <- c("eco_boundary_id","stump_parameter_id.x","ecozone","admin_boundary_id","stump_parameter_id.y", 
+names(spuNames1) <- c("eco_boundary_id","stump_parameter_id.x","ecozone","admin_boundary_id","stump_parameter_id.y",
                       "province","spu_id","root_parameter_id", "climate_time_series_id","spinup_parameter_id")
 spu <- spuNames1[,c(7,4,6,1,3,5,8,9,10)]
 spu <- spu[order(spu$spu_id),]
@@ -193,31 +193,18 @@ spUnits_Can@data <- left_join(spUnits_Can@data, spu, by = c("ProvinceID" = "admi
 
 #spUnits_Can is now a shapefile with spatial units in the spu_id field.
 
-#2.  retrieve spatial units for a hypothetical user study area: 
+#2.  retrieve spatial units for a hypothetical user study area:
 #2 i Make a study area
 
-randomUserArea <- randomPolygon(x = rgeos::gCentroid(spUnits_Can[spUnits_Can$ProvinceNa == "Quebec",]), 
+randomUserArea <- randomPolygon(x = rgeos::gCentroid(spUnits_Can[spUnits_Can$ProvinceNa == "Quebec",]),
                                 hectares = 1000)
 #this will make a polygon somewhere in the center of Quebec - the hectares is inaccurate due to crs
 
-#ii Retrieve Spatial Unit 
+#ii Retrieve Spatial Unit
 spUnits <- crop(spUnits_Can, randomUserArea)
 spUnits$spu_id
 
 #3 Make a function that produces a raster with spUnits
-retrieveSpuRaster <- function(spatialUnitsFile, UserArea, rasterRes = c(250,250)){
-  
-  if (!identicalCRS(spatialUnitsFile, UserArea)) {
-    spatialUnitsFile <- spTransform(x = spatialUnitsFile, CRSobj = crs(UserArea))
-  }
- 
-  temp <- crop(spatialUnitsFile, UserArea)
-  template <- rasterize(extent(temp), res = rasterRes, crs = crs(UserArea))
-  spuRaster <- rasterize(temp, template, field = "spu_id")
-  
-  return(spuRaster)
-}
-
 out <- retrieveSpuRaster(spatialUnitsFile = spUnits_Can, UserArea = randomUserArea, rasterRes = c(250,250))
 plot(out)
 ##Success##

@@ -14,7 +14,8 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMcore.Rmd"),
-  reqdPkgs = list("data.table", "ggplot2", "quickPlot", "magrittr", "raster", "Rcpp", "RSQLite"),
+  reqdPkgs = list("data.table", "ggplot2", "quickPlot", "magrittr", "raster", "Rcpp", "RSQLite",
+                  "PredictiveEcology/carbonara"),
   parameters = rbind(
     # defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(
@@ -360,7 +361,7 @@ postSpinup <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # do stuff for this event
   # Plot("object")
-  # if(P(sim)$spinupDebug){
+  # if (P(sim)$spinupDebug) {
   #   opMatrix <- cbind(
   #     1:sim$nStands, #growth 1
   #     sim$ecozones, #domturnover
@@ -448,7 +449,7 @@ postSpinup <- function(sim) {
 annual <- function(sim) {
   # not sure if this will be needed once I have figured out the recalculation of the data.table
   # special case if there are no disturbances
-  # if(!P(sim)$noAnnualDisturbances){
+  # if (!P(sim)$noAnnualDisturbances) {
   #   # set up the constant processes, anything NULL is just a
   #   # placeholder for dynamic processes
   #   sim$allProcesses <- list(
@@ -478,9 +479,6 @@ annual <- function(sim) {
   #   colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
   #                                  "bioturnover", "overmature", "growth 2",
   #                                  "domDecay", "slow decay", "slow mixing")
-  #
-  #
-  #
   # }
 
   ### Growing the undisturbed pixels
@@ -712,7 +710,8 @@ annual <- function(sim) {
   # #c5 <- correct4[, .(to0 = which(is.na(correct4$diffs)), by = c("DMIDS", "row"))]
 
 
-  toAddDist
+  toAddDist ## TODO: the C++ function should produce an equivalent output;
+            ## this is where I need to go thru C++ code to verify disturbances applied correctly
   setorderv(toAddDist, keycol)
   ## DISTURBANCES CALCULATED
 

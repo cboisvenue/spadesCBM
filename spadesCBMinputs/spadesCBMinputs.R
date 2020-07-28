@@ -14,7 +14,9 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("data.table", "PredictiveEcology/LandR", "magrittr", "raster", "RSQLite"),
+  reqdPkgs = list("data.table", "magrittr", "raster", "RSQLite",
+                  "PredictiveEcology/carbonara",
+                  "PredictiveEcology/LandR"),
   parameters = rbind(
     # defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,

@@ -141,15 +141,16 @@ library(SpaDES.core)
 # library(CBMVolumeToBiomass)
 # library(RSQLite)
 # library(pemisc)
+#library(carbonara)
 
 options("reproducible.useRequire" = FALSE) #Require doesn't seem to work with RSQLite
 
-moduleDir <- file.path(normalizePath(".")) #"~/GitHub/spadesCBM")
-inputDir <- file.path(moduleDir, "data") %>% reproducible::checkPath(create = TRUE) #"~/GitHub/spadesCBM/data")
-outputDir <- file.path(moduleDir, "outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
+moduleDir <- file.path(normalizePath("."))
+inputDir <- file.path(moduleDir, "data") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(moduleDir, "outputs") %>% reproducible::checkPath(create = TRUE) #"C:/Celine/SpaDEScacheOutputs/outputs"
 
-cacheDir <- file.path(outputDir, "cache")#C:/Celine/SpaDEScacheOutputs/cache")
-scratchDir <- if (pemisc::user("achubaty")) reproducible::checkPath("/mnt/scratch/CBM", create = TRUE) else tempdir()
+cacheDir <- file.path(outputDir, "cache") %>% reproducible::checkPath(create = TRUE)#"C:/Celine/SpaDEScacheOutputs/cache"
+scratchDir <- file.path(tempdir(), "scratch", "CBM") %>% reproducible::checkPath(create = TRUE)
 
 times <- list(start = 1990.00, end = 1993.00)
 parameters <- list(

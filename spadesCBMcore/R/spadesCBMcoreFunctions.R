@@ -1,54 +1,3 @@
-### spuDist()-------------------------------------------------------------------
-# This function identifies the ID number (CBM-CFS3 legacy) that are possible in
-# the specific spatial unit you are in. You give is spatial units you are
-# targetting (mySpu) and it give you the disturbance matrix id that are
-# possible/default in that specific spu and a descriptive name of that disturbance matrix
-# it creates a data.frame of length number of disturbances, with three columns: spatial_unit_is,
-# disturbance_matrix_id, and a desciption of the disturbance.
-
-## figure out which spu you are in
-# Note: can we have a canada-wide spu map and they locate themselves on the map?
-# this needs to be done before simulations are run so the user can provide this
-# info (location info) for the simulations - Ian is working on this.
-
-## could be with the rasters
-# library(raster)
-# spuRaster <- raster(file.path("data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
-# spatial_unit_id <- getValues(spuRaster) # 28 27
-# or with the growth curves
-# gcIn <- as.matrix(read.csv(file.path("spadesCBMinputs/data/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv")))
-
-# mySpu <- unique(spatial_unit_id)
-## or
-# mySpu <- unique(gcIn[, 1])
-
-#' \code{spuDist}
-#'
-#' the function has the defaults from the SK managed forest example.
-#' These can be changed by feeding in other spu.
-#'
-#' @importFrom RSQLite dbConnect dbDriver dbListTables dbReadTable
-spuDist <- function(mySpu = c(27, 28), dbPath = file.path("data", "cbm_defaults", "cbm_defaults.db")) {
-  sqlite.driver <- dbDriver("SQLite")
-
-  cbmDefaults <- dbConnect(sqlite.driver, dbname = dbPath)
-
-  alltables <- dbListTables(cbmDefaults)
-  cbmTables <- list()
-
-  for (i in 1:length(alltables)) {
-    cbmTables[[i]] <- dbReadTable(cbmDefaults, alltables[i])
-  }
-  # match mySpu with the disturbance_matrix_association table
-  dmid <- unique(cbmTables[[7]][which(cbmTables[[7]][, 1] %in% mySpu), c(1, 3)])
-
-  # add the descriptive names
-  spuDist <- cbind(dmid, cbmTables[[6]][dmid$disturbance_matrix_id, 3])
-  return(spuDist)
-}
-
-### END spuDist------------------------------------------------------------------
-
 ### calcTurnoverRates ------------------------------------------------------------------
 # matching the turnover rates to the spatial unit
 
@@ -265,7 +214,6 @@ biomassTurnoverMatrix <- function(turnoverParam, PoolCount) {
     SoftwoodFineRoots, BelowGroundVeryFastSoil,
     (1 - turnoverParam["FineRootAGSplit"]) * turnoverParam["FineRootTurnProp"]
   ))
-
   mat <- rbind(mat, c(
     HardwoodMerch, HardwoodStemSnag,
     turnoverParam["StemAnnualTurnoverRate"]
