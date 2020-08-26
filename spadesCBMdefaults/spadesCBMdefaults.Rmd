@@ -9,16 +9,8 @@ editor_options:
 
 # Overview
 
-Provide an overview of what the module does / how to use the module.
+This module can run independently by running the global script below. It is a child module of the spadesCBM family of modules. It is called from the parent module (spadesCBM.R) when running spadesCBM. Its main task is to read-in all the default values in spadesCBM which is akin to the ArchiveIndex in CBM-CFS3 runs.
 
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
-
-## R Markdown
-
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
-For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 
 # Usage
 
@@ -51,10 +43,10 @@ paths <- list(
   outputPath = outputDir
 )
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
+myDefaults <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-outSim <- spades(mySim)
+outDefaults <- spades(myDefaults)
 ```
 
 ```{r tests}

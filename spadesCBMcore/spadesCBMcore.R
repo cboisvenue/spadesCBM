@@ -1117,5 +1117,5 @@ annual <- function(sim) {
 Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")
 #sourceCpp(file='RCBMStep.cpp')
 Rcpp::sourceCpp(file='RCBMGrowthIncrements.cpp', cacheDir = cachePath(sim), 
-          env = envir(sim)[["spadesCBMcore"]])
+                env = envir(sim)[[".mods"]][["spadesCBMcore"]])
 
