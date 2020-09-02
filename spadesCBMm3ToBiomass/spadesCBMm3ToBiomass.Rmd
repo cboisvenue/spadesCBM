@@ -3,6 +3,8 @@ title: "spadesCBMm3ToBiomass"
 author: "CBoisvenue"
 date: "14 May 2020"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Overview

@@ -350,14 +350,19 @@ Save <- function(sim) {
   
   if(!suppliedElsewhere(sim$userDist)){
     if(!suppliedElsewhere(sim$userDistFile)){
-      message("There is no disturbance information provided; default will be used (fire and clearcut)")
-      # make a default
-      distName <- c("fire", "clearcut")
-      rasterId <- c(1,2)
-      sim$userDist <- data.table(distName,rasterId)
-      warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
-    } else{
-      sim$userDist <- fread(sim$userDistFile)}
+      message("There is no disturbance information provided; defaults for the Saskatchewan example run will be used.")
+      # DO THIS: make a default of the basic ones
+      # distName <- c("fire", "clearcut")
+      # rasterId <- c(1,2)
+      # sim$userDist <- data.table(distName,rasterId)
+      # warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
+      ## NOT WORKING DON'T KNOW WHY
+      ##sim$userDistFile <- c("https://drive.google.com/file/d/1Ax-y71FRlBZudn9t8kPG5_A1Hz-Pt-YP/view?usp=sharing")
+      ## workaround
+      sim$userDistFile <- file.path(getwd(),"spadesCBMinputsMerge","data/userDist.csv")
+      sim$userDist <- fread(sim$userDistFile)
+    }
+    sim$userDist <- fread(sim$userDistFile)
   }
   
   if (!suppliedElsewhere("masterRaster",sim)){
