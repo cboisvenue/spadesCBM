@@ -487,6 +487,7 @@ annual <- function(sim) {
 
   # Changing the vectors and matrices that need to be changed to process this year's growth
   sim$pools <- as.matrix(pixelGroupForAnnual[, Input:Products])
+
   # disturbances are processed below, outside the Rcpp functions
   eventDMIDs <- rep(0, dim(pixelGroupForAnnual)[1]) ## --##c( ...dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[, c(1, 3)])
