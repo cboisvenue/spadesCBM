@@ -516,7 +516,8 @@ annual <- function(sim) {
     "domDecay", "slow decay", "slow mixing"
   )
 
-  sim$opMatrixCBM[, "disturbance"] <- eventDMIDs
+  #sim$opMatrixCBM[, "disturbance"] <- eventDMIDs ## all zeros; i.e, no disturbance  ## TODO: try with 409
+  sim$opMatrixCBM[, "disturbance"] <- 371
 
   sim$allProcesses <- list(
     Disturbance = sim$processes$disturbanceMatrices,
@@ -530,10 +531,7 @@ annual <- function(sim) {
     SlowMixing = sim$processes$slowMixingMatrix
   )
 
-  # ! ----- EDIT BELOW ----- ! #
-  #
   # compute the growth increments
-
   growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
     growthIncrements = sim$gcHash,
     ages = sim$ages,
@@ -552,11 +550,20 @@ annual <- function(sim) {
   # this has to be the same length as the DT going in for processing
   # sim$opMatrixCBM[, "disturbance"] <- eventDMIDS
 
+###########################################
+  browser()
+  pools_orig <- as.data.table(sim$pools)
+###########################################
+
   sim$pools <- StepPools(
     pools = sim$pools,
-    opMatrix = sim$opMatrixCBM,
+    opMatrix = sim$opMatrixCBM, ## no disturbance (see above)
     flowMatrices = sim$allProcesses
   )
+
+###########################################
+  pools_after <- as.data.table(sim$pools)
+###########################################
 
   ###################################
   # DISTURBANCES COME IN HERE
