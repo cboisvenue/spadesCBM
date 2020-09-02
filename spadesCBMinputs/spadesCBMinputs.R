@@ -15,7 +15,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
   reqdPkgs = list("data.table", "magrittr", "raster", "RSQLite",
-                  "PredictiveEcology/carbonara",
+                  "carbonara", # "PredictiveEcology/carbonara",
                   "PredictiveEcology/LandR"),
   parameters = rbind(
     # defineParameter("paramName", "paramClass", value, min, max, "parameter description"),

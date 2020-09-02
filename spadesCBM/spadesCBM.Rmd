@@ -217,7 +217,7 @@ Historical disturbances in CBM-CFS3 are used for "filling-up" the soil-related c
 Boudewyn _et al._ [-@Boudewyn:2007] translate the $m^3/ha$ curves into biomass per $ha$ in each of four pools: total biomass for stem wood, total biomass for bark, total biomass for branches and total biomass for foliage.
 Biomass in coarse and fine roots, in aboveground- and belowground- very-fast, -fast, -slow, in medium-soil, and in snags still need to be estimated.
 In all spatial units in Canada, the historical disturbance is set to fire.
-In the spinup event, a stand-replacing fire disturbance is used in a disturb-grow cycle, where stands are disturbed and regrown with turnover, overmature, and decay processes, until the dead organic matter pools values stabilise (+/- 10% I think, that is in `RCMBGrowthIncrements.cpp`).
+In the spinup event, a stand-replacing fire disturbance is used in a disturb-grow cycle, where stands are disturbed and regrown with turnover, overmature, and decay processes, until the dead organic matter pools values stabilize (+/- 10% I think, that is in `RCMBGrowthIncrements.cpp`).
 
 You give the `seeDist()` function one or more disturbance matrix id, and it will return the descriptive name of the disturbance, the source pools, the sink pools, and the proportions transferred.
 It returns a list of `data.frame`s, one `data.frame` per disturbance matrix id, similarly to `simDist()`.

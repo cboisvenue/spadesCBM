@@ -15,7 +15,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMcore.Rmd"),
   reqdPkgs = list("data.table", "ggplot2", "quickPlot", "magrittr", "raster", "Rcpp", "RSQLite",
-                  "PredictiveEcology/carbonara"),
+                  "carbonara"), # "PredictiveEcology/carbonara"
   parameters = rbind(
     # defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(
@@ -717,6 +717,7 @@ annual <- function(sim) {
 
 
 ##### "assertions": verify in R what is being done in C++ ------------------------------------------
+
   ## for a visual check
   # distPg740 <- toAddDist[pixelGroup == 740, .(row, calcDist)]
   # distPg740 <- distPg740[, row := as.numeric(as.character(row))][order(row), ]
