@@ -8,7 +8,7 @@ defineModule(sim, list(
   keywords = NA, # c("insert key words here"),
   authors = person("Celine", "Boisvenue", email = "celine.boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputs = "0.0.1"),
+  version = list(SpaDES.core = "1.0.2", spadesCBMinputs = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
