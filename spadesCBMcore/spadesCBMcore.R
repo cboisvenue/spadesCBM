@@ -489,7 +489,8 @@ annual <- function(sim) {
   sim$pools <- as.matrix(pixelGroupForAnnual[, Input:Products])
 
   # disturbances are processed below, outside the Rcpp functions
-  eventDMIDs <- rep(0, dim(pixelGroupForAnnual)[1]) ## --##c( ...dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
+  #eventDMIDs <- c()  ## TODO: restore to wherever it's supposed to come from
+  eventDMIDs <- rep(371, dim(pixelGroupForAnnual)[1]) ## --##c( ...dim(pixelGroupForAnnual)[1] - length(DMIDS)),DMIDS)
   ecoToSpu <- as.data.frame(sim$cbmData@spatialUnitIds[, c(1, 3)])
   names(ecoToSpu) <- c("spatial_unit_id", "ecozones")
   ecozones <- merge(pixelGroupForAnnual, ecoToSpu)
@@ -517,8 +518,7 @@ annual <- function(sim) {
     "domDecay", "slow decay", "slow mixing"
   )
 
-  #sim$opMatrixCBM[, "disturbance"] <- eventDMIDs ## all zeros; i.e, no disturbance  ## TODO: try with 409
-  sim$opMatrixCBM[, "disturbance"] <- 371
+  sim$opMatrixCBM[, "disturbance"] <- eventDMIDs
 
   sim$allProcesses <- list(
     Disturbance = sim$processes$disturbanceMatrices,
@@ -551,20 +551,11 @@ annual <- function(sim) {
   # this has to be the same length as the DT going in for processing
   # sim$opMatrixCBM[, "disturbance"] <- eventDMIDS
 
-###########################################
-  browser()
-  pools_orig <- as.data.table(sim$pools)
-###########################################
-
   sim$pools <- StepPools(
     pools = sim$pools,
-    opMatrix = sim$opMatrixCBM, ## no disturbance (see above)
+    opMatrix = sim$opMatrixCBM,
     flowMatrices = sim$allProcesses
   )
-
-###########################################
-  pools_after <- as.data.table(sim$pools)
-###########################################
 
   ###################################
   # DISTURBANCES COME IN HERE

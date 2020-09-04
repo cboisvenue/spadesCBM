@@ -152,7 +152,7 @@ outputDir <- file.path(moduleDir, "outputs") %>% reproducible::checkPath(create 
 cacheDir <- file.path(outputDir, "cache") %>% reproducible::checkPath(create = TRUE)#"C:/Celine/SpaDEScacheOutputs/cache"
 scratchDir <- file.path(tempdir(), "scratch", "CBM") %>% reproducible::checkPath(create = TRUE)
 
-times <- list(start = 1990.00, end = 1993.00)
+times <- list(start = 1990.00, end = 1991.00)
 parameters <- list(
   spadesCBMcore = list(.useCache = FALSE,#c(".inputObjects", "init") ## TODO: use cache!!
                        .plotInterval = 3,
