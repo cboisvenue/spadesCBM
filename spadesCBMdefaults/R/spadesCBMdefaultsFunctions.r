@@ -232,36 +232,55 @@ computeDomTurnoverMatrices <- function(turnoverParameters, PoolCount){
 biomassTurnoverMatrix <- function(turnoverParam, PoolCount) {
   
   mat <- getIdentityCoordinateMatrix(PoolCount)
-  
+  mat <- rbind(mat, c(SoftwoodMerch, SoftwoodMerch, 
+                      1-turnoverParam["StemAnnualTurnoverRate"]))
   mat <- rbind(mat, c(SoftwoodMerch, SoftwoodStemSnag,
                       turnoverParam["StemAnnualTurnoverRate"]))  
+  mat <- rbind(mat, c(SoftwoodFoliage, SoftwoodFoliage, 
+                      1-turnoverParam["SoftwoodFoliageFallRate"]))
   mat <- rbind(mat, c(SoftwoodFoliage, AboveGroundVeryFastSoil,
                       turnoverParam["SoftwoodFoliageFallRate"]))
+  mat <- rbind(mat, c(SoftwoodOther, SoftwoodOther,
+                      1-turnoverParam["SoftwoodBranchTurnoverRate"]))  
   mat <- rbind(mat, c(SoftwoodOther, SoftwoodBranchSnag,
                       turnoverParam["OtherToBranchSnagSplit"] * turnoverParam["SoftwoodBranchTurnoverRate"]))
   mat <- rbind(mat, c(SoftwoodOther, AboveGroundFastSoil,
                       (1 - turnoverParam["OtherToBranchSnagSplit"]) * turnoverParam["SoftwoodBranchTurnoverRate"]))
+  mat <- rbind(mat, c(SoftwoodCoarseRoots, SoftwoodCoarseRoots,
+                      1-turnoverParam["CoarseRootTurnProp"]))  
   mat <- rbind(mat, c(SoftwoodCoarseRoots, AboveGroundFastSoil,
                       turnoverParam["CoarseRootAGSplit"] * turnoverParam["CoarseRootTurnProp"]))
   mat <- rbind(mat, c(SoftwoodCoarseRoots, BelowGroundFastSoil,
                       (1 - turnoverParam["CoarseRootAGSplit"]) * turnoverParam["CoarseRootTurnProp"]))
+  mat <- rbind(mat, c(SoftwoodFineRoots, SoftwoodFineRoots,
+                      1-turnoverParam["FineRootTurnProp"]))  
   mat <- rbind(mat, c(SoftwoodFineRoots, AboveGroundVeryFastSoil,
                       turnoverParam["FineRootAGSplit"] * turnoverParam["FineRootTurnProp"]))
   mat <- rbind(mat, c(SoftwoodFineRoots, BelowGroundVeryFastSoil,
                       (1 - turnoverParam["FineRootAGSplit"]) * turnoverParam["FineRootTurnProp"]))
   
+  mat <- rbind(mat, c(HardwoodMerch, HardwoodMerch, 
+                      1-turnoverParam["StemAnnualTurnoverRate"]))
   mat <- rbind(mat, c(HardwoodMerch, HardwoodStemSnag,
                       turnoverParam["StemAnnualTurnoverRate"]))
+  mat <- rbind(mat, c(HardwoodFoliage, HardwoodFoliage, 
+                      1-turnoverParam["HardwoodFoliageFallRate"]))
   mat <- rbind(mat, c(HardwoodFoliage, AboveGroundVeryFastSoil,
                       turnoverParam["HardwoodFoliageFallRate"]))
+  mat <- rbind(mat, c(HardwoodOther, HardwoodOther,
+                      1-turnoverParam["HardwoodBranchTurnoverRate"]))  
   mat <- rbind(mat, c(HardwoodOther, HardwoodBranchSnag,
                       turnoverParam["OtherToBranchSnagSplit"] * turnoverParam["HardwoodBranchTurnoverRate"]))
   mat <- rbind(mat, c(HardwoodOther, AboveGroundFastSoil,
                       (1 - turnoverParam["OtherToBranchSnagSplit"]) * turnoverParam["HardwoodBranchTurnoverRate"]))
+  mat <- rbind(mat, c(HardwoodCoarseRoots, HardwoodCoarseRoots,
+                      1-turnoverParam["CoarseRootTurnProp"]))  
   mat <- rbind(mat, c(HardwoodCoarseRoots, AboveGroundFastSoil,
                       turnoverParam["CoarseRootAGSplit"] * turnoverParam["CoarseRootTurnProp"]))
   mat <- rbind(mat, c(HardwoodCoarseRoots, BelowGroundFastSoil,
                       (1 - turnoverParam["CoarseRootAGSplit"]) * turnoverParam["CoarseRootTurnProp"]))
+  mat <- rbind(mat, c(HardwoodFineRoots, HardwoodFineRoots,
+                      1-turnoverParam["FineRootTurnProp"]))  
   mat <- rbind(mat, c(HardwoodFineRoots, AboveGroundVeryFastSoil,
                       turnoverParam["FineRootAGSplit"] * turnoverParam["FineRootTurnProp"]))
   mat <- rbind(mat, c(HardwoodFineRoots, BelowGroundVeryFastSoil,

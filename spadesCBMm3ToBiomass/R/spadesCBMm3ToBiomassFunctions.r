@@ -5,7 +5,7 @@ b_m <- function(table3, vol){
   # flag is vol in growth curve is above the max vol the model was developed on
   if(!is.na(table3$volm)){
     if(max(vol)>table3$volm){
-      message("The volumes in the growth information provided are greater then the maximum volume this model was developed with")}
+      message("The volumes in the growth information provided are greater than the maximum volume the stem wood model was developed with")}
   }
   b_m <- unique(table3$a) * vol ^ unique(table3$b)
   return(b_m)
@@ -15,7 +15,7 @@ nmfac <- function(table4,eq1,vol){
   # flag is vol in growth curve is above the max vol the model was developed on
   if(!is.na(table4$volm)){
     if(max(vol)>table4$volm){
-      message("The volumes in the growth information provided are greater then the maximum volume this model was developed with")}
+      message("The volumes in the growth information provided are greater than the maximum volume the non-merch sized tree model was developed with.")}
   }
   nmFac <- unique(table4$k) + (unique(table4$a) * eq1 ^ unique(table4$b))
   # caps on non-merch trees provided in table 4
@@ -31,10 +31,11 @@ sapfac <- function(table5, eq2, vol){
   # flag is vol in growth curve is above the max vol the model was developed on
   if(!is.na(table5$volm)){
     if(max(vol)>table5$volm){
-      message("The volumes in the growth information provided are greater then the maximum volume this model was developed with")}
+      message("The volumes in the growth information provided are greater than the maximum volume the sappling model was developed with.")}
   }
   # caps on sapling fraction provided in table5
   sapFac <- table5$k + (table5$a * eq2[,2] ^ table5$b)
+  browser()
   if(sapFac>table5$cap){
     sapFac <- table5$cap
   }
@@ -47,9 +48,17 @@ sapfac <- function(table5, eq2, vol){
 # >vol_max in table 7 and apply caps to all proportions (caps are provided in
 # table 7).
 biomProp <- function(table6,table7,vol){
-  # flag if vol in below vol_min or above vol_max (when not NA) is below what
+  # flag if vol in below vol_min or above vol_max (when not NA) 
   # the model was developed on
-  if()
+  if(!is.na(table7$vol_min)){
+    if(min(vol)<table7$vol_min){
+      message("Some volumes in the growth information provided are smaller than the minumum volume the proportions model was developed with.")}
+  }
+  if(!is.na(table7$vol_max)){
+    if(max(vol)>table7$vol_max){
+      message("Some volumes in the growth information provided are lerger than the maximumum volume the proportions model was developed with.")}
+  }
+  browser()
   lvol <- log(vol+5)
   a <- c(7:9)
   b <- c(10:12)
@@ -57,7 +66,7 @@ biomProp <- function(table6,table7,vol){
   pstem <- 1 / ( 1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
                    exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +
                    exp(table6[, c1] + table6[, c2] * vol + table6[, c3] * lvol))
-  
+  #if(pstems<table7$)
   pbark <- exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) /
     (1 + exp(table6[, a1] + table6[, a2] * vol + table6[, a3] * lvol) +
        exp(table6[, b1] + table6[, b2] * vol + table6[, b3] * lvol) +

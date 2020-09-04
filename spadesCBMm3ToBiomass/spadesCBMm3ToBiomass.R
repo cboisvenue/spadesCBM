@@ -475,9 +475,8 @@ Event2 <- function(sim) {
     sim$table4 <- fread("https://nfi.nfis.org/resources/biomass_models/appendix2_table4.csv")
   }
   if(!suppliedElsewhere("table5",sim)){
-    ### HELP: the .csv has a colum with commas! it puts that column in two columns...
-    #table5 <- fread(extractURL("table5"))
-    #work around
+    ### HELP: the .csv has a colum with commas! it puts that column in two
+    #columns... table5 <- fread(extractURL("table5")) work around 
     sim$table5 <- fread("https://nfi.nfis.org/resources/biomass_models/appendix2_table5.csv")
   }
   if(!suppliedElsewhere("table6",sim)){
