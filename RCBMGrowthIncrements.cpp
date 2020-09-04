@@ -136,8 +136,13 @@ public:
   */
   void Reset() {
     Count = 0;
+    // resetting the diagonal was not being done previously
+    for (int i = 0; i < Order; i++)
+    {
+      Diagonal[i] = 0;
+    }
+    Diagonal[0] = 1; // keep the inputs at 1; reset the rest
   }
-  
   /**
   * Add an entry to the matrix.
   * @param rowIndex the 0 based row position of the value within the matrix

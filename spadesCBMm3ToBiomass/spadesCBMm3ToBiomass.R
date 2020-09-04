@@ -168,6 +168,7 @@ Init <- function(sim) {
                                      sim$table4$ecozone %in% eco,])
   # table5 is weird since they did not have enough data for all provinces. Here
   # we are hard-coding the closest equivalent province
+  
    sktable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin$abreviation,])
    if(!length(unique(sktable5.2$juris_id)) == length(unique(thisAdmin$abreviation))){
      ### DANGER HARD CODED: if NFIS changes table 5, this will no longer be valid
@@ -185,9 +186,9 @@ Init <- function(sim) {
      t5abreviation <- c("NB","NB","NB","AB","AB","NT","NT")
      abreviaReplace <- data.table(abreviation,t5abreviation)
       #replace the abbreviations and select
-     thisAdmin <- merge(abreviaReplace,thisAdmin)
-     thisAdmin[, c("abreviation","t5abreviation") := list(t5abreviation,NULL)]
-     sktable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin$abreviation,])
+     thisAdmin5 <- merge(abreviaReplace,thisAdmin)
+     thisAdmin5[, c("abreviation","t5abreviation") := list(t5abreviation,NULL)]
+     sktable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin5$abreviation,])
    }
      
    if(nrow(sktable5.2) >0){
@@ -221,16 +222,14 @@ Init <- function(sim) {
      EcoBoundaryID <- c(8,11,15,16,17,18)
      ecoNotInT5<- c(7,4,6,5,6,10)
      ecoReplace <- data.table(ecoNotInT5,EcoBoundaryID)
-     thisAdmin <- merge(ecoReplace,thisAdmin)
+     thisAdmin5.1 <- merge(ecoReplace,thisAdmin5,by = EcoBoundaryID)
+     sktable5 <- as.data.table(sktable5[sktable5$ecozone %in% thisAdmin5.1$EcoBoundaryID,])
+     ### THIS NEEDS TO BE TESTED
  }
      if(nrow(sktable5)<1){
        stop("There is a problem finding a parameter match in table 5.")
      }
-  # last attempt trying to catch problems with matching parameters in table 5   
-  if(nrow(sktable5)<1){
-    message("There was no model developped for ")
-  }
-
+ 
   sktable6 <- as.data.table(sim$table6[sim$table6$jur %in% thisAdmin$abreviation &
                              sim$table6$eco %in% eco,])
   sktable7 <- as.data.table(sim$table7[sim$table6$jur %in% thisAdmin$abreviation &
@@ -304,6 +303,7 @@ Init <- function(sim) {
       # going from tonnes of biomass/ha to tonnes of carbon/ha here
       cumBiom <- cumBiom*0.5
       inc <- diff(cumBiom)
+      inc <- rbind(inc[1,]/2,inc)
       if(meta$forest_type_id==1){
         incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
         swInc <- rbind(swInc,incs)
@@ -320,18 +320,20 @@ Init <- function(sim) {
   }
   colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+ 
   increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
   interim <- as.matrix(increments)
   interim[is.na(interim)] <- 0
   increments <- as.data.table(interim)
-  
   #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
   ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
   ## id 49 becomes 28
   ## id 50 becomes 29
   ## white birch does not work at all, so take lower productivity trembling aspen
   ## ids 38 and 58 become 34
-  
+  sim$incrementsRawSum <- ggplot(data=increments, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
+                                                      group=id, colour=id)) +
+    geom_line()
   increments[id==49,3:8] <- increments[id==28,3:8]
   increments[id==50,3:8] <- increments[id==29,3:8]
   increments[id==37,3:8] <- increments[id==34,3:8]
@@ -344,7 +346,9 @@ Init <- function(sim) {
   increments[age<80 & hwmerch < 0, hwmerch := 0]
   increments[age<80 & hwfol < 0, hwfol := 0]
   increments[age<80 & hwother < 0, hwother := 0]
-  
+  sim$incrementsFixedSum <- ggplot(data=increments, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
+                                                      group=id, colour=id)) +
+    geom_line()
   
   sim$growth_increments <- as.matrix(increments)
   # END process growth curves -------------------------------------------------------------------------------
