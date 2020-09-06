@@ -119,6 +119,7 @@ public:
     {
       Diagonal[i] = 0;
     }
+    Diagonal[0] = 1; // inputs-to-inputs always 1
     Order = order;
   }
   
