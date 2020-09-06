@@ -8,7 +8,7 @@ This emulates the science in CBM-CFS3 but works in matrix operations (the origin
 Scott got a spin up working with a comparison for 1 stand in SK, which he ran for 100 years post spin-up in both CBMCFS3 and the script as developed here.
 Results are the same compared to classic CBMCFS3 (see `C:\Celine\GitHub\RCBM\data\12_Spades_run\CBM3BaselineTesting`).
 A map of the links and functions of the R and C++ code (created by CBoisvenue) is available here (`G:\RES_Work\Work\SpaDES\work\RCBMoverview\June2017CBMcore\cbmCoreMap.xlsx`).
-SMorken's work is archived in a GitHub repo (<https://github.com/cboisven/RCBM> branch `rcbmV1cb`).
+SMorken's work is archived in a GitHub repo (<https://github.com/cboisvenue/RCBM> branch `rcbmV1cb`).
 
 The present code is the new repo that forms the `spadesCBM` family (<https://github.com/cboisvenue/spadesCBM>).
 The initial effort has three `spadesCBM`-family modules: `spadesCBMdefaults`, `spadesCBMinputs`, and `spadesCBMcore`.
