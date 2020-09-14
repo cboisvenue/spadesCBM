@@ -6,7 +6,7 @@
 ## If exact location is required, functions will be: `sim$<moduleName>$FunctionName`.
 defineModule(sim, list(
   name = "spadesCBMm3ToBiomass",
-  description = "A module to prepare the user-provided growth and yield information for use in the family of models spadesCBM - CBM-CFS3-like simulation of forest carbon in the platform SpaDES",
+  description = "A module to prepare the user-provided growth and yield information for use in the family of models spadesCBM - CBM-CFS3-like simulation of forest carbon in the platform SpaDES. This module takes in user-provided m3/ha and meta data for teh growth curves and returns annual increments for the aboveground live c-pools.",
   keywords = "",
   authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
@@ -139,41 +139,43 @@ doEvent.spadesCBMm3ToBiomass = function(sim, eventTime, eventType) {
 }
 
 ## event functions
-#   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 ### template initialization
 Init <- function(sim) {
-  # # ! ----- EDIT BELOW ----- ! #
-  ## Read-in user userGcM3
-  ## Plot it out
+  # user provides userGcM3: incoming cumulative m3/ha
+  # plot
   sim$volCurves <- ggplot(data=sim$userGcM3, aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
     geom_line()
   
   ## not all curves provided are used in the simulation - and ***FOR NOW*** each
   ## pixels only gets assigned one growth curve (no transition, no change in
   ## productivity). 
-  ## NOTE: the $level3DT will be in sim$ not in outInputs$
+  ### NOTE: the $level3DT will be in sim$ not in outInputs$
   userGcM3 <- sim$userGcM3[GrowthCurveComponentID %in% unique(outInputs$level3DT$growth_curve_component_id),]
 
-  ## reducing the parameter tables to the jurisdiction or ecozone we have in the study area
+  # START reducing Biomass model parameter tables -----------------------------------------------
+  # reducing the parameter tables to the jurisdiction or ecozone we have in the study area
+  ### NOTE: change spadesCBMout$ with sim$
   spu <- unique(spadesCBMout$spatialUnits)
   eco <- unique(spadesCBMout$ecozones)
-  ## TO DO: change the line below so we extract the spu
+  
   thisAdmin <- sim$cbmAdmin[sim$cbmAdmin$SpatialUnitID %in% spu & sim$cbmAdmin$EcoBoundaryID %in% eco,]
   
-  ##TO DO change sk to something else
-  sktable3 <- as.data.table(sim$table3[sim$table3$juris_id %in% thisAdmin$abreviation & 
+  # "s" table for small table3, 4, 5, 6, 7 - tables limited to the targeted
+  # ecozones and jurisdictions
+  stable3 <- as.data.table(sim$table3[sim$table3$juris_id %in% thisAdmin$abreviation & 
                                      sim$table3$ecozone %in% eco,])
-  sktable4 <- as.data.table(sim$table4[sim$table4$juris_id %in% thisAdmin$abreviation &
+  stable4 <- as.data.table(sim$table4[sim$table4$juris_id %in% thisAdmin$abreviation &
                                      sim$table4$ecozone %in% eco,])
-  # table5 is weird since they did not have enough data for all provinces. Here
-  # we are hard-coding the closest equivalent province
-  
-   sktable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin$abreviation,])
-   if(!length(unique(sktable5.2$juris_id)) == length(unique(thisAdmin$abreviation))){
-     ### DANGER HARD CODED: if NFIS changes table 5, this will no longer be valid
-       # juris_id there are only 5/13 possible
-      # these are the provinces available: AB BC NB NF NT
+  # table5 is different since there was not have enough data to fit models for
+  # all provinces. Here we are hard-coding the closest equivalent province to
+  # have a complete set.
+  # This first If-statement is to catch the "no-province" match
+  stable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin$abreviation,])
+   if(!length(unique(stable5.2$juris_id)) == length(unique(thisAdmin$abreviation))){
+     ## DANGER HARD CODED: if NFIS changes table 5, this will no longer be valid
+     # juris_id: there are only 5/13 possible
+     # these are the provinces available: AB BC NB NF NT
      # for the non match these would be the equivalent
      # "PE" - NB 
      # "QC" - NB
@@ -185,18 +187,19 @@ Init <- function(sim) {
      abreviation <- c("PE","QC","ON","MB","SK","YK","NU")
      t5abreviation <- c("NB","NB","NB","AB","AB","NT","NT")
      abreviaReplace <- data.table(abreviation,t5abreviation)
-      #replace the abbreviations and select
+     #replace the abbreviations and select
      thisAdmin5 <- merge(abreviaReplace,thisAdmin)
      thisAdmin5[, c("abreviation","t5abreviation") := list(t5abreviation,NULL)]
-     sktable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin5$abreviation,])
+     stable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin5$abreviation,])
    }
-     
-   if(nrow(sktable5.2) >0){
-     sktable5 <- sktable5.2[ecozone %in% unique(eco),]
+   # This second "if-statement" is to catch is the "no-ecozone" match   
+   ### THIS NEEDS TO BE TESTED
+   if(nrow(stable5.2) >0){
+     stable5 <- stable5.2[ecozone %in% unique(eco),]
    }else{
      stop("There are no matches found for the parameters needed to execute the Boudewyn models.",
-     "Please manually fund matches for table 5.")}
-   if(!length(eco) == length(unique(sktable5$ecozone))){
+     "Please manually find matches for table 5.")}
+   if(!length(eco) == length(unique(stable5$ecozone))){
      # there are 9/15 ecozones 
      # These are the ones in table5
      # id               name
@@ -223,39 +226,40 @@ Init <- function(sim) {
      ecoNotInT5<- c(7,4,6,5,6,10)
      ecoReplace <- data.table(ecoNotInT5,EcoBoundaryID)
      thisAdmin5.1 <- merge(ecoReplace,thisAdmin5,by = EcoBoundaryID)
-     sktable5 <- as.data.table(sktable5[sktable5$ecozone %in% thisAdmin5.1$EcoBoundaryID,])
-     ### THIS NEEDS TO BE TESTED
+     stable5 <- as.data.table(stable5[stable5$ecozone %in% thisAdmin5.1$EcoBoundaryID,])
+
  }
-     if(nrow(sktable5)<1){
+     if(nrow(stable5)<1){
        stop("There is a problem finding a parameter match in table 5.")
      }
  
-  sktable6 <- as.data.table(sim$table6[sim$table6$jur %in% thisAdmin$abreviation &
+  stable6 <- as.data.table(sim$table6[sim$table6$jur %in% thisAdmin$abreviation &
                              sim$table6$eco %in% eco,])
-  sktable7 <- as.data.table(sim$table7[sim$table6$jur %in% thisAdmin$abreviation &
+  stable7 <- as.data.table(sim$table7[sim$table6$jur %in% thisAdmin$abreviation &
                                          sim$table6$eco %in% eco,])
-  # END jurisdiction-----------------------------------------------
+  # END reducing Biomass model parameter tables -----------------------------------------------
   
   # Read-in user provided meta data for growth curves. This could be a complete
   # data frame with the same columns as gcMetaEg.csv OR is could be only curve
-  # id and species.
+  # id and species. This format is necessary to process the curves and use the
+  # resulting increments
   gcMeta <- sim$gcMeta
   
   # checking how many columns in gcMeta, if not 6, columns need to be added
   if(!ncol(gcMeta) == 6){
-    # in here we have to help the user go from their growth curve id and leading
-    # species to the six columns: names(gcMeta)
+    # help the user go from their growth curve id and leading species to the six
+    # columns: names(gcMeta)
     # [1] "growth_curve_id"           "growth_curve_component_id"
     # [3] "species"                   "canfi_species"            
     # [5] "genus"                     "forest_type_id"     
-    # the data frame canfi_species.csv has all the possible options for
-    # canfi_species (number), genus (4 letter code) and species (three letter
-    # code).
-    # let's say
+    # the data frame canfi_species.csv (in userData_Defaults_spadesCBM -
+    # https://drive.google.com/drive/folders/1OBDTp1v_3b3D3Yvg1pHLiW6A_GRklgpD?usp=sharing)
+    # has all the possible options for canfi_species (number), genus (4 letter
+    # code) and species (three letter code).
     gcMeta2 <- gcMeta[,.(growth_curve_id,species)]
     gcMeta2[,growth_curve_component_id := growth_curve_id]
-    #check is all the species are in the canfi_species table
-    ## THIS HAS NOT BEEN TESTED YET
+    #check if all the species are in the canfi_species table
+    ### THIS HAS NOT BEEN TESTED YET
     if(nrow(gcMeta2) == length(which(gcMeta$species %in% sim$canfi_species$name))){
       spsMatch <- sim$canfi_species[,which(name %in% gcMeta2$species), 
                                     .(canfi_species,genus,name,forest_type_id)]
@@ -264,45 +268,65 @@ Init <- function(sim) {
       setkey(spsMatch,species)
       gcMeta3 <- merge(gcMeta2,spsMatch)# I do not think the order of the columns matter
       gcMeta <- gcMeta3
-     }## PUT SOMETHING HERE IS THE SPECIES DONT MATCH...NOT SURE WHAT - ERROR MESSAGE?
+     }
+    ### PUT SOMETHING HERE IF THE SPECIES DONT MATCH...NOT SURE WHAT - ERROR MESSAGE?
   }
   
-  ## assuming gcMeta has now 6 columns, it needs a 7th: spatial_unit_id. This
-  ## will be used in the convertM3biom() fnct to link to the right ecozone
-  
-  ## and it only needs the gc we are using in this sim.
-  ## NOTE: the $level3DT will be in sim$ not in outInputs$
-  
+  # assuming gcMeta has now 6 columns, it needs a 7th: spatial_unit_id. This
+  # will be used in the convertM3biom() fnct to link to the right ecozone
+  # and it only needs the gc we are using in this sim.
+  ### NOTE: the $level3DT will be in sim$ not in outInputs$
   gcThisSim <- unique(outInputs$level3DT[,.(spatial_unit_id,growth_curve_component_id)])
   setkey(gcThisSim,growth_curve_component_id)
   setkey(gcMeta,growth_curve_component_id)
   gcMeta <- merge(gcMeta,gcThisSim)
         
-  ## CHECK 
+  ### CHECK - this in not tested
   if(!unique(unique(userGcM3$GrowthCurveComponentID) == unique(gcMeta$growth_curve_component_id))){
     stop("There is a missmatch in the growth curves of the userGcM3 and the gcMeta")
-    }
- 
+  }
+  
+# START processing curves from m3/ha to tonnes of C/ha then to annual increments
+# per above ground biomass pools -------------------------------------------
+  
+  ### NEED TO MAKE SURE THE PROVIDED CURVES ARE ANNUAL
+  ### if not, we need to extrapolate to make them annual
+
 # Matching is 1st on species, then on gcId which gives us location (admin,
 # spatial unit and ecozone)
   fullSpecies <- unique(gcMeta$species)
   swInc <- NULL
   hwInc <- NULL
+  swCumPools <- NULL
+  hwCumPools <- NULL
   
   for(i in 1:length(fullSpecies)){
+    # matching on species name
     speciesMeta <- gcMeta[species==fullSpecies[i],]
+    # for each species name, process one gcID at a time
     for(j in 1:length(unique(speciesMeta$growth_curve_component_id))){
       meta <- speciesMeta[j,]
-
       id <- sim$userGcM3$GrowthCurveComponentID[which(sim$userGcM3$GrowthCurveComponentID == meta$growth_curve_component_id)][-1]
-      ### IMPORTANT BOURDEWYN PARAMETERS FOR NOT HANDLE AGE 0 ###
+      ## IMPORTANT BOURDEWYN PARAMETERS FOR NOT HANDLE AGE 0 ##
       age <- sim$userGcM3[GrowthCurveComponentID==meta$growth_curve_component_id,Age][-1]
+      # series of fncts results in curves of merch, foliage and other (SW or HW)
       cumBiom <- as.matrix(convertM3biom(meta = meta,gCvalues = sim$userGcM3,spsMatch=gcMeta, 
-                                         ecozones = thisAdmin,params3=sktable3, params4=sktable4, 
-                                         params5=sktable5,params6=sktable6,params7=sktable7))
+                                         ecozones = thisAdmin,params3=unique(stable3), params4=unique(stable4), 
+                                         params5=unique(stable5),params6=unique(stable6),params7=unique(stable7)))
       # going from tonnes of biomass/ha to tonnes of carbon/ha here
-      cumBiom <- cumBiom*0.5
+      cumBiom <- cumBiom*0.5 ## this value is in sim$cbmData@biomassToCarbonRate
+      # calculating the increments per year for each of the three pools (merch,
+      # foliage and other (SW or HW))
       inc <- diff(cumBiom)
+      # CBM processes half the growth before turnover and OvermatureDecline, and
+      # half after. 
+      # names(spadesCBMout$allProcesses)
+      # [1] "Disturbance"       "Growth1"           "DomTurnover"       "BioTurnover"      
+      # [5] "OvermatureDecline" "Growth2"           "DomDecay"          "SlowDecay"        
+      # [9] "SlowMixing"
+      
+      
+      #Dividing the growth in half here.
       inc <- rbind(inc[1,]/2,inc)
       if(meta$forest_type_id==1){
         incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
@@ -314,26 +338,47 @@ Init <- function(sim) {
         # 2  2      Mixedwood
         # 3  3       Hardwood
         # 4  9 Not Applicable
-      } else if(meta$forest_type_id==3){incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),inc)
-      hwInc <- rbind(hwInc,incs)}
+        swCumPools <- rbind(swCumPools,incs)
+      } else if(meta$forest_type_id==3){
+        incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),inc)
+        hwInc <- rbind(hwInc,incs)
+        hwCumPools <- rbind(hwCumPools,incs)
+        }
     }
   }
+  # remember: this is 1/2 the increments per year
   colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
- 
+  colnames(swCumPools) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+  colnames(hwCumPools) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
+  
   increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
+  # make it a matrix for c++ processing
   interim <- as.matrix(increments)
   interim[is.na(interim)] <- 0
   increments <- as.data.table(interim)
+  # END processing curves from m3/ha to tonnes of C/ha then to annual increments
+  # per above ground biomass pools -------------------------------------------
+  
+  # increment checks need to be performed by user. These models have limitations
+  # but also have a foundamental influence on this results of this model since
+  # increments are the **ONLY** driving force in the CBM models.
+  browser()
+  allIncs <- 2*increments[,swmerch:hwother]
+  incsRaw <- cbind(increments[,.(id, age)],allIncs) #%>% rbind(cbind(id=28,age=0,swmerch=0,swfol=0,swother=0,hwmerch=0,hwfol=0,hwother=0))
+  # here checking totals (note that ***FOR NOW*** it is SW or HW both not both)
+  sim$incrementsRawSum <- ggplot(data=incsRaw, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
+                                                      group=id, colour=id)) +  geom_line()
+  
+  
+  
   #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
   ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
   ## id 49 becomes 28
   ## id 50 becomes 29
   ## white birch does not work at all, so take lower productivity trembling aspen
   ## ids 38 and 58 become 34
-  sim$incrementsRawSum <- ggplot(data=increments, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
-                                                      group=id, colour=id)) +
-    geom_line()
+  
   increments[id==49,3:8] <- increments[id==28,3:8]
   increments[id==50,3:8] <- increments[id==29,3:8]
   increments[id==37,3:8] <- increments[id==34,3:8]
@@ -346,6 +391,7 @@ Init <- function(sim) {
   increments[age<80 & hwmerch < 0, hwmerch := 0]
   increments[age<80 & hwfol < 0, hwfol := 0]
   increments[age<80 & hwother < 0, hwother := 0]
+  
   sim$incrementsFixedSum <- ggplot(data=increments, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
                                                       group=id, colour=id)) +
     geom_line()
