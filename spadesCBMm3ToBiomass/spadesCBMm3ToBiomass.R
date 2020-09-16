@@ -33,6 +33,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    # this are variables in inputed data.tables:SpatialUnitID, EcoBoundaryID, juris_id, ecozone, jur, eco, name, GrowthCurveComponentID, plotsRawCumulativeBiomass, checkInc
     expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
     expectsInput(objectName = "table3", objectClass = "dataframe", desc = "Stem wood biomass model parameters for merchantable-sized trees from Boudewyn et al 2007", 
                  sourceURL =  "https://nfi.nfis.org/resources/biomass_models/appendix2_table3.csv"),
@@ -44,24 +45,31 @@ defineModule(sim, list(
                  sourceURL =  "https://nfi.nfis.org/resources/biomass_models/appendix2_table6.csv"),
     expectsInput(objectName = "table7", objectClass = "dataframe", desc = "Caps on proportion models from Boudewyn et al 2007", 
                  sourceURL =  "https://nfi.nfis.org/resources/biomass_models/appendix2_table7.csv"),
-    expectsInput(objectName = "cbmAdmin", objectClass = "dataframe", desc = "Provides equivalent between provincial boundaries, CBM-id for provincial boundaries and CBM-spatial unit ids", sourceURL = NA),
-    expectsInput(objectName = "gcMeta", objectClass = "dataframe", desc = "Provides equivalent between provincial boundaries, CBM-id for provincial boundaries and CBM-spatial unit ids", sourceURL = NA),
+    expectsInput(objectName = "cbmAdmin", objectClass = "dataframe", desc = "Provides equivalent between provincial boundaries,
+                 CBM-id for provincial boundaries and CBM-spatial unit ids", 
+                 sourceURL = "https://drive.google.com/file/d/1xdQt9JB5KRIw72uaN5m3iOk8e34t9dyz/view?usp=sharing"),
+    expectsInput(objectName = "gcMeta", objectClass = "dataframe", desc = "Provides equivalent between provincial boundaries, 
+                 CBM-id for provincial boundaries and CBM-spatial unit ids", sourceURL = NA),
     expectsInput(objectName = "gcMetaFile", objectClass = "character", desc = "File name and location for the user provided gcMeta dataframe", sourceURL = NA),
     expectsInput(objectName = "canfi_species", objectClass = "dataframe", desc = "File containing the possible species in the Boudewyn table - note 
                  that if Boudewyn et al added species, this should be updated. Also note that such an update is very unlikely", sourceURL = NA),
-    expectsInput(objectName = "userGcM3File", objectClass = "character", desc = "User file name for the files containing: GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA),
-    expectsInput(objectName = "userGcM3", objectClass = "dataframe", desc = "User file containing: GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA)
+    expectsInput(objectName = "userGcM3File", objectClass = "character", desc = "User file name for the files containing: 
+                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA),
+    expectsInput(objectName = "userGcM3", objectClass = "dataframe", desc = "User file containing: 
+                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = NA, objectClass = NA, desc = NA),#plotsRawCumulativeBiomass, checkInc, growth_increments, gcHash
+    createsOutput(objectName = NA, objectClass = NA, desc = NA),
     createsOutput(objectName = "volCurves", objectClass = "plot", desc ="Plot of all the growth curve provided by the user" ),
     createsOutput(objectName = "plotsRawCumulativeBiomass", objectClass = "plot", desc ="Plot of cumulative m3/ha curves 
                   translated into tonnes of carbon/ha, per AG pool, prior to any smoothing" ),
     createsOutput(objectName = "checkInc", objectClass = "plot", desc ="Plot of 1/2 of the increment per AG pool, 
                   calculated from the smoothed cumulative tonnes c/ha, derived into increments, per AG pool. " ),
-    createsOutput(objectName = "growth_increments", objectClass = "matrix", desc ="Plot of all the growth curve provided by the user" ),
-    createsOutput(objectName = "volCurves", objectClass = "plot", desc ="Plot of all the growth curve provided by the user" )
+    createsOutput(objectName = "growth_increments", objectClass = "matrix", desc ="Matrix of the 1/2 increment that will be used to create the gcHash" ),
+    createsOutput(objectName = "gcHash", objectClass = "environment", desc ="Environment pointing to each gcID, that is itself an environment, 
+                  pointing to each year of growth for all AG pools.Hashed matrix of the 1/2 growth increment. 
+                  This is used in the c++ functions to increment AG pools two times in an annual event (in the spadesCBMcore.R module." )
   )
 ))
 
