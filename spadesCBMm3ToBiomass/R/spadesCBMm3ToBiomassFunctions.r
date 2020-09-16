@@ -135,3 +135,42 @@ convertM3biom <- function(meta,gCvalues,spsMatch,ecozones,params3, params4, para
 }
 # END process growth curve functions-------------------------------------------------------------  
 
+# plotting function------------------------
+library(ggplot2)
+m3ToBiomIncOnlyPlots <- function(inc=increments){
+  gInc <- as.data.table(inc)
+  idSim <- unique(gInc$id)
+  gcSim <- gInc[id %in% idSim,]
+  gc <- melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:dim(gInc)[2])
+  names(idSim) <- idSim
+  plots <- lapply(idSim, function(idLoop) {
+    ggplot(data=gc[id == idLoop], 
+           aes(x=age,y=value,group=variable,colour=variable)) + geom_line()
+  })
+  names(plots) <- paste0("id",names(plots))
+  return(plots)
+}
+# End plotting function--------------------------
+
+# hashing functions--------------------------------------------
+hash <- function(x) {
+  e <- new.env(hash = TRUE, size = nrow(x),
+               parent = emptyenv());
+  apply(x, 1, function(col) {
+    assign(toString(col[1]), col[2:length(col)], envir = e)
+  });
+  
+  return(e)
+}
+
+# used in spadeCBMInputes (in g&y reading) AND in spadesCBMdefaults (in creating sim$processes)
+matrixHash <- function(x){
+  keys = unique(x[,1])
+  e <- new.env(hash = TRUE, size=length(keys), parent = emptyenv())
+  apply(as.matrix(keys), 1, function(key) {
+    assign(toString(key), x[x[,1]==key,2:ncol(x)], envir = e)
+  });
+  return(e)
+}
+# End hashing functions---------------------------------------
+

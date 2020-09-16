@@ -225,7 +225,14 @@ spinup <- function(sim) {
     sim$spatialUnits, #slow decay
     rep(1, sim$nStands) #slow mixing
   )
-  
+    ### NEED TO DEAL WITH THIS HERE
+    ## DECISION: there are stands over 350 years old and we do not have growth
+    ## curves past 350. So I am setting all ages about 350 to 350. This means that
+    ## we are not tracking old stands but also, this problem will go away once we
+    ## use LandR for the biomass increments
+    sim$ages[sim$ages>max(spadesCBMout$growth_increments[,2])] <- max(spadesCBMout$growth_increments[,2])
+    ## END AGE
+    
   spinupResult <- Spinup(pools = sim$pools, 
                              opMatrix = opMatrix,
                              constantProcesses = sim$processes,

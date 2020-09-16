@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.txt", "spadesCBMm3ToBiomass.Rmd")),
-  reqdPkgs = list("ggplot2"),
+  reqdPkgs = list("ggplot2","quickPlot","ggpubr","mgcv"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
@@ -54,10 +54,14 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = NA, objectClass = NA, desc = NA),
+    createsOutput(objectName = NA, objectClass = NA, desc = NA),#plotsRawCumulativeBiomass, checkInc, growth_increments, gcHash
+    createsOutput(objectName = "volCurves", objectClass = "plot", desc ="Plot of all the growth curve provided by the user" ),
+    createsOutput(objectName = "plotsRawCumulativeBiomass", objectClass = "plot", desc ="Plot of cumulative m3/ha curves 
+                  translated into tonnes of carbon/ha, per AG pool, prior to any smoothing" ),
+    createsOutput(objectName = "checkInc", objectClass = "plot", desc ="Plot of 1/2 of the increment per AG pool, 
+                  calculated from the smoothed cumulative tonnes c/ha, derived into increments, per AG pool. " ),
+    createsOutput(objectName = "growth_increments", objectClass = "matrix", desc ="Plot of all the growth curve provided by the user" ),
     createsOutput(objectName = "volCurves", objectClass = "plot", desc ="Plot of all the growth curve provided by the user" )
-    
-  
   )
 ))
 
@@ -150,15 +154,28 @@ Init <- function(sim) {
   ## not all curves provided are used in the simulation - and ***FOR NOW*** each
   ## pixels only gets assigned one growth curve (no transition, no change in
   ## productivity). 
+  ## To run module independently, the gcID used in this translation can be specified here
   ### NOTE: the $level3DT will be in sim$ not in outInputs$
-  userGcM3 <- sim$userGcM3[GrowthCurveComponentID %in% unique(outInputs$level3DT$growth_curve_component_id),]
+  # if(!suppliedElsewhere("level3DT",sim)){
+  #   userGcM3 <- sim$userGcM3
+  # }else{
+    userGcM3 <- sim$userGcM3[GrowthCurveComponentID %in% unique(outInputs$level3DT$growth_curve_component_id),]
+  # }
 
   # START reducing Biomass model parameter tables -----------------------------------------------
   # reducing the parameter tables to the jurisdiction or ecozone we have in the study area
+  ## To run module independently, the gcID used in this translation can be specified here
   ### NOTE: change spadesCBMout$ with sim$
-  spu <- unique(spadesCBMout$spatialUnits)
-  eco <- unique(spadesCBMout$ecozones)
-  
+    # if(!suppliedElsewhere("spatialUnits",sim)){
+    #   spu  <- ### USER TO PROVIDE SPU FOR EACH gcID###########
+    # }else{
+      spu <- unique(spadesCBMout$spatialUnits)
+    # }
+    # if(!suppliedElsewhere("ecozones",sim)){
+    #   eco <- ### USER TO PROVIDE SPU FOR EACH gcID###########
+    # }else{
+      eco <- unique(spadesCBMout$ecozones)
+    # }
   thisAdmin <- sim$cbmAdmin[sim$cbmAdmin$SpatialUnitID %in% spu & sim$cbmAdmin$EcoBoundaryID %in% eco,]
   
   # "s" table for small table3, 4, 5, 6, 7 - tables limited to the targeted
@@ -295,10 +312,7 @@ Init <- function(sim) {
 # Matching is 1st on species, then on gcId which gives us location (admin,
 # spatial unit and ecozone)
   fullSpecies <- unique(gcMeta$species)
-  swInc <- NULL
-  hwInc <- NULL
-  swCumPools <- NULL
-  hwCumPools <- NULL
+  cumPools <- NULL
   
   for(i in 1:length(fullSpecies)){
     # matching on species name
@@ -317,110 +331,153 @@ Init <- function(sim) {
       cumBiom <- cumBiom*0.5 ## this value is in sim$cbmData@biomassToCarbonRate
       # calculating the increments per year for each of the three pools (merch,
       # foliage and other (SW or HW))
-      inc <- diff(cumBiom)
+      #inc <- diff(cumBiom)
       # CBM processes half the growth before turnover and OvermatureDecline, and
       # half after. 
       # names(spadesCBMout$allProcesses)
       # [1] "Disturbance"       "Growth1"           "DomTurnover"       "BioTurnover"      
       # [5] "OvermatureDecline" "Growth2"           "DomDecay"          "SlowDecay"        
       # [9] "SlowMixing"
-      
-      
-      #Dividing the growth in half here.
-      inc <- rbind(inc[1,]/2,inc)
-      if(meta$forest_type_id==1){
-        incs  <- cbind(id,age,inc,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)))
-        swInc <- rbind(swInc,incs)
-        #FYI:
-        # cbmTables$forest_type
-        # id           name
-        # 1  1       Softwood
-        # 2  2      Mixedwood
-        # 3  3       Hardwood
-        # 4  9 Not Applicable
-        swCumPools <- rbind(swCumPools,incs)
-      } else if(meta$forest_type_id==3){
-        incs <- cbind(id,age,rep(0,length(age)),rep(0,length(age)),rep(0,length(age)),inc)
-        hwInc <- rbind(hwInc,incs)
-        hwCumPools <- rbind(hwCumPools,incs)
-        }
-    }
+      cumBiom <- cbind(id,age,cumBiom)
+
+      cumPools <- rbind(cumPools,cumBiom)
+    }      
   }
-  # remember: this is 1/2 the increments per year
-  colnames(swInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-  colnames(hwInc) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-  colnames(swCumPools) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
-  colnames(hwCumPools) <- c("id", "age", "swmerch","swfol","swother","hwmerch","hwfol","hwother")
   
-  increments <- as.data.table(rbind(swInc,hwInc)) %>% .[order(id),]
-  # make it a matrix for c++ processing
-  interim <- as.matrix(increments)
-  interim[is.na(interim)] <- 0
-  increments <- as.data.table(interim)
-  # END processing curves from m3/ha to tonnes of C/ha then to annual increments
-  # per above ground biomass pools -------------------------------------------
+  # Check models that are directly out of the Boudewyn-translation----------------------------
+  # Usually, these need to be, at a minimum, smoothed out.
   
-  # increment checks need to be performed by user. These models have limitations
-  # but also have a foundamental influence on this results of this model since
-  # increments are the **ONLY** driving force in the CBM models.
-  browser()
-  allIncs <- 2*increments[,swmerch:hwother]
-  incsRaw <- cbind(increments[,.(id, age)],allIncs) #%>% rbind(cbind(id=28,age=0,swmerch=0,swfol=0,swother=0,hwmerch=0,hwfol=0,hwother=0))
-  # here checking totals (note that ***FOR NOW*** it is SW or HW both not both)
-  sim$incrementsRawSum <- ggplot(data=incsRaw, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
-                                                      group=id, colour=id)) +  geom_line()
+  # plotting the curves of the direct translation ------------------------
+  # adding the zeros back in
+  cumPools <- as.data.table(cumPools)
+  id <- unique(cumPools$id)
+  add0s <- cbind(id,age=rep(0,length(id)),totMerch=rep(0,length(id)),
+                 fol=rep(0,length(id)),other=rep(0,length(id)))
+  cumPoolsRaw <- rbind(cumPools,add0s)
+  cumPoolsRaw <- cumPoolsRaw[order(id,age)]
   
+  # plotting and save the plots of the raw-translation in the sim$
+  rawPlots <- m3ToBiomIncOnlyPlots(inc = cumPoolsRaw)
   
+  # From: http://www.sthda.com/english/articles/32-r-graphics-essentials/126-combine-multiple-ggplots-in-one-graph/
   
-  #################### HARD CODED FIXES TO THE CURVES OUT OF THE BOUDEWYN PARAMS THAT DON"T WORK#########
-  ## BLACK SPRUCE (in ecozone 9) does not work so take ecozone 6
-  ## id 49 becomes 28
-  ## id 50 becomes 29
-  ## white birch does not work at all, so take lower productivity trembling aspen
-  ## ids 38 and 58 become 34
+  #do.call(ggarrange, rawPlots)
+  sim$plotsRawCumulativeBiomass <- do.call(ggarrange, 
+                append(rawPlots, 
+                       list(common.legend = TRUE, 
+                            legend = "right",
+                            labels = names(rawPlots),
+                            font.label = list(size = 10, color = "black", face = "bold"),
+                            label.x = 0.5
+                       )))
+  #dev.new()
+  annotate_figure(sim$plotsRawCumulativeBiomass,
+                  top = text_grob("Cumulative merch fol other by gc id", face = "bold", size = 14))
+  # 
+  #sim$gg
+  # end plotting direct translations----------------------------------------
   
-  increments[id==49,3:8] <- increments[id==28,3:8]
-  increments[id==50,3:8] <- increments[id==29,3:8]
-  increments[id==37,3:8] <- increments[id==34,3:8]
-  increments[id==58,3:8] <- increments[id==34,3:8]
-  ## NEGATIVES PRIOR TO 80 become 0
-  #gc[value < 0 & age<80, value := 0]
-  increments[age<80 & swmerch < 0, swmerch := 0]
-  increments[age<80 & swfol < 0, swfol := 0]
-  increments[age<80 & swother < 0, swother := 0]
-  increments[age<80 & hwmerch < 0, hwmerch := 0]
-  increments[age<80 & hwfol < 0, hwfol := 0]
-  increments[age<80 & hwother < 0, hwother := 0]
+  # created smooth cumulative curves using GAMs
+  sMerch <- NULL
+  sFol <- NULL
+  sOther <- NULL
   
-  sim$incrementsFixedSum <- ggplot(data=increments, aes(x=age,y=(swmerch+swfol+swother+hwmerch+hwfol+hwother),
-                                                      group=id, colour=id)) +
-    geom_line()
+  #setseed(0)
+    id <- unique(cumPoolsRaw$id)
+  for(val in id){
+    # per column
+    # totMerch
+    oneSet <- cumPoolsRaw[id==val,]
+    wts <- c(100,rep(2,(which(oneSet$totMerch==max(oneSet$totMerch))-1)),
+             rep(1,(length(oneSet$age)-which(oneSet$totMerch==max(oneSet$totMerch)))))
+    k=20
+    gamMerch <- gam(oneSet$totMerch~ s(oneSet$age, k=k),weight = wts, method="REML")
+    df1 <- as.data.frame(cbind(age=oneSet$age,totMerch=gamMerch$fitted.values))
+    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+    #ggplot(oneSet, aes(age, totMerch)) + geom_point() +
+    #  geom_line(data=df1,aes(color="Fitted GAM cumulative totMerch"))
+    sMerch <- rbind(sMerch,df1)
+    #fol
+    #oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,fol)])
+    wts <- c(100,rep(2,(which(oneSet$fol==max(oneSet$fol))-1)),
+             rep(1,(length(oneSet$age)-which(oneSet$fol==max(oneSet$fol)))))
+    k=20
+    gamMerch <- gam(oneSet$fol~ s(oneSet$age, k=k),weight = wts, method="REML")
+    df2 <- as.data.frame(cbind(age=oneSet$age,fol=gamMerch$fitted.values))
+    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+    # ggplot(oneSet, aes(age, fol)) + geom_point() + 
+    #   geom_line(data=df2,aes(color="Fitted GAM cumulative fol"))
+    sFol <- rbind(sFol,df2)
+    #other
+    #oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,other)])
+    wts <- c(100,rep(2,(which(oneSet$other==max(oneSet$other))-1)),
+             rep(1,(length(oneSet$age)-which(oneSet$other==max(oneSet$other)))))
+    k=20
+    gamMerch <- gam(oneSet$other~ s(oneSet$age, k=k),weight = wts, method="REML")
+    df3 <- as.data.frame(cbind(age=oneSet$age,other=gamMerch$fitted.values))
+    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+    # ggplot(oneSet, aes(age, other)) + geom_point() + 
+    #   geom_line(data=df3,aes(color="Fitted GAM cumulative other"))
+    sOther <- rbind(sOther,df3)
+  }
+  # putting it all together
+  smoothCumPools <- as.data.table(cbind(cumPoolsRaw$id, sMerch, sFol[,2], sOther[,2]))
+  names(smoothCumPools) <- names(cumPoolsRaw)
+  setkey(smoothCumPools,id)
+  # half the increments are use at the begining of simulations and half later in
+  # the simulation. The order is:
+  # names(spadesCBMout$allProcesses)
+  # [1] "Disturbance"       "Growth1"           "DomTurnover"      
+  # [4] "BioTurnover"       "OvermatureDecline" "Growth2"          
+  # [7] "DomDecay"          "SlowDecay"         "SlowMixing"
+  # here, calculating the increment, then dividing it in 2.
+  cols <- c("totMerch","fol","other")
+  newCols <- c("lMerch", "lFol","lOther")
+  lagPools <- smoothCumPools[,(newCols) := lapply(.SD,data.table::shift),.SDcols=cols, by = "id"]
+  lagPools[is.na(lagPools)] <- 0 
+  incCols <- c("incMerch", "incFol", "incOther")
+  incPools <- lagPools[,(incCols) := list(totMerch-lMerch, fol-lFol,other-lOther)][,.(id, age, incMerch,incFol,incOther)]
   
+  # swInc <- NULL
+  # hwInc <- NULL
+  forestType <- gcMeta[,.(id=growth_curve_component_id,forest_type_id )]
+  #       #FYI:
+  #       # cbmTables$forest_type
+  #       # id           name
+  #       # 1  1       Softwood
+  #       # 2  2      Mixedwood
+  #       # 3  3       Hardwood
+  #       # 4  9 Not Applicable
+  setkey(forestType,id)
+  incPools <- merge(incPools,forestType)
+  swCols <- c("swmerch","swfol","swother")
+  hwCols <- c("hwmerch","hwfol","hwother")
+  
+  totalIncrements <- incPools[forest_type_id==1,(swCols) := list((incMerch),(incFol),(incOther))][forest_type_id==3,(hwCols) := list((incMerch),(incFol),(incOther))] 
+  totalIncrements[is.na(totalIncrements)] <- 0
+  outCols <- c("incMerch","incFol","incOther","forest_type_id")
+  incCols <- c(swCols,hwCols)
+  totalIncrements[,(outCols) := NULL]
+  increments <- totalIncrements[,(incCols) := list(swmerch/2,swfol/2,
+                                                   swother/2,hwmerch/2,hwfol/2,hwother/2)] %>% .[order(id,age),]
+  incPlots <- m3ToBiomIncOnlyPlots(inc = increments)
+  
+  # From: http://www.sthda.com/english/articles/32-r-graphics-essentials/126-combine-multiple-ggplots-in-one-graph/
+  #do.call(ggarrange, rawPlots)
+  sim$checkInc <- do.call(ggarrange, 
+                    append(incPlots, 
+                           list(common.legend = TRUE, 
+                                legend = "right",
+                                labels = names(rawPlots),
+                                font.label = list(size = 10, color = "black", face = "bold"),
+                                label.x = 0.5
+                           )))
+  #dev.new()
+  annotate_figure(sim$checkInc,
+                  top = text_grob("Halved increments for merch fol other by gc id", face = "bold", size = 14))
+
   sim$growth_increments <- as.matrix(increments)
   # END process growth curves -------------------------------------------------------------------------------
-  
-  ## AGE ISSUE: if stands are older than growth curves repeat the last growth curve values to past the max age
-  # old code to help
-  # check is there are stands that are older then the growth curve we have
-  #fread("data/userGcM3.csv")#fread(sim$gcurveComponentsFileName)
-  if(max(sim$ages) > max(userGcM3[,2])){
-    stop("there are more than one wildfire in one or more of the spatial units, the user needs to pick one")
-  }
-  
-  ## DECISION: there are stands over 350 years old and we do not have growth
-  ## curves past 350. So I am setting all ages about 350 to 350. This means that
-  ## we are not tracking old stands but also, this problem will go away once we
-  ## use LandR for the biomass increments
-  sim$ages[sim$ages>350] <- 350
-  ## END AGE
-  
-  ### missing gcID error message needed
-  ## NEED an error message here if this vector any of the gcids are NOT 
-  # in the increments (and therefore in the gcHash)
-  # gcidUnique <- unique(sim$gcids)
-  # sim$gcids[!(sim$gcids %in% gcidUnique)]
-  ### missing end
-  
   
   sim$gcHash <- matrixHash(sim$growth_increments)
   #create a nested hash (by gcid/by age)
@@ -551,7 +608,7 @@ Event2 <- function(sim) {
   }
   
   #cbmAdmin: this is needed to match species and parameters. Boudewyn et al 2007
-  #abreviation and cbm sputial units and ecoBoudnary id is provided with the
+  #abbreviation and cbm spatial units and ecoBoudnary id is provided with the
   #adminName to avoid confusion.
   if(!suppliedElsewhere("cbmAdmin",sim)){
     sim$cbmAdmin <- fread(file.path(getwd(),"spadesCBMm3ToBiomass","data/cbmAdmin.csv"))

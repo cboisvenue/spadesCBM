@@ -59,7 +59,6 @@ defineModule(sim, list(
     createsOutput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup."),
     createsOutput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData"),
     createsOutput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"),
-    #createsOutput(objectName = "growth_increments", objectClass = "matrix", desc = "to this later"),
     #createsOutput(objectName = "gcHash", objectClass = "matrix", desc = "to this later"),
     createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table linking the spu id, with the disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White"),
     createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),

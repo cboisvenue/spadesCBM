@@ -73,7 +73,15 @@ wts <- c(rep(5,which(oneId$age==25)),rep(1,(length(oneId$age)-which(oneId$age==2
 gam_oneId1.5 <- gam(oneId$swmerch~ s(oneId$age),weight = wts, method="REML")
 df2.5 <- as.data.frame(cbind(age=oneId$age,swmerch=gam_oneId1.5$fitted.values))
 ggplot(oneId, aes(age, swmerch)) + geom_line() + 
-  geom_line(data=df2,aes(color="Fitted GAM"))
+  geom_line(data=df2.5,aes(color="Fitted GAM"))
+# add weight to intercept and to max value 
+wts <- c(10,rep(2,(which(oneId$swmerch==max(oneId$swmerch))-2)),
+         200,rep(1,(length(oneId$age)-which(oneId$swmerch==max(oneId$swmerch)))))
+gam_oneId1.7 <- gam(oneId$swmerch~ s(oneId$age),weight = wts, method="REML")
+df2.7 <- as.data.frame(cbind(age=oneId$age,swmerch=gam_oneId1.7$fitted.values))
+ggplot(oneId, aes(age, swmerch)) + geom_line() + 
+  geom_line(data=df2.7,aes(color="Fitted GAM"))
+### THIS IS THE BEST BET UP TO NOW
 
 gam_oneId2 <- gam(oneId$swmerch~ 0 + s(oneId$age),method="REML")
 df2 <- as.data.frame(cbind(age=oneId$age,swmerch=gam_oneId2$fitted.values))
