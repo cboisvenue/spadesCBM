@@ -1,8 +1,10 @@
 ---
-title: "spadesCBMinputsMerge"
+title: "spadesCBMinputs"
 author: ""
-date: "02 June 2020"
+date: "19 January 2018"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Overview
@@ -11,6 +13,8 @@ Provide an overview of what the module does / how to use the module.
 
 Module documentation should be written so that others can use your module.
 This is a template for module documentation, and should be changed to reflect your module.
+Cnote: made a copy of yieldRCBM.csv in C:/Celine/GitHub/spadesCBM/inputs/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv
+Need to find it a parking on the cloud.
 
 ## R Markdown
 
@@ -21,28 +25,33 @@ For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 # Usage
 
 ```{r module_usage}
-library(SpaDES)
+library(igraph)
+library(SpaDES.core)
 
-setPaths(modulePath = file.path("C:/Celine/github/spadesCBM"))
-getPaths() # shows where the 4 relevant paths are
-
+moduleDir <- getwd()
+inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(moduleDir, "outputs")
+cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
-
 parameters <- list(
   #.progress = list(type = "text", interval = 1), # for a progress bar
   ## If there are further modules, each can have its own set of parameters:
   #module1 = list(param1 = value1, param2 = value2),
   #module2 = list(param1 = value1, param2 = value2)
 )
-modules <- list("spadesCBMinputsMerge")
+modules <- list("spadesCBMinputs")
 objects <- list()
-inputs <- list()
-outputs <- list()
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects)
+                 objects = objects, paths = paths)
 
-mySimOut <- spades(mySim)
+outSim <- spades(mySim)
 ```
 
 # Events
@@ -62,7 +71,7 @@ Write what is saved.
 ## Input data
 
 How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("spadesCBMinputsMerge", "path/to/modules/dir")` may be sufficient.
+If `sourceURL` is specified, `downloadData("spadesCBMinputs", "path/to/modules/dir")` may be sufficient.
 
 ## Output data
 
@@ -71,3 +80,4 @@ Description of the module outputs.
 # Links to other modules
 
 Describe any anticipated linkages to other modules.
+

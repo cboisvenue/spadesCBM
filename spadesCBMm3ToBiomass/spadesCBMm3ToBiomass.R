@@ -15,7 +15,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.txt", "spadesCBMm3ToBiomass.Rmd")),
-  reqdPkgs = list("ggplot2","quickPlot","ggpubr","mgcv"),
+  reqdPkgs = list("mgcv","ggplot2","quickPlot","ggpubr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
@@ -158,7 +158,7 @@ Init <- function(sim) {
   # plot
   sim$volCurves <- ggplot(data=sim$userGcM3, aes(x=Age,y=MerchVolume,group=GrowthCurveComponentID, colour=GrowthCurveComponentID)) +
     geom_line()
-  
+  message("User: please look at the curve you provided via sim$volCurves")
   ## not all curves provided are used in the simulation - and ***FOR NOW*** each
   ## pixels only gets assigned one growth curve (no transition, no change in
   ## productivity). 
@@ -173,16 +173,16 @@ Init <- function(sim) {
   # START reducing Biomass model parameter tables -----------------------------------------------
   # reducing the parameter tables to the jurisdiction or ecozone we have in the study area
   ## To run module independently, the gcID used in this translation can be specified here
-  ### NOTE: change spadesCBMout$ with sim$
+  ### NOTE: change outInputs$ with sim$
     # if(!suppliedElsewhere("spatialUnits",sim)){
     #   spu  <- ### USER TO PROVIDE SPU FOR EACH gcID###########
     # }else{
-      spu <- unique(spadesCBMout$spatialUnits)
+      spu <- unique(outInputs$spatialUnits)
     # }
     # if(!suppliedElsewhere("ecozones",sim)){
     #   eco <- ### USER TO PROVIDE SPU FOR EACH gcID###########
     # }else{
-      eco <- unique(spadesCBMout$ecozones)
+      eco <- unique(outInputs$ecozones)
     # }
   thisAdmin <- sim$cbmAdmin[sim$cbmAdmin$SpatialUnitID %in% spu & sim$cbmAdmin$EcoBoundaryID %in% eco,]
   
@@ -342,7 +342,7 @@ Init <- function(sim) {
       #inc <- diff(cumBiom)
       # CBM processes half the growth before turnover and OvermatureDecline, and
       # half after. 
-      # names(spadesCBMout$allProcesses)
+      # names(outInputs$allProcesses)
       # [1] "Disturbance"       "Growth1"           "DomTurnover"       "BioTurnover"      
       # [5] "OvermatureDecline" "Growth2"           "DomDecay"          "SlowDecay"        
       # [9] "SlowMixing"
@@ -381,7 +381,8 @@ Init <- function(sim) {
   #dev.new()
   annotate_figure(sim$plotsRawCumulativeBiomass,
                   top = text_grob("Cumulative merch fol other by gc id", face = "bold", size = 14))
-  # 
+  message("User: please inspect the translation of your growth curves via sim$plotsRawCumulativeBiomass.")
+  
   #sim$gg
   # end plotting direct translations----------------------------------------
   
@@ -389,6 +390,9 @@ Init <- function(sim) {
   sMerch <- NULL
   sFol <- NULL
   sOther <- NULL
+  
+  ### HELP: module not loading the package mgcv even though it is in reqdPkgs
+  library(mgcv)
   
   #setseed(0)
     id <- unique(cumPoolsRaw$id)
@@ -434,7 +438,7 @@ Init <- function(sim) {
   setkey(smoothCumPools,id)
   # half the increments are use at the begining of simulations and half later in
   # the simulation. The order is:
-  # names(spadesCBMout$allProcesses)
+  # names(outInputs$allProcesses)
   # [1] "Disturbance"       "Growth1"           "DomTurnover"      
   # [4] "BioTurnover"       "OvermatureDecline" "Growth2"          
   # [7] "DomDecay"          "SlowDecay"         "SlowMixing"
@@ -483,7 +487,7 @@ Init <- function(sim) {
   #dev.new()
   annotate_figure(sim$checkInc,
                   top = text_grob("Halved increments for merch fol other by gc id", face = "bold", size = 14))
-
+  message("User: please inspect the halved increments that are used in your simulation via sim$checkInc.")
   sim$growth_increments <- as.matrix(increments)
   # END process growth curves -------------------------------------------------------------------------------
   

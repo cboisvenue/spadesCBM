@@ -1,3 +1,30 @@
+
+readSqlFile <- function(filePath) {
+  fileconn<-file(filePath,"r")
+  sqlString<-readLines(fileconn)
+  sqlString<-paste(sqlString,collapse=" ")
+  gsub("\t","", sqlString)
+  close(fileconn)
+  return( sqlString )
+}
+
+query <- function(dbPath, sql){
+  con = dbConnect(dbDriver("SQLite"), dbPath)
+  table <- dbGetQuery(con, sql)
+  dbDisconnect(con)
+  return(table)
+}
+
+getTable <- function(filename, dbPath, sqlDir) {
+  
+  con = dbConnect(dbDriver("SQLite"), dbPath)
+  filePath <- file.path(sqlDir, filename)
+  table <- query(dbPath, readSqlFile(filePath))
+  dbDisconnect(con)
+  return(table)
+}
+
+
 ### spuDist()-------------------------------------------------------------------
 #This function identifies the ID number (CBM-CFS3 legacy) that are possible in
 #the specific spatial unit you are in. You give is spatial units you are
@@ -110,9 +137,8 @@ cTransfer <- function(standIn=preD,transProp=distProp){
   
   return(standOut)
 }
-# END calculate c transfer for diturbances and annual processes post disturbance-----------------------------
+# END calculate c transfer for disturbances and annual processes post disturbance-----------------------------
 
-# copies from spadesCBMdefault functions ------------------------------------
 matrixHash <- function(x){
   keys = unique(x[,1])
   e <- new.env(hash = TRUE, size=length(keys), parent = emptyenv())
@@ -121,6 +147,115 @@ matrixHash <- function(x){
   });
   return(e)
 }
+
+#step 1 functions
+# this class stores all CBM-CFS3 parameters in matrices
+setClass("dataset", where = envir(sim), slots=list(
+  turnoverRates="matrix",
+  rootParameters="matrix",
+  decayParameters="matrix",
+  spinupParameters="matrix",
+  classifierValues="matrix",
+  climate="matrix",
+  spatialUnitIds="matrix",
+  slowAGtoBGTransferRate="matrix",
+  biomassToCarbonRate="matrix",
+  ecoIndices="matrix",
+  spuIndices="matrix",
+  stumpParameters="matrix",
+  overmatureDeclineParameters="matrix",
+  disturbanceMatrix="matrix",
+  disturbanceMatrixAssociation="matrix",
+  disturbanceMatrixValues="matrix",
+  disturbanceMatrixIndices="matrix",
+  disturbanceEvents="matrix",
+  landclasses="matrix",
+  pools="matrix",
+  domPools="matrix"))
+
+readSqlFile <- function(filePath) {
+  fileconn<-file(filePath,"r")
+  sqlString<-readLines(fileconn)
+  sqlString<-paste(sqlString,collapse=" ")
+  gsub("\t","", sqlString)
+  close(fileconn)
+  return( sqlString )
+}
+
+query <- function(dbPath, sql){
+  con = dbConnect(dbDriver("SQLite"), dbPath)
+  table <- dbGetQuery(con, sql)
+  dbDisconnect(con)
+  return(table)
+}
+
+getTable <- function(filename, dbPath, sqlDir) {
+  
+  con = dbConnect(dbDriver("SQLite"), dbPath)
+  filePath <- file.path(sqlDir, filename)
+  table <- query(dbPath, readSqlFile(filePath))
+  dbDisconnect(con)
+  return(table)
+}
+
+#step 2 functions
+getIdentityCoordinateMatrix<-function(size){
+  return(cbind(1:size, 1:size, rep(1.0,size)))
+}
+
+#' calculates the decay rate based on mean annual temperature 
+#' and other parameters
+#' 
+#' @param meanAnnualTemp scalar temperature in deg Celcius
+#' @param baseDecayRate scalar base decay rate constant
+#' @param q10 the scalar q10 value
+#' @param tref the reference temperature
+#' @param max the maximum allowed decay rate
+#' @return the scalar rate of decay
+#'
+#' this is the ecological theory for decomposing being used in CBM
+#' 
+decayRate <- function(meanAnnualTemp, baseDecayRate, q10, tref, max) {
+  min(baseDecayRate * exp((meanAnnualTemp-tref) * log(q10) * 0.1), max)
+}
+
+#' returns a vector of decay rates where the indices of the vector
+#' are the dom pools of CBM
+#' 
+#' @param meanAnnualTemp scalar temperature in deg Celcius
+#' @param decayParameters table of decay parameters for calculating 
+#' the temperature dependant decay rate
+#' @return the vector of decay rates
+getDecayRates <- function(meanAnnualTemp, decayParameters, domPools) {
+  decayRateOfNum <- function(decayParameter){
+    decayRate(meanAnnualTemp,
+              decayParameter["OrganicMatterDecayRate"],
+              decayParameter["Q10"],
+              decayParameter["ReferenceTemp"],
+              decayParameter["MaxDecayRate"])
+  }
+  result <- apply(decayParameters, 1, decayRateOfNum)
+  names(result) <- domPools[,"name"]
+  return(result)
+}
+
+spatialUnitDecayRates <- function(climate, decayparameters, domPools){
+  decayRates <- t(apply(as.matrix(climate[,"MeanAnnualTemperature"]), 1, 
+                        function(t) getDecayRates(t, decayparameters, domPools)))
+  decayRates <- cbind(climate[,"SpatialUnitID"], decayRates)
+  colnames(decayRates)[1] <- "SpatialUnitID"
+  return (decayRates)
+}
+
+#' calculates a portion of the dom decay matrix (here only to reduce repetitive code)
+#' 
+#' @param mat the datatable 
+#' @param decayRates vector of annual decay rates by dom pool
+#' @param propToAtmosphere vector of the proportions of decay emitted to the atmosphere as CO2 by this process
+#' @param src the integer code for the dom pool being decayed
+#' @param dst the integer code for the dom pool receving non-emitted decayed matter
+#' @param emission the integer code for the CO2 pool
+#' @return A modified copy of the input \code{mat}
 domDecayMatrixItem <- function(mat, decayRates, propToAtmosphere, src, dst, emission) {
   offset<-HardwoodFineRoots
   mat <- rbind(mat, c(src, src, 1-decayRates[src-offset]))
@@ -170,6 +305,8 @@ computeDomDecayMatrices <- function(decayRates, decayParameters, PoolCount){
   colnames(matrices) <- c("id", "row", "col", "value")
   return(matrices)
 }
+
+
 slowDecayMatrix <- function(decayRates, decayParameters, PoolCount) {
   offset <- HardwoodFineRoots
   mat <- getIdentityCoordinateMatrix(PoolCount)
@@ -233,36 +370,55 @@ computeDomTurnoverMatrices <- function(turnoverParameters, PoolCount){
 biomassTurnoverMatrix <- function(turnoverParam, PoolCount) {
   
   mat <- getIdentityCoordinateMatrix(PoolCount)
-  
+  mat <- rbind(mat, c(SoftwoodMerch, SoftwoodMerch, 
+                      1-turnoverParam["StemAnnualTurnoverRate"]))
   mat <- rbind(mat, c(SoftwoodMerch, SoftwoodStemSnag,
                       turnoverParam["StemAnnualTurnoverRate"]))  
+  mat <- rbind(mat, c(SoftwoodFoliage, SoftwoodFoliage, 
+                      1-turnoverParam["SoftwoodFoliageFallRate"]))
   mat <- rbind(mat, c(SoftwoodFoliage, AboveGroundVeryFastSoil,
                       turnoverParam["SoftwoodFoliageFallRate"]))
+  mat <- rbind(mat, c(SoftwoodOther, SoftwoodOther,
+                      1-turnoverParam["SoftwoodBranchTurnoverRate"]))  
   mat <- rbind(mat, c(SoftwoodOther, SoftwoodBranchSnag,
                       turnoverParam["OtherToBranchSnagSplit"] * turnoverParam["SoftwoodBranchTurnoverRate"]))
   mat <- rbind(mat, c(SoftwoodOther, AboveGroundFastSoil,
                       (1 - turnoverParam["OtherToBranchSnagSplit"]) * turnoverParam["SoftwoodBranchTurnoverRate"]))
+  mat <- rbind(mat, c(SoftwoodCoarseRoots, SoftwoodCoarseRoots,
+                      1-turnoverParam["CoarseRootTurnProp"]))  
   mat <- rbind(mat, c(SoftwoodCoarseRoots, AboveGroundFastSoil,
                       turnoverParam["CoarseRootAGSplit"] * turnoverParam["CoarseRootTurnProp"]))
   mat <- rbind(mat, c(SoftwoodCoarseRoots, BelowGroundFastSoil,
                       (1 - turnoverParam["CoarseRootAGSplit"]) * turnoverParam["CoarseRootTurnProp"]))
+  mat <- rbind(mat, c(SoftwoodFineRoots, SoftwoodFineRoots,
+                      1-turnoverParam["FineRootTurnProp"]))  
   mat <- rbind(mat, c(SoftwoodFineRoots, AboveGroundVeryFastSoil,
                       turnoverParam["FineRootAGSplit"] * turnoverParam["FineRootTurnProp"]))
   mat <- rbind(mat, c(SoftwoodFineRoots, BelowGroundVeryFastSoil,
                       (1 - turnoverParam["FineRootAGSplit"]) * turnoverParam["FineRootTurnProp"]))
   
+  mat <- rbind(mat, c(HardwoodMerch, HardwoodMerch, 
+                      1-turnoverParam["StemAnnualTurnoverRate"]))
   mat <- rbind(mat, c(HardwoodMerch, HardwoodStemSnag,
                       turnoverParam["StemAnnualTurnoverRate"]))
+  mat <- rbind(mat, c(HardwoodFoliage, HardwoodFoliage, 
+                      1-turnoverParam["HardwoodFoliageFallRate"]))
   mat <- rbind(mat, c(HardwoodFoliage, AboveGroundVeryFastSoil,
                       turnoverParam["HardwoodFoliageFallRate"]))
+  mat <- rbind(mat, c(HardwoodOther, HardwoodOther,
+                      1-turnoverParam["HardwoodBranchTurnoverRate"]))  
   mat <- rbind(mat, c(HardwoodOther, HardwoodBranchSnag,
                       turnoverParam["OtherToBranchSnagSplit"] * turnoverParam["HardwoodBranchTurnoverRate"]))
   mat <- rbind(mat, c(HardwoodOther, AboveGroundFastSoil,
                       (1 - turnoverParam["OtherToBranchSnagSplit"]) * turnoverParam["HardwoodBranchTurnoverRate"]))
+  mat <- rbind(mat, c(HardwoodCoarseRoots, HardwoodCoarseRoots,
+                      1-turnoverParam["CoarseRootTurnProp"]))  
   mat <- rbind(mat, c(HardwoodCoarseRoots, AboveGroundFastSoil,
                       turnoverParam["CoarseRootAGSplit"] * turnoverParam["CoarseRootTurnProp"]))
   mat <- rbind(mat, c(HardwoodCoarseRoots, BelowGroundFastSoil,
                       (1 - turnoverParam["CoarseRootAGSplit"]) * turnoverParam["CoarseRootTurnProp"]))
+  mat <- rbind(mat, c(HardwoodFineRoots, HardwoodFineRoots,
+                      1-turnoverParam["FineRootTurnProp"]))  
   mat <- rbind(mat, c(HardwoodFineRoots, AboveGroundVeryFastSoil,
                       turnoverParam["FineRootAGSplit"] * turnoverParam["FineRootTurnProp"]))
   mat <- rbind(mat, c(HardwoodFineRoots, BelowGroundVeryFastSoil,
@@ -289,6 +445,7 @@ loadDisturbanceMatrixIds<-function(disturbanceMatrixValues, dbPools){
     dbPoolName <- dbPools[as.numeric(dbPools[,"id"])==dbPoolID, "name"]
     get(dbPoolName)
   }
+  
   #fill in the neutral transfers not covered by the matrix data
   #ie. the matrix will not withdraw from any of the following pools
   neutrals <- NULL
@@ -324,7 +481,6 @@ loadDisturbanceMatrixIds<-function(disturbanceMatrixValues, dbPools){
   return(allMatrices)
   
 }
-
 # from spadesCBMinputsFunctions.r---------------------
 spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defaults","cbm_defaults.db")){
   

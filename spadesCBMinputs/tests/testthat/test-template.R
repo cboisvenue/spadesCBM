@@ -4,12 +4,12 @@
 #    `test-functionName.R` format so that your can directly call `moduleCoverage`
 #    to calculate module coverage information.
 #    `functionName` is a function's name in your module (e.g., `spadesCBMinputsEvent1`).
-# 2. Copy this file to the tests folder (i.e., `C:/Celine/GitHub/RCBM/RCBMspadesWork/spadesCBMinputs/tests/testthat`).
+# 2. Copy this file to the tests folder (i.e., `C:/Celine/github/spadesCBM/spadesCBMinputs/tests/testthat`).
 
 # 3. Modify the test description based on the content you are testing:
 test_that("test Event1 and Event2.", {
   module <- list("spadesCBMinputs")
-  path <- list(modulePath = "C:/Celine/GitHub/spadesCBM",
+  path <- list(modulePath = "C:/Celine/github/spadesCBM",
                outputPath = file.path(tempdir(), "outputs"))
   parameters <- list(
     #.progress = list(type = "graphical", interval = 1),

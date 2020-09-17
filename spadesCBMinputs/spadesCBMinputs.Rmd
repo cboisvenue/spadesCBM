@@ -9,18 +9,13 @@ editor_options:
 
 # Overview
 
-Provide an overview of what the module does / how to use the module.
+This module runs independently with the global script below. It is a child module of the spadesCBM family of modules. It is called from the parent module (spadesCBM.R) when running spadesCBM simulations. Its main task is to read-in user-provided information or provide defaults. It reads-in rasters (ageRaster, ecoRaster, gcIndexRaster, spuRaster, and masterRaster) from either defaults of provided by the user. From the rasters is creates pixelGroup which are unique combinations of the rasters values. PixelGroup is a main processing unit in spadesCBM simulations. In a first step, a spatialDT which is a data.table listing all pixels with their respective values of raster, pixelIndex and pixelGroup is created (`sim$spatialDT`). From the spatialDT, a reduced data.table is create (`sim$level3DT`) which is the data.table from which processing will start in spadesCBMcore. The number of records in this data.table (`sim$level3DT`) should equal the number of pixelGroups that will be processed in the spinup event of the spadesCBMcore module. This present module also creates variables of the same length as the rows in level3DT for use in other events of the spadesCBMcore module. These are: returnIntervals, maxRotations, minRotations, lastPassDMIDs, historicDMIDs, and delays all stored in the simList.
 
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
-Cnote: made a copy of yieldRCBM.csv in C:/Celine/GitHub/spadesCBM/inputs/SK_ReclineRuns30m/LookupTables/yieldRCBM.csv
-Need to find it a parking on the cloud.
+Another important object created in this module is mySpuDmids. This data.table links the user-defined disturbances (`$userDist`) with a spatial unit and a disturbance matrix. This will be used to apply disturbances to pixelGroups in the annual event of the spadesCBMcore.R module. The mySpuDmids data.table is created starting from a user provided list of disturbances (userDist) that matches the rasterId of the disturbance raster to the disturbance name. That name and the location of the disturbance (spatial unit id) is used to associate a disturbance matrix identification number to the disturbed pixelGroup. Disturbance Matrices (DM) determine what proportion of a carbon pool gets transferred to another because of disturbance. There are 426 matrix IDs in the present default data (`outDefaults$processes$disturbanceMatrices`). DMIDs (Disturbance Matrix IDs) are part of the default data that come with CBM-CFS3. DMs are specific to spatial units which are a numbering (48 of them `outDefaults$cbmData@spatialUnitIds`) of the overlay of the administrative boundaries and ecozones in Canada. Spatial units are central units in CBM-CFS3, as are ecozones because both determining various ecological and other parameters that will be used in simulations via the spadesCBMcore module. The proportion of carbon transferred by a specific DMID can be found here `outDefaults$cbmData@disturbanceMatrixValues`. A series of R-functions were built to help users associate the correct disturbance matrices (spuDist() mySpu() seeDist() simDist()) and are searchable in this package.
 
-## R Markdown
-
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
-For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
+Note: 
+* spadesCBMdefaults objects are recreated in the `.inputObject` of this module
+* nothing is in carbon or carbon increments at this point. This module feeds into the spadesCBMcore module as does the spadesCBMm3ToBiomass.R module. 
 
 # Usage
 
@@ -34,24 +29,27 @@ outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
-)
+  spadesCBMinputs = list(.useCache = ".inputObjects")
+ #.progress = list(type = "text", interval = 1), # for a progress bar
+ ## If there are further modules, each can have its own set of parameters:
+ #module1 = list(param1 = value1, param2 = value2),
+ #module2 = list(param1 = value1, param2 = value2)
+ )
 modules <- list("spadesCBMinputs")
-objects <- list()
-paths <- list(
-  cachePath = cacheDir,
-  modulePath = moduleDir,
-  inputPath = inputDir,
-  outputPath = outputDir
+objects <- list(
+  userDistFile = file.path(moduleDir,"spadesCBMinputs","data","userDist.csv")
 )
+paths <- list(
+ cachePath = cacheDir,
+ modulePath = moduleDir,
+ inputPath = inputDir,
+ outputPath = outputDir
+ )
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
+myInputs <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-outSim <- spades(mySim)
+outInputs <- spades(myInputs)
 ```
 
 # Events
