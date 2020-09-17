@@ -102,7 +102,7 @@ Once the DOM pools have stabilized, the spinup event grows the stand (still usin
 If `spinupDebug` is set to `FALSE`, the spinup event provides a line for each stand with the initial pool values to initialize the stands/pixels for the annual simulations.
 These are assigned in the `postSpinup` event.
 In the `postSpinup` event, matrices are set up for the processes that will happen in the annual event (disturbance, half growth, `DOMturnover`, `BioTurnover`, `OverMatureDecline`, second half of growth, `DOMDecay`, `SlowDecay`, `SlowMixing`).
-The event spinupDebug was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles.
+The event `spinupDebug` was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles.
 Please refer to the next paragraph for warnings about this event.
 The annual event is where all the processes are applied.
 These include annual growth, turnover, overmature decline, decay, and disturbances.
