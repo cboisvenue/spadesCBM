@@ -8,6 +8,12 @@
 #----------------------------------------------------
 
 ######### rewriting annual event here
+  # compile c++ functions
+  Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")
+  #sourceCpp(file='RCBMStep.cpp')
+  Rcpp::sourceCpp(file='RCBMGrowthIncrements.cpp')##, cacheDir = cachePath(sim), 
+  ##env = envir(sim)[[".mods"]][["spadesCBMcore"]])
+  
 
 ##annual <- function(sim) {
   ###################################
@@ -69,7 +75,7 @@
   # disturbances or have different transitions resulting from specific
   # disturbances, this will have to change.
   
-  # maxPixelGroup <- max(spatialDT$pixelGroup)
+  maxPixelGroup <- max(spatialDT$pixelGroup)
   # distPixels[,oldGroup := pixelGroup]
   # distPixels[,pixelGroup := NULL]
   # 
@@ -178,6 +184,7 @@
   #########################################################################
   # ALL PROCESSES FOR ALL PIXEL GROUPS#####################################
   #########################################################################
+  
   # Changing the vectors and matrices that need to be changed to process this year's growth
   ##sim$pools
   pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
@@ -251,6 +258,9 @@
                      flowMatrices = allProcesses)
   ##########################END PROCESSES#########################################
   
+  ### note: the vectors for the end of the annual event still need to be made
+  ### and ready for the next year
+  
   #####################################################################################
   ### HERE CHECK IF THE ANNUAL PROCESSES HAVE WORKED##############################
   ## pools before processing: 2 pixels groups with no dist and two with a clear cut
@@ -321,56 +331,44 @@
   #[1] 426
   calcAfter3 <- (before4[3,2]-
                    (sum(allProcesses$Disturbance$'409'[allProcesses$Disturbance$'409'[,1]==2,][,3])*
-                      before4[3,2]) + allProcesses$Growth1[[757]][1,3] + allProcesses$Growth1[[757]][1,3])
+                      before4[3,2]) + allProcesses$Growth1[[757]][1,3]*
+                   allProcesses$BioTurnover$'9'[allProcesses$BioTurnover$'9'[,1]==2 & allProcesses$BioTurnover$'9'[,2]==2,][[2,3]] + 
+                   allProcesses$Growth1[[757]][1,3])
   
   after4[3,"SoftwoodMerch"]-calcAfter3
   # to products?
-  afterProducts <- before4[3,2]*allProcesses$Disturbance$'409'[allProcesses$Disturbance$'409'[,1]==2,][[2,3]]+
+  afterProducts1 <- before4[3,2]*allProcesses$Disturbance$'409'[allProcesses$Disturbance$'409'[,1]==2,][[2,3]]+
     before4[3,19]*0.5
-  after4[3,26]-afterProducts
+  after4[3,26]-afterProducts1
   # Products 
   # 0 
+  
   ## last disturbance
   calcAfter4 <- (before4[4,2]-
                    (sum(allProcesses$Disturbance$'409'[allProcesses$Disturbance$'409'[,1]==2,][,3])*
-                      before4[4,2]) + allProcesses$Growth1[[758]][1,3] + allProcesses$Growth1[[758]][1,3])
+                      before4[4,2]) + allProcesses$Growth1[[758]][1,3]*
+                   allProcesses$BioTurnover$'9'[allProcesses$BioTurnover$'9'[,1]==2 & allProcesses$BioTurnover$'9'[,2]==2,][[2,3]] +
+                   allProcesses$Growth1[[758]][1,3])
   
   after4[4,"SoftwoodMerch"]-calcAfter4
   # to products?
-  afterProducts <- before4[3,2]*allProcesses$Disturbance$'409'[allProcesses$Disturbance$'409'[,1]==2,][[2,3]]+
-    before4[3,19]*0.5
-  after4[3,26]-afterProducts
-  
-  
-  
-  # this above should have spinup +2xincrements-bioturnover -overmatureDecline
-  # get processes
-  
-  # bioturnover and overmature decline are in for ecozone 9 in the 4st pixelGroups
-  class(allProcesses$BioTurnover$'9')
-  #just show me the swmerch
-  allProcesses$BioTurnover$'9'[allProcesses$BioTurnover$'9'[,1]==2 & allProcesses$BioTurnover$'9'[,2]==2,][2,3]
-  # row col value
-  # [1,]   2   2 1.000
-  # [2,]   2   2 0.995
-  # [3,]   2  19 0.005
-  
-  allProcesses$OvermatureDecline   #- all ones...
-  spinupResult[1:4,1:8]
-  pools[1:4,1:8]
-  swMstart <- 26.73961 
-  swMend <- 26.66974 
-  swMinc <- 0.0639817
-  swMturn <- 0.995
-  
-  swMcheck <- ((swMstart+swMinc)*swMturn)+swMinc
-  ##humm....
-  
+  afterProducts2 <- before4[4,2]*
+    allProcesses$Disturbance$'409'[allProcesses$Disturbance$'409'[,1]==2,][[2,3]]+
+    before4[4,19]*0.5
+  after4[4,26]-afterProducts2
 
-  
+  ### END OF CHECK IF THE ANNUAL PROCESSES HAVE WORKED##############################
+  ## they have ALL WORKED!
+  #####################################################################################  
+
   ### BELOW STILL NEEDS TO BE CHECKED
   ##########NPP: Calculating NPP for this year using stockt and stockt1#############
-  stockt <- sim$pixelGroupC[,.(
+  ## NPP for all the pixel groups that are above maxPixelGroup is the sum of the
+  ## increments for that pixel group.
+  
+  ###sim$pixelGroupC
+  nonDistline <- which(pixelGroupForAnnual$pixelGroup==maxPixelGroup)
+  stockt <- pixelGroupForAnnual[1:nonDistline,.(
     pixelGroup,
     ages,
     spatial_unit_id,
@@ -387,7 +385,8 @@
   )] 
   
   setkey(stockt,pixelGroup)
-  stockt1 <- unique(cbind(pixelGroupForAnnual[,!(Input:Products)],sim$pools))[,.(
+  ### sim$pools instead of pools2
+  stockt1 <- cbind(pixelGroupForAnnual[1:nonDistline,!(Input:Products)],pools2[1:nonDistline,])[,.(
     pixelGroup,
     ages,
     SoftwoodMerch,
@@ -404,6 +403,7 @@
   setkey(stockt1,pixelGroup)
   #This is recycling stockt. Need to do the other type of join
   stocks2t <- stockt[,-c("ages","spatial_unit_id")][stockt1]
+  
   grossGrowth <- stocks2t[,.(
     pixelGroup,
     grossGrowthAG = (
@@ -419,8 +419,23 @@
         (HardwoodCoarseRoots - PastHardwoodCoarseRoots) +
         (HardwoodFineRoots - PastHardwoodFineRoots))
   )]
+  #sim$turnoverRates
+  ### sim$turnoverRates are calculated in the postspinup event
+  ###calcTurnoverRates ------------------------------------------------------------------
+  # matching the turnover rates to the spatial unit
   
-  turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
+  calcTurnoverRates <- function(turnoverRates, spatialUnitIds, spatialUnits) {
+    turnoverRates <- as.data.table(turnoverRates)
+    SPU <- as.data.table(spatialUnitIds)
+    SPU <- SPU[SpatialUnitID %in% unique(spatialUnitIds)]
+    SPU <- merge(SPU, turnoverRates, by = "EcoBoundaryID", all.y = FALSE)
+    SPU <- SPU[SpatialUnitID %in% unique(spatialUnits),]
+    return(SPU)
+  }
+  ### END calcTurnoverRates ------------------------------------------------------------------
+  turnoverRates <- calcTurnoverRates(turnoverRates = outInputs$cbmData@turnoverRates,
+                                     spatialUnitIds = outInputs$cbmData@spatialUnitIds, spatialUnits = outInputs$spatialUnits)
+  turnoverRates <- turnoverRates[, spatial_unit_id := SpatialUnitID]
   turnoverComponents <- merge(stockt,turnoverRates,by="spatial_unit_id")
   turnover <- turnoverComponents[,.(
     AGturnover = (
@@ -437,7 +452,7 @@
         (PastHardwoodFineRoots * FineRootTurnProp))
   ), by = pixelGroup]
   
-  NPP <- merge(turnover,grossGrowth,by="pixelGroup")[,.(
+  NPPnonDist <- merge(turnover,grossGrowth,by="pixelGroup")[,.(
     pixelGroup,
     NPP = (
       AGturnover+
@@ -446,6 +461,27 @@
         grossGrowthBG)
   )]
   
+  ### now add NPP for the disturbed pixels
+  # make the matrices data.tables
+  incsListDT <- lapply(allProcesses$Growth1,as.data.table)
+  incsListDTnrow <- lapply(allProcesses$Growth1,nrow)
+  incsNrow <- do.call("rbind",incsListDTnrow)
+  #names(incsListDT) <- pixelGroupForAnnual$pixelGroup#paste0("pg", 
+  incDT <- rbindlist(incsListDT)
+  # this is not working can't figure out why...
+  # incDT$name <- rep(names(incsListDT),each=sapply(incsListDT,"nrow"))
+  nameVec <- NULL
+  for(i in 1:length(pixelGroupForAnnual$pixelGroup)){
+    thisPg <- rep(pixelGroupForAnnual$pixelGroup[i],times=incsNrow[i])
+    nameVec <- c(nameVec,thisPg)
+  }
+  incDT$name  <-  nameVec
+  
+  # only the pixelGroups that are disturbed
+  distNPP <- incDT[name>maxPixelGroup & value<1,.(NPP = sum(value)),by=name]
+  names(distNPP) <- names(NPPnonDist)
+  ### sim$NPP is created in postspinup
+  NPP <- rbind(NPPnonDist,distNPP)
   sim$NPP <- rbind(sim$NPP, cbind(simYear = rep(time(sim)[1],nrow(NPP)),NPP))
   ######### NPP END HERE ###################################  
   
@@ -465,14 +501,8 @@
   sim$cbmPools <- rbind(sim$cbmPools,updatePools)
   ######## END OF UPDATING VECTORS FOR NEXT SIM YEAR #######################################  
   
-  return(invisible(sim))
-}
 
 
 
 
-Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")
-#sourceCpp(file='RCBMStep.cpp')
-Rcpp::sourceCpp(file='RCBMGrowthIncrements.cpp')##, cacheDir = cachePath(sim), 
-                ##env = envir(sim)[[".mods"]][["spadesCBMcore"]])
 
