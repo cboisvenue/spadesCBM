@@ -66,6 +66,7 @@ defineModule(sim, list(
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation"),
     createsOutput(objectName = "NPP", objectClass = "data.table", desc = "NPP for each pixelGroup"),
+    createsOutput(objectName = "emissionsProducts", objectClass = "data.table", desc = "Co2, CH4, CO and Products columns for each simulation year - filled up at each annual event."),
     createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "this is modified to associate the right pixel group to the pixel id after disturbances"),
     createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "this is modified: ordered by pixelGroup"),
     createsOutput(objectName = "nStands", objectClass = "integer", desc = "number of pixelGroup in this annual run"),
@@ -214,16 +215,27 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 ### template initialization
+
 spinup <- function(sim) {
+
+  io <- inputObjects(sim, currentModule(sim))
+  objectNamesExpected <- io$objectName
+  available <- objectNamesExpected %in% ls(sim)
+  if (any(!available)) stop("The inputObjects for spadesCBMcore are not all available:",
+                            "These are missing:", paste(objectNamesExpected[!available], collapse = ", "),
+                            ". \n\nHave you run ", 
+                            paste0("spadesCBM", c("defaults", "inputs", "m3ToBiomass"), collapse = ", "),
+                            "?")
+  
   opMatrix <- cbind(
-    1:outInputs$nStands, #growth 1
-    outInputs$ecozones, #domturnover
-    outInputs$ecozones, #bioturnover
-    1:outInputs$nStands, #overmature
-    1:outInputs$nStands, #growth 2
-    outInputs$spatialUnits, #domDecay
-    outInputs$spatialUnits, #slow decay
-    rep(1, outInputs$nStands) #slow mixing
+    1:sim$nStands, #growth 1
+    sim$ecozones, #domturnover
+    sim$ecozones, #bioturnover
+    1:sim$nStands, #overmature
+    1:sim$nStands, #growth 2
+    sim$spatialUnits, #domDecay
+    sim$spatialUnits, #slow decay
+    rep(1, sim$nStands) #slow mixing
   )
   ### NEED TO DEAL WITH THIS HERE
   ## Are there stands over max age in the growth curves?If so, need to set to
@@ -234,25 +246,25 @@ spinup <- function(sim) {
   #sim$ages[sim$ages>max(spadesCBMout$growth_increments[,2])] <- max(spadesCBMout$growth_increments[,2])
   ## END AGE
   
-  spinupResult <- fread(file.path(getwd(),"outputs/spinupResults.csv"))
   
-  # spinupResult <- Spinup(pools = outInputs$pools, 
-  #                        opMatrix = opMatrix,
-  #                        constantProcesses = outInputs$processes,
-  #                        growthIncrements = outInputs$gcHash, 
-  #                        ages = outInputs$ages, 
-  #                        gcids = outInputs$gcids,
-  #                        historicdmids = outInputs$historicDMIDs, 
-  #                        lastPassdmids = outInputs$lastPassDMIDS, 
-  #                        delays = outInputs$delays, 
-  #                        minRotations = outInputs$minRotations, 
-  #                        maxRotations = outInputs$maxRotations,
-  #                        returnIntervals = outInputs$returnIntervals$return_interval, 
-  #                        rootParameters = as.data.frame(t(outInputs$cbmData@rootParameters[1,])),
-  #                        turnoverParams = as.data.frame(t(outInputs$cbmData@turnoverRates[1,])),
-  #                        biomassToCarbonRate = as.numeric(outInputs$cbmData@biomassToCarbonRate),
-  #                        debug=P(sim)$spinupDebug)
-  # 
+  
+  spinupResult <- Cache(Spinup,pools = sim$pools,
+                         opMatrix = opMatrix,
+                         constantProcesses = sim$processes,
+                         growthIncrements = sim$gcHash,
+                         ages = sim$ages,
+                         gcids = sim$gcids,
+                         historicdmids = sim$historicDMIDs,
+                         lastPassdmids = sim$lastPassDMIDS,
+                         delays = sim$delays,
+                         minRotations = sim$minRotations,
+                         maxRotations = sim$maxRotations,
+                         returnIntervals = sim$returnIntervals$return_interval,
+                         rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
+                         turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
+                         biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
+                         debug=P(sim)$spinupDebug)
+
   # # setting CO2, CH4, CO and products to 0 before starting the simulations
   spinupResult[,23:dim(spinupResult)[2]] <- 0
   sim$spinupResult <- spinupResult
@@ -264,16 +276,17 @@ postSpinup <- function(sim) {
   
   sim$pools <- sim$spinupResult
   # prepping the pixelGroups for processing in the annual event
-  sim$level3DT <- outInputs$level3DT[order(pixelGroup),]
+  sim$level3DT <- sim$level3DT[order(pixelGroup),]
   sim$pixelGroupC <- cbind(sim$level3DT,sim$spinupResult)
   
   sim$cbmPools<-NULL
   sim$NPP <- NULL
+  sim$emissionsProducts <- NULL
   
   # Keep the pixels from each simulation year (in the postSpinup event)
   # in the end (cPoolsPixelYear.csv), this should be the same length at this vector
   ## got place for a vector length check!!
-  sim$spatialDT <- outInputs$spatialDT[order(outInputs$spatialDT$pixelIndex),]
+  sim$spatialDT <- sim$spatialDT[order(sim$spatialDT$pixelIndex),]
   sim$pixelKeep <- sim$spatialDT[,.(pixelIndex,pixelGroup)]
   setnames(sim$pixelKeep,c("pixelIndex","pixelGroup0"))
   
@@ -295,378 +308,241 @@ Save <- function(sim) {
 
 
 annual <- function(sim) {
-  ###################################
-  # DISTURBANCES COME IN HERE
+  ###################################-----------------------------------
+  # DISTURBANCES: which pixels are disturbed and update the pixelGroup and data
+  # tables in consequence
   ###################################
   # 
   # 1. Read-in the disturbances
-  # this raster is where we get our disturbances 
+  # The example simulation (SK) has a raster stack covering 1984-2011 for an
+  # area in SK. The raster stack like all inputs from user, is read in the
+  # spadesCBMinputs module. However, one raster at a time is read in this annual
+  # event, permitting the raters to come for each annual event from another
+  # source.
   
   ## TO DO: disturbances for both SK and RIA were read-in for the whole
-  ## simulation horizon in spadesCBMinputs. To permit "on-the-fly" disturbances, from other modules such as 
-  ## rasters they need to be read in here.
+  ## simulation horizon in spadesCBMinputs. To permit "on-the-fly" disturbances,
+  ## from other modules such as rasters they need to be read in here. 
   
-  # 1. Read-in the disturbances
-  
-  #### à la mitaine##########
-  # this raster is where we get our disturbances 
-  
-  ### put it back time(sim)[1]
-  annualDisturbance <- raster(grep(outInputs$disturbanceRasters, pattern = paste0(1990,".grd$"), value = TRUE))
+  # 1. Read-in the disturbances, stack read-in from spadesCBMinputs.R in example.
+  annualDisturbance <- raster(grep(sim$disturbanceRasters, pattern = paste0(time(sim)[1],".grd$"), value = TRUE))
   ##
-  pixels <- getValues(outInputs$masterRaster) 
+  pixels <- getValues(sim$masterRaster) 
   yearEvents <- getValues(annualDisturbance)[!is.na(pixels)] 
-  ## good check here: same length as spatialDT
+  ## good check here would be: length(pixels[!is.na(pixels)] == nrow(sim$spatialDT)
   
-  # Add this year's events to the spatialDT, so each disturbed pixels has its event
-  ### Back to sim$
-  #sim$
-    spatialDT <- outInputs$spatialDT[order(outInputs$spatialDT$pixelIndex)]
-  #sim$sim$
-    spatialDT <- spatialDT[,events := yearEvents]
+  # 2. Add this year's events to the spatialDT, so each disturbed pixels has its event
+  spatialDT <- sim$spatialDT[order(sim$spatialDT$pixelIndex)]
+  pixelCount <- spatialDT[,.N,by=pixelGroup]
+  ## TO DO: put in a check here where sum(.N) == length(pixels[!is.na(pixels)])
+  
+  ### do I have to make it sim$ here? 
+  spatialDT <- spatialDT[,events := yearEvents]
   # this could be big so remove it
   rm(yearEvents)
   
-  ################################
-  
-  ## get the disturbed pixels only
-  # Trying just adding the lines to groups that are disturbed.
-  ###sim$spatialDT
+  # 3. get the disturbed pixels only
   distPixels <- spatialDT[events>0,.(pixelIndex, pixelGroup, ages, spatial_unit_id, 
-                                         growth_curve_component_id, growth_curve_id,
-                                         ecozones,events)]
-  
+                                     growth_curve_component_id, growth_curve_id,
+                                     ecozones,events)]
   setkey(distPixels,pixelGroup)
   
-  ## The ages can be changed prior to the
-  ## processing in the C++ functions because the first thing that happens is
-  ## disturbances and presently **all disturbances are stand replacing**. Set
-  ## all ages to 0 in the disturbed pixels
-  ## note that ages will be updated by 1 at the end of the annual event. This is
-  ## necessary because the growth curves won't work is everything is at 0
-  distPixels$ages <- 0
+  # 4. reset the ages for disturbed pixels in stand replacing disturbances
+  ## In SK example: not all disturbances are stand replacing. Disturbance matrix
+  ## 91 (events 3 and 5) are 20% mortality and does not need ages set to 0.
+  cols <- c(3,5)
+  distPixels$ages[!(distPixels$events %in% cols)] <- 0
+
+  # 5. new pixelGroup----------------------------------------------------
+  # make a column of new pixelGroup that includes events and carbon from
+  # previous pixel group since that changes the amount and destination of the
+  # carbon being moved.
+  # NOTE: disturbances in the SK example are not all stand replacing, "events", which
+  # means type of disturbances, is not part of the factors in determining pixel
+  # groups. If we start representing partial disturbances or have different
+  # transitions resulting from specific disturbances, this will have to change.
   
-  # get the carbon info from the old pixelGroup for the disturbed pixels
-  ###sim$pixelGroupC
-  spinupResult <- fread(file.path(getwd(),"outputs/spinupResults.csv"))
-  spinupResult[,V1:=NULL]
-  ###sim$spinupResult
-  pixelGroupC <- cbind(outInputs$level3DT,
-                       spinupResult)
-  ###sim$pixelGroupC
-  groupToAddC <- pixelGroupC[which(pixelGroupC$pixelGroup %in% unique(distPixels$pixelGroup))
-                                 ,-c("ages", "spatial_unit_id", "growth_curve_component_id", "growth_curve_id")]
-  groupToAddC <- groupToAddC[,c("oldGroup","pixelGroup") := list(pixelGroup,NULL)]
-  groupToAddC <- unique(groupToAddC)
-  setkey(groupToAddC,oldGroup)
-  
-  #calculate the new pixelGroup values
-  ###sim$spatialDT$pixelGroup
   maxPixelGroup <- max(spatialDT$pixelGroup)
-  distPixels[,oldGroup:=pixelGroup]
-  distPixels$newGroup <- LandR::generatePixelGroups(distPixels,maxPixelGroup,
-                                                    columns = c("oldGroup","spatial_unit_id", 
-                                                                "growth_curve_component_id","ecozones", "ages", 
-                                                                "events"))
-  distPixels <- distPixels[,.(pixelIndex,ages,spatial_unit_id, growth_curve_component_id,
-                              growth_curve_id,ecozones,oldGroup,newGroup,events )]
+
+  # Get the carbon info from the pools in from previous year. The
+  # sim$pixelGroupC is created in the postspinup event, and then updated at
+  # the end of each annual event (in this script).
+  pixelGroupC <- sim$pixelGroupC
+  setkey(pixelGroupC,pixelGroup)
   
-  #adding the new pixelGroup to the pixelKeep
-  ###sim$spatialDT
-  trackPix <- spatialDT[which(!(pixelIndex %in% distPixels$pixelIndex)),.(pixelIndex,pixelGroup)]
-  noDistPixelGroups <- unique(trackPix$pixelGroup)
-  newGroups <- distPixels[,.(pixelIndex,newGroup)] %>% .[,pixelGroup:=newGroup] %>% .[,newGroup:=NULL]
-  trackPix2 <- rbind(trackPix,newGroups)
-  trackPix2 <- trackPix2[order(pixelIndex),]
-  ###sim$pixelKeep
-  ### normally created in the postspinup event - remove next line
-  pixelKeep <- spatialDT[,.(pixelIndex,pixelGroup)]
-  pixelKeep <- pixelKeep[,newPix := trackPix2$pixelGroup]
-  ###sim$pixelKeep ##
-  setnames(pixelKeep,"newPix",paste0("pixelGroup",1990))
-  ###sim$spatialDT$pixelGroup
-  spatialDT$pixelGroup <- trackPix2$pixelGroup
-  # count the pixels in each new pixel group
-  ###sim$spatialDT
-  pixelCount <- spatialDT[,.N,by=pixelGroup][order(pixelGroup),]
-  #pixelCount[which(is.na(pixelCount$N)),"N"] <- 0
+  cPoolsOnly <- pixelGroupC[,.(pixelGroup,Input, SoftwoodMerch, SoftwoodFoliage, 
+                               SoftwoodOther, SoftwoodCoarseRoots, SoftwoodFineRoots, 
+                               HardwoodMerch, HardwoodFoliage, HardwoodOther,
+                               HardwoodCoarseRoots, HardwoodFineRoots, AboveGroundVeryFastSoil,
+                               BelowGroundVeryFastSoil, AboveGroundFastSoil, BelowGroundFastSoil,
+                               MediumSoil, AboveGroundSlowSoil, BelowGroundSlowSoil, SoftwoodStemSnag,
+                               SoftwoodBranchSnag, HardwoodStemSnag, HardwoodBranchSnag, 
+                               CO2, CH4, CO, Products)]
   
-  uniqueNewGroup <- unique(distPixels[,-("pixelIndex")]) 
-  setkey(uniqueNewGroup,oldGroup)
   
-  # this is where the equivalent of sim$level3DT and C pools for new groups are
-  # put together
+  distPixelCpools <- merge(distPixels,cPoolsOnly)
   
-  toAdd <- merge(uniqueNewGroup,groupToAddC, by=c("oldGroup","ecozones"))
-  toAdd <- toAdd[,c("pixelGroup","newGroup") := list(newGroup,NULL)]
-  toAdd <- toAdd[order(pixelGroup),]
+  distPixelCpools$newGroup <- LandR::generatePixelGroups(distPixelCpools,maxPixelGroup,
+                                                         columns = c("ages","spatial_unit_id",
+                                                                     "growth_curve_component_id",
+                                                                     "ecozones","events","Input", "SoftwoodMerch",
+                                                                     "SoftwoodFoliage", "SoftwoodOther", "SoftwoodCoarseRoots", 
+                                                                     "SoftwoodFineRoots", 
+                                                                     "HardwoodMerch", "HardwoodFoliage", "HardwoodOther",
+                                                                     "HardwoodCoarseRoots", "HardwoodFineRoots", "AboveGroundVeryFastSoil",
+                                                                     "BelowGroundVeryFastSoil", "AboveGroundFastSoil", "BelowGroundFastSoil",
+                                                                     "MediumSoil", "AboveGroundSlowSoil", "BelowGroundSlowSoil", "SoftwoodStemSnag",
+                                                                     "SoftwoodBranchSnag", "HardwoodStemSnag", "HardwoodBranchSnag", 
+                                                                     "CO2", "CH4", "CO", "Products"))
   
-  ## HERE IS WHERE THE EVENTS GET TAKEN OUT...
-  # BEFORE WE DO...need to figure out events disturbance matrices id.
-  # If the matrix has to be found by name, something like this can be used.
-  #  sim$mySpuDmids$events <- as.numeric(grepl("wildfire",sim$mySpuDmids$distName,ignore.case = TRUE))
-  # need to add the link between the "1" in the event column (from the fireComposite raster) to the
-  #### read this into sim$
-  mySpuDmids <- outInputs$mySpuDmids
+  distPixelCpools <- distPixelCpools[,.(newGroup, pixelGroup, pixelIndex, events, ages, spatial_unit_id, 
+                                        growth_curve_component_id, growth_curve_id, ecozones, Input,SoftwoodMerch,
+                                        SoftwoodFoliage,SoftwoodOther,
+                                        SoftwoodCoarseRoots,SoftwoodFineRoots,
+                                        HardwoodMerch,HardwoodFoliage,
+                                        HardwoodOther,HardwoodCoarseRoots,
+                                        HardwoodFineRoots,AboveGroundVeryFastSoil,
+                                        BelowGroundVeryFastSoil,AboveGroundFastSoil,
+                                        BelowGroundFastSoil,MediumSoil,
+                                        AboveGroundSlowSoil,BelowGroundSlowSoil,
+                                        SoftwoodStemSnag,SoftwoodBranchSnag,
+                                        HardwoodStemSnag,HardwoodBranchSnag,
+                                        CO2,CH4,CO,Products)]
+  cols <- c("pixelGroup","newGroup")
+  distPixelCpools[,(cols) := list((newGroup),NULL)]
+  
+  # 6. Update long form pixel index all pixelGroups (old ones plus new ones for
+  # disturbed pixels)
+  updateSpatialDT <- rbind(spatialDT[events<1,],distPixelCpools[,1:8])%>% .[order(pixelIndex),]
+  pixelCount <- updateSpatialDT[,.N,by=pixelGroup]
+  #adding the new pixelGroup to the pixelKeep. pixelKeep is 1st created in the
+  #postspinup event and update in each annual event (in this script).
+  sim$pixelKeep[,newPix := updateSpatialDT$pixelGroup]
+  setnames(sim$pixelKeep,"newPix",paste0("pixelGroup",time(sim)[1]))
+  
+  # 7. Update the meta data for the pixelGroups. The first meta data is the
+  # $level3DT created in the spadesCBMinputs module. When new pixels groups are
+  # create the meta data gets updated here.
+  
+  # only the column pixelIndex is different between distPixelCpools and pixelGroupC
+  metaDT <- unique(updateSpatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
+  setkey(metaDT,pixelGroup)
+  
+  # 8. link the meta data (metaDT) with the appropriate carbon pools
+  # add c pools and event column for old groups
+  part1 <- merge(metaDT,cPoolsOnly)
+  # add c pools and event column from the new groups
+  distGroupCpools <- unique(distPixelCpools[,-("pixelIndex")])
+  setkey(distGroupCpools,pixelGroup)
+  cols <- c("pixelGroup","ages","spatial_unit_id","growth_curve_component_id",
+            "growth_curve_id","ecozones","events")
+  part2 <- merge(metaDT,distGroupCpools, by=cols)
+  # table for this annual event processing
+  pixelGroupForAnnual <- rbind(part1, part2) %>% .[order(pixelGroup),]
+  
+  
+  # 9. From the events column, create a vector of the disturbance matrix
+  # identification so it links back to the CBM default disturbance matrices.
+  
+  #mySpuDmids was created in spadesCBMinputs
+  mySpuDmids <- sim$mySpuDmids
   mySpuDmids[,"events":= rasterId][,rasterId := NULL]
   
-  DM <- merge(toAdd,mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)
-  DM <- DM[order(pixelGroup),]
+  DM <- merge(pixelGroupForAnnual,mySpuDmids, by=c("spatial_unit_id","events"),all.x=TRUE)
+  DM$disturbance_matrix_id[is.na(DM$disturbance_matrix_id)] <- 0
+  DM[order(pixelGroup),]
   ## this is the vector to be fed into the sim$opMatrixCBM[,"disturbance"]<-DMIDS
   DMIDS <- DM$disturbance_matrix_id
-  # this is for the disturbed pixels and it is ordered by pixelGroup
   
-  toAdd <- toAdd[,c("oldGroup","events") := NULL]
-  toAdd[,DMIDS := as.character(DMIDS)]  
-  toAdd <- toAdd[order(pixelGroup),]
-  ###################################
-  # END OF DISTURBANCES COME IN HERE
-  #########################################################################
+  # END of dealing with disturbances and updating all relevant data tables.
+  ###################################-----------------------------------
   
   
   #########################################################################
-  # ANNUAL PROCESS FOR NON-DISTURBED PIXEL GROUPS##############################
+  #-----------------------------------------------------------------------
+  # RUN ALL PROCESSES FOR ALL NEW PIXEL GROUPS#############################
   #########################################################################
-  ### Growing the undisturbed pixels
-  ###sim$pixelGroupC
-  pixelGroupForAnnual <- pixelGroupC[(pixelGroup %in% noDistPixelGroups),]
-  pixelGroupForAnnual <- pixelGroupForAnnual[order(pixelGroup),]
   
-  # Changing the vectors and matrices that need to be changed to process this year's growth
-  ##sim$pools
-  pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
-  # no disturbances for these pixels
-  eventDMIDs <- rep(0,dim(pixelGroupForAnnual)[1])
-  ###sim$ecozones
-  ecozones <- pixelGroupForAnnual$ecozones
-  ###sim$ages
-  ages <- pixelGroupForAnnual[,ages]
-  ###sim$nStands  sim$ages
-  nStands <- length(ages)
-  ###sim$gcids
-  gcids <- pixelGroupForAnnual[,growth_curve_component_id]
-  ###sim$spatialUnits
-  spatialUnits <- pixelGroupForAnnual[,spatial_unit_id]
-  ###sim$opMatrixCBM
-  opMatrixCBM <- cbind(
-    rep(0,nStands), #disturbance sim$opMatrixCBM[,"disturbance"]<-eventDMIDs
-    1:nStands, #growth 1
-    ecozones, #domturnover
-    ecozones, #bioturnover
-    1:nStands, #overmature
-    1:nStands, #growth 2
-    spatialUnits, #domDecay
-    spatialUnits, #slow decay
-    rep(1, nStands) #slow mixing
+  # 1. Changing the vectors and matrices that need to be changed to process this year's growth
+  sim$pools <- as.matrix(pixelGroupForAnnual[,Input:Products])
+  sim$ecozones <- pixelGroupForAnnual$ecozones
+  sim$ages <- pixelGroupForAnnual[,ages]
+  sim$nStands <- length(sim$ages)
+  sim$gcids <- pixelGroupForAnnual[,growth_curve_component_id]
+  sim$spatialUnits <- pixelGroupForAnnual[,spatial_unit_id]
+  
+  # 2. Make a matrix out of the updated vectors
+  # this is a matrix that gives the index of the matrix to be used for this
+  # annual event in $allProcesses. 
+  sim$opMatrixCBM <- cbind(
+    DMIDS, #disturbance matrix identification vector 
+    1:sim$nStands, #growth 1
+    sim$ecozones, #domturnover
+    sim$ecozones, #bioturnover
+    1:sim$nStands, #overmature
+    1:sim$nStands, #growth 2
+    sim$spatialUnits, #domDecay
+    sim$spatialUnits, #slow decay
+    rep(1, sim$nStands) #slow mixing
   )
-  ###sim$opMatrixCBM
-  colnames(opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
-                                 "bioturnover", "overmature", "growth 2",
-                                 "domDecay", "slow decay", "slow mixing")
-  ###sim$opMatrixCBM
-  noDist <- rep(0,nStands)
-  opMatrixCBM[,"disturbance"]<-noDist
   
-  ###sim$allProcesses
-  allProcesses <- list(
-    ### sim$
-    Disturbance=outDefaults$processes$disturbanceMatrices,
+  colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
+                             "bioturnover", "overmature", "growth 2",
+                             "domDecay", "slow decay", "slow mixing")
+  
+  # 3. select the matrices that apply to this annual event and specific sim
+  # allProcesses contains all the default matrices for disturbances in CBM, gets
+  # the growth matrices for this annual event, and the specific matrices for the
+  # other processes for this simulation. The order of the columns reflect the
+  # order in which these processes are applied to the carbon pools.
+  sim$allProcesses <- list(
+    Disturbance=sim$processes$disturbanceMatrices,
     Growth1=NULL,
-    DomTurnover=outDefaults$processes$domTurnover,
-    BioTurnover=outDefaults$processes$bioTurnover,
+    DomTurnover=sim$processes$domTurnover,
+    BioTurnover=sim$processes$bioTurnover,
     OvermatureDecline=NULL,
     Growth2=NULL,
-    DomDecay=outDefaults$processes$domDecayMatrices,
-    SlowDecay=outDefaults$processes$slowDecayMatrices,
-    SlowMixing=outDefaults$processes$slowMixingMatrix
+    DomDecay=sim$processes$domDecayMatrices,
+    SlowDecay=sim$processes$slowDecayMatrices,
+    SlowMixing=sim$processes$slowMixingMatrix
   )  
-  
-  
-  # ! ----- EDIT BELOW ----- ! #
-  # 
-  # compute the growth increments
-  
-  ### myBiomassout$ and sim$ and outDefaults
-  growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
-    growthIncrements = myBiomassOut$gcHash,
-    ages = ages,
-    gcids = gcids,
-    pools = pools,
-    rootParameters = as.data.frame(t(outDefaults$cbmData@rootParameters[1,])),
-    turnoverParams = as.data.frame(t(outDefaults$cbmData@turnoverRates[1,])),
-    biomassToCarbonRate = as.numeric(outDefaults$cbmData@biomassToCarbonRate),
-    swMult = 0.5, hwMult = 0.5)
-  ###sim$allProcesses
-  allProcesses$Growth1=growthAndDecline$Growth
-  allProcesses$Growth2=growthAndDecline$Growth
-  allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
-  rm(growthAndDecline)
-  # this has to be the same length as the DT going in for processing
-  #sim$opMatrixCBM[,"disturbance"]<-eventDMIDS
-  ###sim$ everything
-  pools <- StepPools(pools=pools, 
-                         opMatrix = opMatrixCBM, 
-                         flowMatrices = allProcesses)
-  ##########################END ANNUAL FOR NON_DISTURBED PIXEL GROUPS###############
-  
-  
-  
-  # ################# PROCESSING DISTURBANCES - c-transfers #################################
-  # distMatrices <- mget(unique(toAdd$DMIDS),envir = sim$allProcesses$Disturbance)
-  # distMatrices <- lapply(distMatrices, as.data.table)
-  # distMats <- rbindlist(distMatrices, idcol = "DMIDS")
-  # # what is each column?
-  # #lapply(distMats,is)
-  # 
-  # setnames(distMats, old = "value", new = "distValue")
-  # distMats[,row := as.character(row)]
-  # 
-  # # need to do the melt first so that "row" in disturbances can be matched with Inputs:Products numbered 1:26
-  # # melt toAdd
-  # 
-  # InputColNum <- grep("Input", colnames(toAdd))
-  # ProductsColNum <- grep("Products", colnames(toAdd))
-  # toAdd1 <- melt(toAdd, measure.vars = InputColNum:ProductsColNum, 
-  #                id.vars = c("pixelGroup", "DMIDS"))
-  # 
-  # # change the Inputs:Products to 1:26 using this
-  # poolsToRows <- as.data.frame(cbind(pools = sim$pooldef,row = c(1:26)))
-  # names(poolsToRows) <- c("variable","row")
-  # toAdd2 <- toAdd1[poolsToRows,on="variable"]
-  # keycol <-c("pixelGroup","row")
-  # setorderv(toAdd2, keycol)
-  # 
-  # toAdd3 <- toAdd2[distMats, on=c("DMIDS","row"), allow.cartesian = TRUE][,fluxOut:=(value*distValue)]
-  # setorderv(toAdd3,keycol)
-  # outC <- toAdd3[, .(outC = sum(fluxOut)), by=c("pixelGroup","row")]
-  # inC <-  toAdd3[, .(inC = sum(fluxOut)), by=c("pixelGroup","col")]
-  # inC[,row:=as.character(col)]
-  # #names(inC) <- c("pixelGroup","row","inC")
-  # fluxes <- inC[outC,on=c("pixelGroup","row")]
-  # # no NAs allowed
-  # fluxes$inC[which(is.na(fluxes$inC))] <- 0
-  # toAddDist <- toAdd2[fluxes,on=c("pixelGroup","row")][,.(calcDist = (value-outC+inC)),by=c("pixelGroup","row")]
-  # # pools can't go negative
-  # toAddDist[calcDist<0,"calcDist"] <- 0
-  # 
-  # # ### THERE IS A LITTLE TINY BIT OF CARBON LEFT IN THE POOLS BECAUSE OF THE
-  # # ### INCONSISTENT NUMBER OF DECIMALS. NEED MAKE THE ROWS THAT ARE 100%
-  # # ### DISTURBED go to 0 - NOT DONE: the correct4$diffs that are NAs need to be
-  # # ### set to 0 before other c transactions occur. FIX ANOTHER TIME.
-  # # correct1 <- distMats[,.(sumR = sum(distValue)),by=c("DMIDS","row")]
-  # # correct2 <- distMats[,.(sumC = sum(distValue)),by=c("DMIDS","col")][,row:= as.character(col)]
-  # # correct3 <- correct2[correct1, on= c("DMIDS","row")]
-  # # correct4 <- correct3[,.(diffs = sumR - sumC), by=c("DMIDS","row")]
-  # # # failing here b/c the DMIDS are not in the toAddDist
-  # # #c5 <- correct4[,.(to0 = which(is.na(correct4$diffs)), by=c("DMIDS","row"))]
-  # 
-  # 
-  # toAddDist
-  # setorderv(toAddDist,keycol)
-  # ########## END OF C-TRANSFER DUE TO DISTURBANCES  = CALCULATED########################
-  
-  ##### going to try to process their disturbances AND the annual processes all together
-  ## ANNUAL PROCESSES FOR DISTURBED PIXELS USING THE C++ FUNCTIONS #####################
-  ### TRYING: disturbances and annual processes using C++ functions
-  # distForAnnual <- dcast(toAddDist,pixelGroup~row, value.var="calcDist")
-  # 
-  # 
-  # names(distForAnnual) <- c("pixelGroup",as.character(poolsToRows$variable))
-  # distForAnnual[order(pixelGroup),]
-  countDist <- pixelCount[ pixelGroup %in% c((maxPixelGroup+1):max(pixelCount$pixelGroup)),N]
-  # ages <- unique(distPixels[,ages, by=newGroup])
-  # ages[order(newGroup),]
-  # toAdd[order(pixelGroup),]
-  # distForAnnProcesses <- cbind(toAdd[,.(ages,spatial_unit_id,growth_curve_component_id,growth_curve_id,ecozones)],
-  #                              distForAnnual)
-  
-  
-  # Changing the vectors and matrices that need to be changed to process this year's growth
-  
-  ### replaced all the distForAnnProcesses with toAdd
-  ###try this instead
-  ###distPoolsIn <- as.matrix(distForAnnProcesses[,Input:Products])
-  distPoolsIn <- as.matrix(toAdd[,Input:Products])
-  
-  #eventDMIDs <- DMIDS#rep(0,dim(distForAnnProcesses)[1])
-  ###sim$ecozones
-  ecozones <- toAdd$ecozones
-  ###sim$ages
-  ages <- toAdd[,ages]
-  ###sim$nStands  sim$ages
-  nStands <- length(ages)
-  ###sim$gcids
-  gcids <- toAdd[,growth_curve_component_id]
-  ###sim$spatialUnits
-  spatialUnits <- toAdd[,spatial_unit_id]
-  ###sim$opMatrixCBM
-  opMatrixCBM <- cbind(
-    rep(0,nStands), #disturbance
-    1:nStands, #growth 1
-    ecozones, #domturnover
-    ecozones, #bioturnover
-    1:nStands, #overmature
-    1:nStands, #growth 2
-    spatialUnits, #domDecay
-    spatialUnits, #slow decay
-    rep(1, nStands) #slow mixing
-  )
-  colnames(opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
-                                 "bioturnover", "overmature", "growth 2",
-                                 "domDecay", "slow decay", "slow mixing")
-  ###sim$opMatrixCBM
-  opMatrixCBM[,"disturbance"]<-DMIDS
-  
-  allProcesses <- list(
-    Disturbance=outDefaults$processes$disturbanceMatrices,
-    Growth1=NULL,
-    DomTurnover=outDefaults$processes$domTurnover,
-    BioTurnover=outDefaults$processes$bioTurnover,
-    OvermatureDecline=NULL,
-    Growth2=NULL,
-    DomDecay=outDefaults$processes$domDecayMatrices,
-    SlowDecay=outDefaults$processes$slowDecayMatrices,
-    SlowMixing=outDefaults$processes$slowMixingMatrix
-  )  
-  
-  
-  # ! ----- EDIT BELOW ----- ! #
-  # 
-  # compute the growth increments
 
+  # 4. compute the growth increments that are specific to the number of
+  # pixelGroups in this annual event, and feed in the vectors specific to this
+  # annual event
   
   growthAndDecline <- ComputeGrowthAndDeclineMatrices2(
-    growthIncrements = myBiomassOut$gcHash,
-    ### ages and gcids sim$
-    ages = ages,
-    gcids = gcids,
-    pools = distPoolsIn,
-    rootParameters = as.data.frame(t(outDefaults$cbmData@rootParameters[1,])),
-    turnoverParams = as.data.frame(t(outDefaults$cbmData@turnoverRates[1,])),
-    biomassToCarbonRate = as.numeric(outDefaults$cbmData@biomassToCarbonRate),
+    growthIncrements = sim$gcHash,
+    ages = sim$ages,
+    gcids = sim$gcids,
+    pools = sim$pools,
+    rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
+    turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
+    biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
     swMult = 0.5, hwMult = 0.5)
-  ###sim$allProcesses
-  allProcesses$Growth1=growthAndDecline$Growth
-  allProcesses$Growth2=growthAndDecline$Growth
-  allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
-  rm(growthAndDecline)
-  # this has to be the same length as the DT going in for processing
-  #sim$opMatrixCBM[,"disturbance"]<-eventDMIDS
-  browser()
   
-  #Error in StepPools(pools = distPoolsIn, opMatrix = opMatrixCBM, flowMatrices = allProcesses) : 
-  #Not compatible with requested type: [type=character; target=integer].
-  distPoolsOut <- StepPools(pools=distPoolsIn,
-                            ###sim$
-                            opMatrix = opMatrixCBM, 
-                            ###sim$
-                            flowMatrices = allProcesses)
-  ###rep(time(sim)[1],dim(distForAnnual)[1])
-  distPixOut <- cbind(rep(1990,dim(toAdd)[1]),countDist,toAdd$pixelGroup, ages[,2],toAdd[,-1])
-  ########### END OF ANNUAL PROCESSES FOR DISTURBED PIXELS POST DISTURBANCES################
+  sim$allProcesses$Growth1=growthAndDecline$Growth
+  sim$allProcesses$Growth2=growthAndDecline$Growth
+  sim$allProcesses$OvermatureDecline=growthAndDecline$OvermatureDecline
   
-  ##########NPP: Calculating NPP for this year using stockt and stockt1#############
-  stockt <- sim$pixelGroupC[,.(
+  ### good check: dim(pools)[1]==dim(opMatrixCBM)[1]
+  
+  # 5. All the work happens here: update all the pools.
+  sim$pools <- StepPools(pools=sim$pools, 
+                      opMatrix = sim$opMatrixCBM, 
+                      flowMatrices = sim$allProcesses)
+  
+  ##########################END PROCESSES#########################################
+  #-------------------------------------------------------------------------------
+  
+  #-----------------------------------------------------------------------------------
+  ############ NPP ####################################################################
+  #Calculating NPP for this year using stockt and stockt1 for undisturbed
+  #pixelGroups, and increments for the disturbed pixelGroups
+  
+  # 1. NPP for undisturbed pixelGroups in this annual event
+  nonDistline <- which(pixelGroupForAnnual$pixelGroup==maxPixelGroup)
+  stockt <- pixelGroupForAnnual[1:nonDistline,.(
     pixelGroup,
     ages,
     spatial_unit_id,
@@ -683,7 +559,8 @@ annual <- function(sim) {
   )] 
   
   setkey(stockt,pixelGroup)
-  stockt1 <- unique(cbind(pixelGroupForAnnual[,!(Input:Products)],sim$pools))[,.(
+  
+  stockt1 <- cbind(pixelGroupForAnnual[1:nonDistline,!(Input:Products)],sim$pools[1:nonDistline,])[,.(
     pixelGroup,
     ages,
     SoftwoodMerch,
@@ -698,7 +575,7 @@ annual <- function(sim) {
     HardwoodFineRoots 
   )]
   setkey(stockt1,pixelGroup)
-  #This is recycling stockt. Need to do the other type of join
+  
   stocks2t <- stockt[,-c("ages","spatial_unit_id")][stockt1]
   grossGrowth <- stocks2t[,.(
     pixelGroup,
@@ -716,6 +593,7 @@ annual <- function(sim) {
         (HardwoodFineRoots - PastHardwoodFineRoots))
   )]
   
+  # sim$turnoverRates are calculated in the postspinup event
   turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
   turnoverComponents <- merge(stockt,turnoverRates,by="spatial_unit_id")
   turnover <- turnoverComponents[,.(
@@ -733,7 +611,7 @@ annual <- function(sim) {
         (PastHardwoodFineRoots * FineRootTurnProp))
   ), by = pixelGroup]
   
-  NPP <- merge(turnover,grossGrowth,by="pixelGroup")[,.(
+  NPPnonDist <- merge(turnover,grossGrowth,by="pixelGroup")[,.(
     pixelGroup,
     NPP = (
       AGturnover+
@@ -742,268 +620,80 @@ annual <- function(sim) {
         grossGrowthBG)
   )]
   
+  # 2. NPP for the disturbed pixels
+  # NPP for all the pixelGroups that are greater than the maxPixelGroup is calculated as the sum of the
+  # increments for that pixel group.
+  ##Note: this will also work for the non-stand-replacing disturbances as we use
+  ##"inputs" only and not differences between stocks.
+  
+  # make the matrices data.tables
+  incsListDT <- lapply(sim$allProcesses$Growth1,as.data.table)
+  incsListDTnrow <- lapply(sim$allProcesses$Growth1,nrow)
+  incsNrow <- do.call("rbind",incsListDTnrow)
+  #names(incsListDT) <- pixelGroupForAnnual$pixelGroup#paste0("pg", 
+  incDT <- rbindlist(incsListDT)
+  # this is not working can't figure out why...
+  # incDT$name <- rep(names(incsListDT),each=sapply(incsListDT,"nrow"))
+  nameVec <- NULL
+  for(i in 1:length(pixelGroupForAnnual$pixelGroup)){
+    thisPg <- rep(pixelGroupForAnnual$pixelGroup[i],times=incsNrow[i])
+    nameVec <- c(nameVec,thisPg)
+  }
+  incDT$name  <-  nameVec
+  
+  # only the pixelGroups that are disturbed
+  distNPP <- incDT[name>maxPixelGroup & value<1,.(NPP = sum(value)),by=name]
+  names(distNPP) <- names(NPPnonDist)
+  
+  # 3. All pixel group NPP in one table
+  # sim$NPP is created in postspinup (as NULL)
+  NPP <- rbind(NPPnonDist,distNPP)
   sim$NPP <- rbind(sim$NPP, cbind(simYear = rep(time(sim)[1],nrow(NPP)),NPP))
   ######### NPP END HERE ###################################  
+  #-----------------------------------------------------------------------------------
+  
+  ############# Update emissions and products -------------------------------------------
+  # Emissions and re-zeroed every year as these pools should not define the
+  # pixelGroups and both these values are most commonly required on a yearly
+  # basis.
+  
+  # sim$emissionsProducts was first created in postspinup event and is update
+  # here for each annual event. The sim$spinupResult emissions and Products was
+  # re-zeroed at the end of the spinup event.
+  
+  # 1. Add the emissions and Products for this year
+  emissionsProducts <- pixelGroupForAnnual[,.(pixelGroup, CO2, CH4, CO, Products)]
+  sim$emissionsProducts <- rbind(sim$emissionsProducts,emissionsProducts)
+  
+  # 2. Re-zero the pools for emissions and Products
+  sim$pools[,23:dim(sim$pools)[2]] <- 0
+  ############# End of update emissions and products ------------------------------------
   
   
   ####UPDATING ALL THE FINAL VECTORS FOR NEXT SIM YEAR ###################################  
-  # make the disturbed pixels like$pixelGroupC and add the rows at the end
-  addDistC <- cbind(toAdd[,.(ages,spatial_unit_id,growth_curve_component_id,growth_curve_id,ecozones,pixelGroup)],
-                    distPoolsOut)
-  sim$pixelGroupC <- rbind(unique(cbind(pixelGroupForAnnual[,!(Input:Products)],sim$pools)),addDistC)
-  #sim$pixelGroupC$N <- sim$spatialDT[,.N,by=pixelGroup]$
+  #-----------------------------------
+  # 1. Update long form (pixelIndex) and short form (pixelGroup) tables.
+  sim$spatialDT <- updateSpatialDT
+  sim$pixelGroupC <- rbind(unique(cbind(pixelGroupForAnnual[,!(Input:Products)],sim$pools)))
+  
+  # 2. increment ages
   sim$pixelGroupC$ages <- sim$pixelGroupC$ages+1
   sim$spatialDT$ages <- sim$spatialDT$ages+1
-  names(distPixOut) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
-  updatePools <-   cbind(rep(time(sim)[1],length(sim$pixelGroupC$ages)),pixelCount[1:length(sim$pixelGroupC$ages),2],sim$pixelGroupC$pixelGroup, sim$pixelGroupC$ages, sim$pixelGroupC[,Input:Products])
+  
+  # 3. Update the final simluation horizon table with all the pools/year/pixelGroup
+  #names(distPixOut) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
+  updatePools <-   cbind(rep(time(sim)[1],length(sim$pixelGroupC$ages)),pixelCount[,2],sim$pixelGroupC$pixelGroup, sim$pixelGroupC$ages, sim$pixelGroupC[,Input:Products])
   names(updatePools) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
   
   sim$cbmPools <- rbind(sim$cbmPools,updatePools)
   ######## END OF UPDATING VECTORS FOR NEXT SIM YEAR #######################################  
+  #-----------------------------------
   
   return(invisible(sim))
 }
 
 
 
-.inputObjects = function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  
-  if (!suppliedElsewhere("pooldef", sim)){
-    sim$pooldef <-  c("Input",
-                      "SoftwoodMerch",
-                      "SoftwoodFoliage",
-                      "SoftwoodOther",
-                      "SoftwoodCoarseRoots",
-                      "SoftwoodFineRoots",
-                      "HardwoodMerch",
-                      "HardwoodFoliage",
-                      "HardwoodOther",
-                      "HardwoodCoarseRoots",
-                      "HardwoodFineRoots",
-                      "AboveGroundVeryFastSoil",
-                      "BelowGroundVeryFastSoil",
-                      "AboveGroundFastSoil",
-                      "BelowGroundFastSoil",
-                      "MediumSoil",
-                      "AboveGroundSlowSoil",
-                      "BelowGroundSlowSoil",
-                      "SoftwoodStemSnag",
-                      "SoftwoodBranchSnag",
-                      "HardwoodStemSnag",
-                      "HardwoodBranchSnag",
-                      "CO2",
-                      "CH4",
-                      "CO",
-                      "Products")
-    
-    # These objects currently are required to be in the .GlobalEnv
-    #   due to cpp code in RCBMGrowthIncrements.cpp. This should be
-    #   changed in the cpp and also here so it is in the sim
-    for(i in 1:length(sim$pooldef)){
-      assign(sim$pooldef[i], i, envir = .GlobalEnv)#?.globals
-    }
-  }
-  dataPath <- file.path(modulePath(sim),"data")
-  # if we chose to not use the RSQLite library in this module, and extract
-  # disturbance matrix id (dmid) from sim$cbmData@disturbanceMatrixAssociation,
-  # then $sqlDir and $dbPath are not needed.
-  if(!suppliedElsewhere(sim$sqlDir))
-    sim$sqlDir <- file.path(dataPath,"cbm_defaults")
-  if(!suppliedElsewhere(sim$dbPath))
-    sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  
-  if (!suppliedElsewhere("cbmData", sim)){
-    spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
-    disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
-    sim$cbmData <- new("dataset",
-                       turnoverRates=as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
-                       rootParameters=as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
-                       decayParameters=as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
-                       spinupParameters=as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
-                       climate=as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
-                       spatialUnitIds=spatialUnitIds,
-                       slowAGtoBGTransferRate=as.matrix(0.006),
-                       biomassToCarbonRate=as.matrix(0.5),
-                       stumpParameters=as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
-                       overmatureDeclineParameters=as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
-                       disturbanceMatrix=disturbanceMatrix,
-                       disturbanceMatrixAssociation=as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
-                       disturbanceMatrixValues=as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
-                       landclasses=as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
-                       pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
-                       domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
-    ) 
-  }
-  if (!suppliedElsewhere("decayRates", sim)){
-    sim$decayRates <- spatialUnitDecayRates(sim$cbmData@climate, sim$cbmData@decayParameters, sim$cbmData@domPools)
-  }
-  
-  
-  if(!suppliedElsewhere(sim$PoolCount))
-    sim$PoolCount <- length(sim$pooldef)
-  if(!suppliedElsewhere(sim$pools)){
-    sim$pools <- matrix(ncol = sim$PoolCount, nrow=1, data=0)
-    colnames(sim$pools)<- sim$pooldef
-    sim$pools[,"Input"] = rep(1.0, nrow(sim$pools))
-  }
-  if(!suppliedElsewhere(sim$ages)){
-    sim$ages <- c(0)#,2,3,140)
-    sim$nStands <- length(sim$ages)
-    #standIdx <- 1:sim$nStands
-  }
-  if(!suppliedElsewhere(sim$gcids))
-    sim$gcids <- c(1)#,2,3,101)
-  if(!suppliedElsewhere(sim$historicDMIDs))
-    sim$historicDMIDs <- c(214)#,1,1,1)
-  if(!suppliedElsewhere(sim$lastPassDMIDS))
-    sim$lastPassDMIDS <- c(214)#,1,1,1)
-  if(!suppliedElsewhere(sim$delays))
-    sim$delays <- c(0)#,0,0,0)
-  if(!suppliedElsewhere(sim$minRotations))
-    sim$minRotations <- rep(0, sim$nStands)
-  if(!suppliedElsewhere(sim$maxRotations))
-    sim$maxRotations <- rep(100, sim$nStands)
-  if(!suppliedElsewhere(sim$returnIntervals))
-    sim$returnIntervals <- c(200)#,110,120,130)
-  if(!suppliedElsewhere(sim$spatialUnits))
-    sim$spatialUnits <- rep(26, sim$nStands)
-  if(!suppliedElsewhere(sim$ecozones))
-    sim$ecozones <- rep(5, sim$nStands)
-  # if(!suppliedElsewhere(sim$disturbanceEvents)){sim$disturbanceEvents <- cbind(1:sim$nStands,rep(2050,sim$nStands),rep(214,sim$nStands))
-  # colnames(sim$disturbanceEvents)<-c("PixelGroupID", "Year", "DisturbanceMatrixId")
-  #}
-  dataPath <- file.path(modulePath(sim),"data")
-  if(!suppliedElsewhere(sim$dbPath))
-    sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-  if(!suppliedElsewhere(sim$gcurveFileName))
-    sim$gcurveFileName <- file.path(dataPath, "spadesGCurvesSK.csv")#"SK_ReclineRuns30m", "LookupTables",
-  if(!suppliedElsewhere(sim$gcurveComponentsFileName))
-    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")#"SK_ReclineRuns30m", "LookupTables", 
-  # ! ----- STOP EDITING ----- ! #
-  if(!suppliedElsewhere(sim$processes))
-    sim$processes <-
-    list(
-      domDecayMatrices = matrixHash(computeDomDecayMatrices(sim$decayRates, sim$cbmData@decayParameters, sim$PoolCount)),
-      slowDecayMatrices = matrixHash(computeSlowDecayMatrices(sim$decayRates, sim$cbmData@decayParameters, sim$PoolCount)),
-      slowMixingMatrix = matrixHash(computeSlowMixingMatrix(sim$cbmData@slowAGtoBGTransferRate, sim$PoolCount)),
-      domTurnover = matrixHash(computeDomTurnoverMatrices(sim$cbmData@turnoverRates, sim$PoolCount)),
-      bioTurnover = matrixHash(computeBioTurnoverMatrices(sim$cbmData@turnoverRates, sim$PoolCount)),
-      disturbanceMatrices = matrixHash(loadDisturbanceMatrixIds(sim$cbmData@disturbanceMatrixValues, sim$cbmData@pools))
-    )
-  if(!suppliedElsewhere(sim$disturbanceRasters)){
-    sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
-                                         full.names = TRUE) %>%
-      grep(., pattern = ".grd$", value = TRUE)
-  }
-  if(!suppliedElsewhere(sim$spatialDT)){
-    age <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/age_TestArea.tif"))
-    #This works
-    ages <- getValues(age)
-    # read-in species
-    ldSpsRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/ldSp_TestArea.tif"))
-    rasterSps <- getValues(ldSpsRaster) # 5 0 3 4 6 7
-    # read-in productivity  levels
-    prodRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/prod_TestArea.tif"))
-    Productivity <- getValues(prodRaster)#1 2 3 0
-    # read-in spatial units
-    spuRaster <- raster(file.path(getwd(),"data/forIan/SK_data/CBM_GIS/spUnits_TestArea.tif"))
-    spatial_unit_id <- getValues(spuRaster) #28 27
-    sim$masterRaster <- ldSpsRaster
-    ## END Rasters--------------------------------------------------------------------
-    
-    # in one data table-------------------------------------
-    level2DT <- as.data.table(cbind(ages,rasterSps,Productivity,spatial_unit_id))	  
-    level2DT <- level2DT[level2DT$rasterSps>0]
-    # END data.table----------------------------------------
-    
-    # not all species have 3 levels of productivity - adjust productivity---
-    oneProdlevel <- c(1,2,4,6) ## danger hard coded these are the species with one level##
-    Prod2 <- which(level2DT$rasterSps %in% oneProdlevel)
-    level2DT$Productivity[Prod2] <- 1
-    level2DT <- level2DT[level2DT$Productivity==3, Productivity:=2]
-    level2DT$pixelIndex <- 1:nrow(level2DT)
-    setkey(level2DT,rasterSps,Productivity,spatial_unit_id)
-    level2DT <- level2DT[order(pixelIndex),]
-    # END adjustment of productivity to match data----------------
-    
-    # add the gcID information-------------------------------
-    #gcID <- read.csv(file.path(getwd(),"data/spadesGCurvesSK.csv"))#gcID_ref.csv
-    gcID <- fread("data/spadesGCurvesSK.csv")#fread(sim$gcurveFileName)## danger hard coded##
-    gcID <- unique(gcID[,.(rasterSps,species,growth_curve_component_id,spatial_unit_id,forest_type_id,growth_curve_id,Productivity)])
-    setkey(gcID,rasterSps,Productivity,spatial_unit_id)
-    # end add the gcID: each pixel has a growth curve now---
-    
-    # create the pixel group---------------
-    spatialDT <- level2DT[gcID, on = c("rasterSps","Productivity","spatial_unit_id"),nomatch = 0]
-    spatialDT <- spatialDT[order(pixelIndex),]
-    spatialDT$pixelGroup <- LandR::generatePixelGroups(spatialDT,0,
-                                                       columns = c("spatial_unit_id", "growth_curve_component_id", "ages"))
-    spatialDT <- spatialDT[order(pixelIndex),]
-    ## NEED TO ASK ELIOT ABOUT THIS: why does it create all these extra vars?
-    # why the number starts at the number you are asking for? not logical to me -
-    # max is the max value your groups should have.@..?
-    spatialDT <- spatialDT[,.(ages, rasterSps, spatial_unit_id, pixelIndex,
-                              growth_curve_component_id, growth_curve_id,Productivity, pixelGroup)]
-    spatialDT <- spatialDT[order(pixelIndex),]
-    sim$spatialDT <- spatialDT
-  }
-  
-  
-  if(!suppliedElsewhere(sim$mySpuDmids)){
-    spu <- unique(sim$spatialDT$spatial_unit_id)
-    # what disturbances in those spu(s)?
-    listDist <- spuDist(spu)
-    
-    #get the right ones
-    fire <- listDist[grep("wildfire",listDist[,3], ignore.case=TRUE),1:3]
-    
-    #had to figure this one out by hand...there were 12 clearcut types...took the
-    #one that said 50% salvage got that from looking at the published paper Boivenue
-    #et al 2016...and the word salvage is misspelled in the database (sigh). In the
-    #publication, we said 85% of the merchantable trees and 50% of the snags...
-    #there is no "85%" clearcut in the whole data base (cbmTables[[6]][,2])...85% is
-    #only used in precommercial thinning Sylva EPC
-    clearCut <- listDist[grep("Clearcut",listDist[,3], ignore.case=TRUE),1:3]
-    clearCut <- clearCut[7:8,]
-    
-    # Again, there are 12 deforestation, but only two are not called "Fixed
-    # Deforestation-Hydro", so I picked these two
-    defor1 <- listDist[grep("Deforestation",listDist[,3], ignore.case=TRUE),1:3]
-    defor <- defor1[1:2,]
-    
-    generic <- listDist[grep("20% mortality",listDist[,3], ignore.case=TRUE),1:3]
-    
-    mySpuDmids <- rbind(fire[,1:2],clearCut[,1:2],defor[,1:2],generic[,1:2],generic[,1:2])
-    #creating a vector of the pixel values to be able to match the disturbance_matrix_id
-    events <- c(1,1,2,2,4,4,3,3,5,5)
-    # need to match the historic and last past dist to the spatial unit
-    # DECISION: both the last pass and the historic disturbance will be the same for these runs
-    sim$level3DT <- as.data.table(outInputs$level3DT)
-    setkey(sim$level3DT,spatial_unit_id)
-    setkey(as.data.table(fire[,1:2]),spatial_unit_id)
-    histLastDMIDs <- merge(sim$level3DT,fire)
-    
-    sim$historicDMIDs <- histLastDMIDs$disturbance_matrix_id
-    sim$lastPassDMIDS <- histLastDMIDs$disturbance_matrix_id
-    # and merge them on the level3DT$spatial_unit_id
-    
-    
-    #sim$historicDMIDs <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
-    #sim$lastPassDMIDS <- rep.int(214,sim$nStands)#c(214)#,1,1,1)
-    
-    
-    sim$mySpuDmids <- cbind(mySpuDmids,events)
-  }
-  if(!suppliedElsewhere(sim$level3DT)){  
-    level3DT <- unique(sim$spatialDT[,-("pixelIndex")])%>% .[order(pixelGroup),]
-    # might have to keep this when we integrate the disturbances
-    sim$level3DT <- level3DT
-  }
-  
-  return(invisible(sim))
-  
-}
 ### add additional events as needed by copy/pasting from above
 
 Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")

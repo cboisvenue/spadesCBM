@@ -56,7 +56,9 @@ defineModule(sim, list(
     expectsInput(objectName = "userGcM3File", objectClass = "character", desc = "User file name for the files containing: 
                  GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA),
     expectsInput(objectName = "userGcM3", objectClass = "dataframe", desc = "User file containing: 
-                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA)
+                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA),
+    expectsInput(objectName = "level3DT", objectClass = "data.table", desc = "the table linking the spu id, with the
+                  disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -163,26 +165,24 @@ Init <- function(sim) {
   ## pixels only gets assigned one growth curve (no transition, no change in
   ## productivity). 
   ## To run module independently, the gcID used in this translation can be specified here
-  ### NOTE: the $level3DT will be in sim$ not in outInputs$
   # if(!suppliedElsewhere("level3DT",sim)){
   #   userGcM3 <- sim$userGcM3
   # }else{
-    userGcM3 <- sim$userGcM3[GrowthCurveComponentID %in% unique(outInputs$level3DT$growth_curve_component_id),]
+    userGcM3 <- sim$userGcM3[GrowthCurveComponentID %in% unique(sim$level3DT$growth_curve_component_id),]
   # }
 
   # START reducing Biomass model parameter tables -----------------------------------------------
   # reducing the parameter tables to the jurisdiction or ecozone we have in the study area
   ## To run module independently, the gcID used in this translation can be specified here
-  ### NOTE: change outInputs$ with sim$
     # if(!suppliedElsewhere("spatialUnits",sim)){
     #   spu  <- ### USER TO PROVIDE SPU FOR EACH gcID###########
     # }else{
-      spu <- unique(outInputs$spatialUnits)
+      spu <- unique(sim$spatialUnits)
     # }
     # if(!suppliedElsewhere("ecozones",sim)){
     #   eco <- ### USER TO PROVIDE SPU FOR EACH gcID###########
     # }else{
-      eco <- unique(outInputs$ecozones)
+      eco <- unique(sim$level3DT$ecozones)
     # }
   thisAdmin <- sim$cbmAdmin[sim$cbmAdmin$SpatialUnitID %in% spu & sim$cbmAdmin$EcoBoundaryID %in% eco,]
   
@@ -196,6 +196,7 @@ Init <- function(sim) {
   # all provinces. Here we are hard-coding the closest equivalent province to
   # have a complete set.
   # This first If-statement is to catch the "no-province" match
+  
   stable5.2 <- as.data.table(sim$table5[sim$table5$juris_id %in% thisAdmin$abreviation,])
    if(!length(unique(stable5.2$juris_id)) == length(unique(thisAdmin$abreviation))){
      ## DANGER HARD CODED: if NFIS changes table 5, this will no longer be valid
@@ -252,16 +253,16 @@ Init <- function(sim) {
      ecoReplace <- data.table(ecoNotInT5,EcoBoundaryID)
      thisAdmin5.1 <- merge(ecoReplace,thisAdmin5,by = EcoBoundaryID)
      stable5 <- as.data.table(stable5[stable5$ecozone %in% thisAdmin5.1$EcoBoundaryID,])
-
- }
-     if(nrow(stable5)<1){
-       stop("There is a problem finding a parameter match in table 5.")
-     }
- 
+     
+   }
+  if(nrow(stable5)<1){
+    stop("There is a problem finding a parameter match in table 5.")
+  }
+  
   stable6 <- as.data.table(sim$table6[sim$table6$jur %in% thisAdmin$abreviation &
-                             sim$table6$eco %in% eco,])
+                                        sim$table6$eco %in% eco,])
   stable7 <- as.data.table(sim$table7[sim$table6$jur %in% thisAdmin$abreviation &
-                                         sim$table6$eco %in% eco,])
+                                        sim$table6$eco %in% eco,])
   # END reducing Biomass model parameter tables -----------------------------------------------
   
   # Read-in user provided meta data for growth curves. This could be a complete
@@ -293,7 +294,7 @@ Init <- function(sim) {
       setkey(spsMatch,species)
       gcMeta3 <- merge(gcMeta2,spsMatch)# I do not think the order of the columns matter
       gcMeta <- gcMeta3
-     }
+    }
     ### PUT SOMETHING HERE IF THE SPECIES DONT MATCH...NOT SURE WHAT - ERROR MESSAGE?
   }
   
@@ -301,24 +302,24 @@ Init <- function(sim) {
   # will be used in the convertM3biom() fnct to link to the right ecozone
   # and it only needs the gc we are using in this sim.
   ### NOTE: the $level3DT will be in sim$ not in outInputs$
-  gcThisSim <- unique(outInputs$level3DT[,.(spatial_unit_id,growth_curve_component_id)])
+  gcThisSim <- unique(sim$level3DT[,.(spatial_unit_id,growth_curve_component_id)])
   setkey(gcThisSim,growth_curve_component_id)
   setkey(gcMeta,growth_curve_component_id)
   gcMeta <- merge(gcMeta,gcThisSim)
-        
+  
   ### CHECK - this in not tested
   if(!unique(unique(userGcM3$GrowthCurveComponentID) == unique(gcMeta$growth_curve_component_id))){
     stop("There is a missmatch in the growth curves of the userGcM3 and the gcMeta")
   }
   
-# START processing curves from m3/ha to tonnes of C/ha then to annual increments
-# per above ground biomass pools -------------------------------------------
+  # START processing curves from m3/ha to tonnes of C/ha then to annual increments
+  # per above ground biomass pools -------------------------------------------
   
   ### NEED TO MAKE SURE THE PROVIDED CURVES ARE ANNUAL
   ### if not, we need to extrapolate to make them annual
-
-# Matching is 1st on species, then on gcId which gives us location (admin,
-# spatial unit and ecozone)
+  
+  # Matching is 1st on species, then on gcId which gives us location (admin,
+  # spatial unit and ecozone)
   fullSpecies <- unique(gcMeta$species)
   cumPools <- NULL
   
@@ -347,7 +348,7 @@ Init <- function(sim) {
       # [5] "OvermatureDecline" "Growth2"           "DomDecay"          "SlowDecay"        
       # [9] "SlowMixing"
       cumBiom <- cbind(id,age,cumBiom)
-
+      
       cumPools <- rbind(cumPools,cumBiom)
     }      
   }
@@ -371,13 +372,13 @@ Init <- function(sim) {
   
   #do.call(ggarrange, rawPlots)
   sim$plotsRawCumulativeBiomass <- do.call(ggarrange, 
-                append(rawPlots, 
-                       list(common.legend = TRUE, 
-                            legend = "right",
-                            labels = names(rawPlots),
-                            font.label = list(size = 10, color = "black", face = "bold"),
-                            label.x = 0.5
-                       )))
+                                           append(rawPlots, 
+                                                  list(common.legend = TRUE, 
+                                                       legend = "right",
+                                                       labels = names(rawPlots),
+                                                       font.label = list(size = 10, color = "black", face = "bold"),
+                                                       label.x = 0.5
+                                                  )))
   #dev.new()
   annotate_figure(sim$plotsRawCumulativeBiomass,
                   top = text_grob("Cumulative merch fol other by gc id", face = "bold", size = 14))
@@ -395,7 +396,7 @@ Init <- function(sim) {
   library(mgcv)
   
   #setseed(0)
-    id <- unique(cumPoolsRaw$id)
+  id <- unique(cumPoolsRaw$id)
   for(val in id){
     # per column
     # totMerch
@@ -438,7 +439,7 @@ Init <- function(sim) {
   setkey(smoothCumPools,id)
   # half the increments are use at the begining of simulations and half later in
   # the simulation. The order is:
-  # names(outInputs$allProcesses)
+  # names(sim$allProcesses)
   # [1] "Disturbance"       "Growth1"           "DomTurnover"      
   # [4] "BioTurnover"       "OvermatureDecline" "Growth2"          
   # [7] "DomDecay"          "SlowDecay"         "SlowMixing"
@@ -477,13 +478,13 @@ Init <- function(sim) {
   # From: http://www.sthda.com/english/articles/32-r-graphics-essentials/126-combine-multiple-ggplots-in-one-graph/
   #do.call(ggarrange, rawPlots)
   sim$checkInc <- do.call(ggarrange, 
-                    append(incPlots, 
-                           list(common.legend = TRUE, 
-                                legend = "right",
-                                labels = names(rawPlots),
-                                font.label = list(size = 10, color = "black", face = "bold"),
-                                label.x = 0.5
-                           )))
+                          append(incPlots, 
+                                 list(common.legend = TRUE, 
+                                      legend = "right",
+                                      labels = names(rawPlots),
+                                      font.label = list(size = 10, color = "black", face = "bold"),
+                                      label.x = 0.5
+                                 )))
   #dev.new()
   annotate_figure(sim$checkInc,
                   top = text_grob("Halved increments for merch fol other by gc id", face = "bold", size = 14))
@@ -499,7 +500,7 @@ Init <- function(sim) {
   }
   
   # ! ----- STOP EDITING ----- ! #
-
+  
   return(invisible(sim))
 }
 
@@ -508,7 +509,7 @@ Save <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # do stuff for this event
   sim <- saveFiles(sim)
-
+  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
@@ -518,7 +519,7 @@ plotFun <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # do stuff for this event
   #Plot(sim$object)
-
+  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
@@ -529,7 +530,7 @@ Event1 <- function(sim) {
   # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
   # sim$event1Test1 <- " this is test for event 1. " # for dummy unit test
   # sim$event1Test2 <- 999 # for dummy unit test
-
+  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
@@ -540,7 +541,7 @@ Event2 <- function(sim) {
   # THE NEXT TWO LINES ARE FOR DUMMY UNIT TESTS; CHANGE OR DELETE THEM.
   # sim$event2Test1 <- " this is test for event 2. " # for dummy unit test
   # sim$event2Test2 <- 777  # for dummy unit test
-
+  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
@@ -559,10 +560,16 @@ Event2 <- function(sim) {
   # if (!suppliedElsewhere('defaultColor', sim)) {
   #   sim$map <- Cache(prepInputs, extractURL('map')) # download, extract, load file from url in sourceURL
   # }
-
+  
   #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
+  
+  if(!suppliedElsewhere("level3DT",sim)){
+    ## this is where the pixelGroups and their spu eco etc.
+    stop("There is no spatial information provided. It is needed to identify the spatial units or 
+         jurisdictions and ecozone to select the correct parameters in the Boudewyn parameter tables.")
+  }
   
   # userGcM3 and userGcM3File, these files are the m3/ha and age info by growth
   # curve ID, columns should be GrowthCurveComponentID	Age	MerchVolume
@@ -576,7 +583,7 @@ Event2 <- function(sim) {
     }
     names(sim$userGcM3) <- c("GrowthCurveComponentID","Age","MerchVolume")
   }
-
+  
   #tables from Boudewyn
   if(!suppliedElsewhere("table3",sim)){
     #sim$table3 <- fread(extractURL("table3"))
@@ -610,7 +617,7 @@ Event2 <- function(sim) {
     #work around
     sim$table7 <- fread("https://nfi.nfis.org/resources/biomass_models/appendix2_table7.csv")
   }
-
+  
   if(!suppliedElsewhere("gcMeta",sim)){
     if(!suppliedElsewhere("gcMetaFile",sim)){
       sim$gcMetaFile <- file.path(getwd(),"spadesCBMm3ToBiomass","data/gcMetaEg.csv")
@@ -641,12 +648,12 @@ Event2 <- function(sim) {
     sim$canfi_species <- fread(file.path(getwd(),"spadesCBMm3ToBiomass","data/canfi_species.csv"))
   }
   
-
   
   
-
+  
+  
   # ! ----- EDIT BELOW ----- ! #
-
+  
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
