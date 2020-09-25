@@ -15,16 +15,29 @@ The theme here is "Transparency, flexibility and science improvement in CFS carb
 
 ## Where we started from
 
-In summer 2017 Scott Morken wrote a second incarnation of a CBM-like R-based carbon model in an intensive 2-week stint with EMcIntire and CBoisvenue. The code and scripts, including the calls to Cpp via RCpp, are all contained in RunSK_new.R. This emulates the science in CBM-CFS3 but works in matrix operations (the original CBM-CFS3 does not). Scott got a spin up working with a comparison for 1 stand in SK, which he ran for 100 years post spin-up in both CBMCFS3 and the script as developed here. Results are the same compared to classic CBMCFS3 (see C:\Celine\GitHub\RCBM\data\12_Spades_run\CBM3BaselineTesting). A map of the links and functions of the R and cpp code (created by CBoisvenue) is avaible here (G:\RES_Work\Work\SpaDES\work\RCBMoverview\June2017CBMcore\cbmCoreMap.xlsx).
+In summer 2017 Scott Morken wrote a second incarnation of a CBM-like R-based carbon model in an intensive 2-week stint with EMcIntire and CBoisvenue.
+The code and scripts, including the calls to C++ via `Rcpp`, are all contained in `RunSK_new.R`.
+This emulates the science in CBM-CFS3 but works in matrix operations (the original CBM-CFS3 does not).
+Scott got a spin up working with a comparison for 1 stand in SK, which he ran for 100 years post spin-up in both CBMCFS3 and the script as developed here.
+Results are the same compared to classic CBMCFS3 (see `C:\Celine\GitHub\RCBM\data\12_Spades_run\CBM3BaselineTesting`).
+A map of the links and functions of the R and cpp code (created by CBoisvenue) is available here (`G:\RES_Work\Work\SpaDES\work\RCBMoverview\June2017CBMcore\cbmCoreMap.xlsx`).
 
 # Three-module family
-One SpaDES module was developped to run the exact same script as RunSK-new.R. This SpaDES module is called carb1. A tagged version of it exists on the private github repo https://github.com/cboisvenue/RCBM.
 
-The SpaDES module carb1 ("simple" rendition of RunSK_new.R into SapDES) was separated into three spadesCBM-family modules: spadesCBMdefaults, spadesCBMinputs, and spadesCBMcore. These are three child modules that are run by the present spadesCBM parent module. These are in the master branch here: https://github.com/cboisvenue/spadesCBM.git
+One `SpaDES` module was developed to run the exact same script as `RunSK-new.R`.
+This `SpaDES` module is called `carb1`.
+A tagged version of it exists on the private github repo <https://github.com/cboisvenue/RCBM>.
 
-The two first modules have a parsing file (the R file that has all the functions - spadesCBMdefaultFunctions.r, spadesCBMinputsFunctions.r). 
-spadesCBMdefaultFunctions.r has r-language functions to build and query the S4 object cbmData. spadesCBMinputsFunctions.r, has r-language hashing functions and calls on the library "CBMVolumeToBiomass". This library was build by Scott Morken to apply the Boudewyn et al stand-level parameters to growth curve information for a translation into biomass pools. This library needs to be already built before running this module.
-spadesCBMcoreFunctions.r compiles the Rcpp code in .InputObjects of spadesCBMcore.R (it has no parsing file). The compiled code is cached in the cache directory  `cacheDir = cachePath(sim), env = envir(sim)`
+The SpaDES module `carb1` ("simple" rendition of `RunSK_new.R` into `SpaDES`) was separated into three `spadesCBM`-family modules: `spadesCBMdefaults`, `spadesCBMinputs`, and `spadesCBMcore`.
+These are three child modules that are run by the present `spadesCBM` parent module.
+These are in the master branch here: <https://github.com/cboisvenue/spadesCBM.git>.
 
-Many more details of this three-modules family are in G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe, which is also a working document.
+The two first modules have a parsing file (the R file that has all the functions - `spadesCBMdefaultFunctions.R`, `spadesCBMinputsFunctions.R`).
+`spadesCBMdefaultFunctions.R` has R-language functions to build and query the S4 object `cbmData`.
+`spadesCBMinputsFunctions.R`, has R-language hashing functions and calls on the library `CBMVolumeToBiomass`.
+This library was build by Scott Morken to apply the Boudewyn _et al._ stand-level parameters to growth curve information for a translation into biomass pools.
+This library needs to be already built before running this module.
+`spadesCBMcoreFunctions.R` compiles the `Rcpp` code in `.InputObjects` of `spadesCBMcore.R` (it has no parsing file).
+The compiled code is cached in the cache directory (`cacheDir = cachePath(sim)`).
 
+Many more details of this three-modules family are in `G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe`, which is also a working document.

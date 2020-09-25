@@ -1,22 +1,21 @@
-
 # Everything in this file gets sourced during simInit, and all functions and objects
 # are put into the simList. To use objects, use sim$xxx, and are thus globally available
 # to all modules. Functions can be used without sim$ as they are namespaced, like functions
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
   name = "spadesCBMcore",
-  description = NA, #"insert module description here",
+  description = NA, # "insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
+  authors = person("Celine", "Boisvenue", email = "celine.boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.0.9007", spadesCBMcore = "0.0.1"),
+  version = list(SpaDES.core = "1.0.2", spadesCBMcore = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMcore.Rmd"),
-  reqdPkgs = list("Rcpp", "RSQLite","raster", "quickPlot", "ggplot2",
-                  "carbonara"), ## TODO: use PredictiveEcology/carbonaro
+  reqdPkgs = list("data.table", "ggplot2", "quickPlot", "magrittr", "raster", "Rcpp", "RSQLite",
+                  "carbonara"), # "PredictiveEcology/carbonara"
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("spinupDebug", "logical", FALSE, NA, NA, "If TRUE spinupResult will be outputed to a text file (spinup.csv). FALSE means no ouput of the spinupResult"),
@@ -30,40 +29,104 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    # expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName = "cbmData", objectClass = "dataset", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "masterRaster", objectClass = "raster", desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results"),
+    expectsInput(
+      objectName = "masterRaster", objectClass = "raster",
+      desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results"
+    ),
     expectsInput(objectName = "processes", objectClass = "dataset", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
-    expectsInput(objectName = "PoolCount", objectClass = "numeric", desc = "Length of pooldef", sourceURL = NA),
-    expectsInput(objectName = "pools", objectClass = "matrix", desc = "empty matrix for storage of spinupResult", sourceURL = NA),
-    expectsInput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands from the inventory in 1990", sourceURL = NA),
-    expectsInput(objectName = "gcids", objectClass = "numeric", desc = "The identification of which growth curves to use on the specific stands provided by...", sourceURL = NA),
-    expectsInput(objectName = "historicDMIDs", objectClass = "numeric", desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup.", sourceURL = NA),
-    expectsInput(objectName = "lastPassDMIDS", objectClass = "numeric", desc = "Vector, one for each stand, indicating final disturbance type, linked to the S4 table called cbmData. Only Spinup.", sourceURL = NA),
-    expectsInput(objectName = "delays", objectClass = "numeric", desc = "Vector, one for each stand, indicating regeneration delay post disturbance. Only Spinup.", sourceURL = NA),
-    expectsInput(objectName = "minRotations", objectClass = "numeric", desc = "Vector, one for each stand, indicating minimum number of rotations. Only Spinup.", sourceURL = NA),
-    expectsInput(objectName = "maxRotations", objectClass = "numeric", desc = "Vector, one for each stand, indicating maximum number of rotations. Only Spinup.", sourceURL = NA),
-    expectsInput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup.", sourceURL = NA),
-    expectsInput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData", sourceURL = NA),
-    expectsInput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3", sourceURL = NA),
-    expectsInput(objectName = "disturbanceRasters", objectClass = "raster", desc = "Character vector of the disturbance rasters for SK"),
-    expectsInput(objectName = "mySpuDmids", objectClass = "data.frame", desc = "the table containing one line per pixel"),
-    #expectsInput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year (that sim year), and DisturbanceMatrixId. Not used in Spinup.", sourceURL = NA),
+    expectsInput(
+      objectName = "pooldef", objectClass = "character",
+      desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "PoolCount", objectClass = "numeric",
+      desc = "Length of pooldef", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "pools", objectClass = "matrix",
+      desc = "empty matrix for storage of spinupResult", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "ages", objectClass = "numeric",
+      desc = "Ages of the stands from the inventory in 1990", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "gcids", objectClass = "numeric",
+      desc = "The identification of which growth curves to use on the specific stands provided by...", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "historicDMIDs", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup.", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "lastPassDMIDS", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating final disturbance type, linked to the S4 table called cbmData. Only Spinup.", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "delays", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating regeneration delay post disturbance. Only Spinup.", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "minRotations", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating minimum number of rotations. Only Spinup.", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "maxRotations", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating maximum number of rotations. Only Spinup.", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "returnIntervals", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup.", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "spatialUnits", objectClass = "numeric",
+      desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "ecozones", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "disturbanceRasters", objectClass = "raster",
+      desc = "Character vector of the disturbance rasters for SK"
+    ),
+    expectsInput(
+      objectName = "mySpuDmids", objectClass = "data.frame",
+      desc = "the table containing one line per pixel"
+    ),
+    # expectsInput(objectName = "disturbanceEvents", objectClass = "matrix",
+    #              desc = "3 column matrix, PixelGroupID, Year (that sim year), and DisturbanceMatrixId. Not used in Spinup.", sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "level3DT", objectClass = "data.table", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel")
-
+    expectsInput(
+      objectName = "spatialDT", objectClass = "data.table",
+      desc = "the table containing one line per pixel"
+    )
   ),
   outputObjects = bind_rows(
     createsOutput(objectName = "opMatrixCBM", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "spinupResult", objectClass = "data.frame", desc = NA),
-    createsOutput(objectName = "allProcesses", objectClass = "list", desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"),
-    createsOutput(objectName = "pixelGroupC", objectClass = "data.table", desc = "This is the data table that has all the vectors to create the inputs for the annual processes"),
-    createsOutput(objectName = "cbmPools", objectClass = "data.frame", desc = "Three parts: pixelGroup, Age, and Pools "),
-    #createsOutput(objectName = "disturbanceEvents", objectClass = "matrix", desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
-    createsOutput(objectName = "pixelKeep", objectClass = "data.table", desc = "Keeps the pixelIndex from spatialDT with each year's PixelGroupID as a column. This is to enable making maps of yearly output."),
-    #createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
+    createsOutput(
+      objectName = "allProcesses", objectClass = "list",
+      desc = "A list of the constant processes, anything NULL is just a placeholder for dynamic processes"
+    ),
+    createsOutput(
+      objectName = "pixelGroupC", objectClass = "data.table",
+      desc = "This is the data table that has all the vectors to create the inputs for the annual processes"
+    ),
+    createsOutput(
+      objectName = "cbmPools", objectClass = "data.frame",
+      desc = "Three parts: pixelGroup, Age, and Pools "
+    ),
+    # createsOutput(objectName = "disturbanceEvents", objectClass = "matrix",
+    #               desc = "3 column matrix, PixelGroupID, Year, and DisturbanceMatrixId. Not used in Spinup."),
+    createsOutput(
+      objectName = "pixelKeep", objectClass = "data.table",
+      desc = "Keeps the pixelIndex from spatialDT with each year's PixelGroupID as a column. This is to enable making maps of yearly output."
+    ),
+    # createsOutput(objectName = "yearEvents", objectClass = "data.frame", desc = NA),
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands after simulation"),
     createsOutput(objectName = "NPP", objectClass = "data.table", desc = "NPP for each pixelGroup"),
@@ -80,8 +143,7 @@ defineModule(sim, list(
 
 ## event types
 #   - type `init` is required for initialiazation
-
-doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
@@ -89,22 +151,21 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       ### (use `checkObject` or similar)
 
       # do stuff for this event
-      #sim <- Init(sim) #? can I call the function something else then Init?
       sim <- spinup(sim) ## this is the spinup
-      if(P(sim)$spinupDebug)
+      if (P(sim)$spinupDebug) {
         sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "saveSpinup")
-      #sim <- postSpinup(sim)
+      }
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "postSpinup")
-      #sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual")
+      # sim <- scheduleEvent(sim, start(sim), "spadesCBMcore", "annual") ## scheduled in postSpinup?
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMcore", "plot", eventPriority = 9)
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMcore", "save")
     },
     saveSpinup = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
-      colnames(sim$spinupResult) <- c( c("pixelGroup", "age"), sim$pooldef)
+      colnames(sim$spinupResult) <- c(c("pixelGroup", "age"), sim$pooldef)
       write.csv(file = file.path(outputPath(sim), "spinup.csv"), sim$spinupResult)
       # e.g., call your custom functions/methods here
       # you can define your own methods below this `doEvent` function
@@ -120,20 +181,22 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
       sim <- annual(sim)
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot",.last())
       sim <- scheduleEvent(sim, time(sim) + 1, "spadesCBMcore", "annual")
-      if(time(sim)==end(sim))
-        sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last())
+      if (time(sim) == end(sim)) {
+        sim <- scheduleEvent(sim, end(sim), "spadesCBMcore", "savePools", .last()) ## TODO: schedule saving in init or in savePools event
+      }
       # ! ----- STOP EDITING ----- ! #
     },
     postSpinup = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
       sim <- postSpinup(sim)
-      sim$turnoverRates <- calcTurnoverRates(turnoverRates = sim$cbmData@turnoverRates,
-                                             spatialUnitIds = sim$cbmData@spatialUnitIds, spatialUnits = sim$spatialUnits)
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
-      sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual")
+      sim$turnoverRates <- calcTurnoverRates(
+        turnoverRates = sim$cbmData@turnoverRates,
+        spatialUnitIds = sim$cbmData@spatialUnitIds, spatialUnits = sim$spatialUnits
+      )
+      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot")
+      sim <- scheduleEvent(sim, time(sim), "spadesCBMcore", "annual") ## TODO: schedule in init
       # ! ----- STOP EDITING ----- ! #
     },
     plot = {
@@ -143,12 +206,17 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
         areaPlot(cbmPools = sim$cbmPools,
                  masterRaster = sim$masterRaster)
 
-        barPlot(cbmPools = sim$cbmPools,
-                masterRaster = sim$masterRaster)
-        NPPPlot(changeInNPP = sim$NPP,
-                masterRaster = sim$masterRaster,
-                spatialDT = sim$spatialDT,
-                time = time(sim))
+        barPlot(
+          cbmPools = sim$cbmPools,
+          masterRaster = sim$masterRaster
+        )
+
+        NPPPlot(
+          changeInNPP = sim$NPP,
+          masterRaster = sim$masterRaster,
+          spatialDT = sim$spatialDT,
+          time = time(sim)
+        )
       }
 
       spatialPlot(cbmPools = sim$cbmPools,
@@ -156,6 +224,14 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
                   masterRaster = sim$masterRaster,
                   pixelkeep = sim$pixelKeep,
                   years = time(sim))
+
+      spatialPlot(
+        cbmPools = sim$cbmPools,
+        poolsToPlot = P(sim)$poolsToPlot,
+        masterRaster = sim$masterRaster,
+        pixelkeep = sim$pixelKeep,
+        years = time(sim)
+      )
 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
@@ -169,16 +245,8 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # e.g., call your custom functions/methods here
       # you can define your own methods below this `doEvent` function
 
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMcore", "save")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    save = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
+      colnames(sim$cbmPools) <- c(c("simYear", "pixelCount", "pixelGroup", "ages"), sim$pooldef)
+      write.csv(file = file.path(outputPath(sim), "cPoolsPixelYear.csv"), sim$cbmPools)
 
       # e.g., call your custom functions/methods here
       # you can define your own methods below this `doEvent` function
@@ -186,26 +254,14 @@ doEvent.spadesCBMcore = function(sim, eventTime, eventType, debug = FALSE) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMcore", "templateEvent")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    event2 = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "spadesCBMcore", "templateEvent")
+      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "spadesCBMcore", "savePools")
 
       # ! ----- STOP EDITING ----- ! #
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
-                  "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+      "' in module '", current(sim)[1, "moduleName", with = FALSE], "'",
+      sep = ""
+    ))
   )
   return(invisible(sim))
 }
@@ -272,7 +328,6 @@ spinup <- function(sim) {
   return(invisible(sim))
 }
 
-
 postSpinup <- function(sim) {
 
   sim$pools <- sim$spinupResult
@@ -295,18 +350,9 @@ postSpinup <- function(sim) {
   return(invisible(sim))
 }
 
-
-
-### template for save events
-Save <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # do stuff for this event
-  sim <- saveFiles(sim)
-
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
-
 
 annual <- function(sim) {
   ###################################-----------------------------------
@@ -596,28 +642,28 @@ annual <- function(sim) {
 
   # sim$turnoverRates are calculated in the postspinup event
   turnoverRates <- sim$turnoverRates[, spatial_unit_id := SpatialUnitID]
-  turnoverComponents <- merge(stockt,turnoverRates,by="spatial_unit_id")
-  turnover <- turnoverComponents[,.(
+  turnoverComponents <- merge(stockt, turnoverRates, by = "spatial_unit_id")
+  turnover <- turnoverComponents[, .(
     AGturnover = (
-      (PastSoftwoodMerch * StemAnnualTurnoverRate)+
-        (PastSoftwoodFoliage * SoftwoodFoliageFallRate)+
-        (PastSoftwoodOther * SoftwoodBranchTurnoverRate)+
-        (PastHardwoodMerch * StemAnnualTurnoverRate)+
-        (PastHardwoodFoliage * HardwoodFoliageFallRate)+
+      (PastSoftwoodMerch * StemAnnualTurnoverRate) +
+        (PastSoftwoodFoliage * SoftwoodFoliageFallRate) +
+        (PastSoftwoodOther * SoftwoodBranchTurnoverRate) +
+        (PastHardwoodMerch * StemAnnualTurnoverRate) +
+        (PastHardwoodFoliage * HardwoodFoliageFallRate) +
         (PastHardwoodOther * HardwoodBranchTurnoverRate)),
     BGturnover = (
-      (PastSoftwoodCoarseRoots * CoarseRootTurnProp)+
-        (PastSoftwoodFineRoots * FineRootTurnProp)+
-        (PastHardwoodCoarseRoots * CoarseRootTurnProp)+
+      (PastSoftwoodCoarseRoots * CoarseRootTurnProp) +
+        (PastSoftwoodFineRoots * FineRootTurnProp) +
+        (PastHardwoodCoarseRoots * CoarseRootTurnProp) +
         (PastHardwoodFineRoots * FineRootTurnProp))
   ), by = pixelGroup]
 
   NPPnonDist <- merge(turnover,grossGrowth,by="pixelGroup")[,.(
     pixelGroup,
     NPP = (
-      AGturnover+
-        BGturnover+
-        grossGrowthAG+
+      AGturnover +
+        BGturnover +
+        grossGrowthAG +
         grossGrowthBG)
   )]
 

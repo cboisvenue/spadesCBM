@@ -1,4 +1,3 @@
-
 # Everything in this file gets sourced during simInit, and all functions and objects
 # are put into the simList. To use objects, use sim$xxx, and are thus globally available
 # to all modules. Functions can be used without sim$ as they are namespaced, like functions
@@ -9,28 +8,42 @@ defineModule(sim, list(
   keywords = NA, # c("insert key words here"),
   authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.0.9007", spadesCBMinputs = "0.0.1"),
+  version = list(SpaDES.core = "1.0.2", spadesCBMinputs = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "spadesCBMinputs.Rmd"),
-  reqdPkgs = list("RSQLite","data.table","raster", "PredictiveEcology/LandR",
-                  "carbonara"), ## TODO: use PredictiveEcology/carbonaro
+  reqdPkgs = list("data.table", "magrittr", "raster", "RSQLite",
+                  "carbonara", # "PredictiveEcology/carbonara",
+                  "PredictiveEcology/LandR"),
   parameters = rbind(
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
-    defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
-    defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
-    defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+    # defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
+                    "This describes the simulation time at which the first plot event should occur"),
+    defineParameter(".plotInterval", "numeric", NA, NA, NA,
+                    "This describes the simulation time interval between plot events"),
+    defineParameter(".saveInitialTime", "numeric", NA, NA, NA,
+                    "This describes the simulation time at which the first save event should occur"),
+    defineParameter(".saveInterval", "numeric", NA, NA, NA,
+                    "This describes the simulation time interval between save events"),
+    defineParameter(".useCache", "logical", FALSE, NA, NA,
+                    paste("Should this entire module be run with caching activated?",
+                          "This is generally intended for data-type modules,",
+                          "where stochasticity and time are not relevant"))
   ),
   inputObjects = bind_rows(
-    #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
-    expectsInput(objectName = "cbmData", objectClass = "dataset", desc = "S4 object created from selective reading in of cbm_default.db in spadesCBMefaults module", sourceURL = NA),
-    expectsInput(objectName = "pooldef", objectClass = "character", desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
-    expectsInput(objectName = "PoolCount", objectClass = "numeric", desc = "count of the length of the Vector of names (characters) for each of the carbon pools, with `Input` being the first one", sourceURL = NA),
+    # expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    # expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA),
+    expectsInput(objectName = "cbmData", objectClass = "dataset",
+                 desc = "S4 object created from selective reading in of cbm_default.db in spadesCBMefaults module",
+                 sourceURL = NA),
+    expectsInput(objectName = "pooldef", objectClass = "character",
+                 desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one",
+                 sourceURL = NA),
+    expectsInput(objectName = "PoolCount", objectClass = "numeric",
+                 desc = "count of the length of the Vector of names (characters) for each of the carbon pools, with `Input` being the first one",
+                 sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "userDistFile", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files, if not there the userDist will be created with defaults", sourceURL = NA),
@@ -51,8 +64,8 @@ defineModule(sim, list(
                  desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results")
   ),
   outputObjects = bind_rows(
-    #createsOutput("objectName", "objectClass", "output object description", ...),
-    #createsOutput(objectName = NA, objectClass = NA, desc = NA)
+    # createsOutput("objectName", "objectClass", "output object description", ...),
+    # createsOutput(objectName = NA, objectClass = NA, desc = NA)
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
     createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands from the inventory in 1990"),
     createsOutput(objectName = "nStands", objectClass = "numeric", desc = "not really the number of stands, but the number of pixel groups"),
@@ -74,7 +87,7 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialiazation
 
-doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.spadesCBMinputs <- function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
@@ -87,7 +100,6 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
       # schedule future event(s)
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMinputs", "save")
     },
-    
     save = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
@@ -104,7 +116,9 @@ doEvent.spadesCBMinputs = function(sim, eventTime, eventType, debug = FALSE) {
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
-                  "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+      "' in module '", current(sim)[1, "moduleName", with = FALSE], "'",
+      sep = ""
+    ))
   )
   return(invisible(sim))
 }
@@ -298,8 +312,22 @@ Save <- function(sim) {
   return(invisible(sim))
 }
 
-### template for plot events
+.inputObjects <- function(sim) {
+  # ! ----- EDIT BELOW ----- ! #
+  dataPath <- file.path(modulePath(sim), "data") ## TODO: don't use directory outside of the module
 
+  if (!suppliedElsewhere(sim$sqlDir)) {
+    sim$sqlDir <- file.path(dataPath, "cbm_defaults")
+  }
+  if (!suppliedElsewhere(sim$dbPath)) {
+    sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
+  }
+  if (!suppliedElsewhere(sim$gcurveFileName)) {
+    sim$gcurveFileName <- file.path(dataPath, "spadesGCurvesSK.csv")
+  } # "SK_ReclineRuns30m", "LookupTables",
+  if (!suppliedElsewhere(sim$gcurveComponentsFileName)) {
+    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")
+  } # "SK_ReclineRuns30m", "LookupTables",
 
 ### template for your event1
 
@@ -502,4 +530,3 @@ Save <- function(sim) {
   
   return(invisible(sim))
 }
-   

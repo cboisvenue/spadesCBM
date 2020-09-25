@@ -1,0 +1,20 @@
+###### Module Code Checking - Still experimental - please report problems ######## 
+/home/achubaty/Documents/GitHub/spadesCBM/spadesCBMdefaults/spadesCBMdefaults.R
+spadesCBMdefaults: module code appears clean
+/home/achubaty/Documents/GitHub/spadesCBM/spadesCBMinputs/spadesCBMinputs.R
+spadesCBMinputs: module code: biomProp: local variable ‘a’ assigned but may not be used (/home/achubaty/Documents/GitHub/spadesCBM/spadesCBMinputs/R/spadesCBMinputsFunctions.R:104)
+spadesCBMinputs: module code: biomProp: local variable ‘b’ assigned but may not be used (/home/achubaty/Documents/GitHub/spadesCBM/spadesCBMinputs/R/spadesCBMinputsFunctions.R:105)
+spadesCBMinputs: outputObjects: item is assigned to sim inside Init, but is not declared in metadata outputObjects
+spadesCBMinputs: inputObjects: spatial_unit_id, rasterSps, item are used from sim inside Init, but are not declared in metadata inputObjects
+/home/achubaty/Documents/GitHub/spadesCBM/spadesCBMcore/spadesCBMcore.R
+spadesCBMcore: module code: Spinup : line could not be checked 'growthIncrements, ages, gcids, historicdmids, lastPassdmids, ')
+spadesCBMcore: module code: barPlot: parameter ‘masterRaster’ may not be used
+spadesCBMcore: module code: spatialPlot : <anonymous>: parameter ‘var’ may not be used
+spadesCBMcore: module code: spatialPlot: parameter ‘masterRaster’ may not be used
+spadesCBMcore: outputObjects: Growth1, Growth2, OvermatureDecline, pixelGroup are assigned to sim inside annual, but are not declared in metadata outputObjects
+spadesCBMcore: inputObjects: nStands, gcurveFileName, gcurveComponentsFileName are assigned to sim inside .inputObjects, but are not declared in metadata inputObjects
+spadesCBMcore: inputObjects: disturbanceMatrices, domTurnover, bioTurnover, domDecayMatrices, slowDecayMatrices, slowMixingMatrix, gcHash, Growth1, Growth2, OvermatureDecline, pixelIndex, pixelGroup, Disturbance, DomTurnover, BioTurnover, DomDecay, SlowDecay, SlowMixing are used from sim inside annual, but are not declared in metadata inputObjects
+spadesCBMcore: inputObjects: pixelIndex is used from sim inside postSpinup, but is not declared in metadata inputObjects
+spadesCBMcore: inputObjects: gcHash, return_interval are used from sim inside spinup, but are not declared in metadata inputObjects
+spadesCBMcore: inputObjects: sqlDir, nStands, gcurveFileName, gcurveComponentsFileName, decayRates, spatial_unit_id are used from sim inside .inputObjects, but are not declared in metadata inputObjects
+###### Module Code Checking ########
