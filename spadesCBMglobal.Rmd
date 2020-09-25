@@ -47,12 +47,10 @@ Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$
   Expecting a single value: [extent=0].
 ```
   
-This is because the pooldef values are expected to be in the .GlobalEnv due to a function inside RCMBGrowthIncrements.cpp . That file should be changed so it is not looking in .GlobalEnv. Current work around is to place all the pooldef values in .GlobalEnv. This happens inside the ".inputObjects" function.
-
 # Simulations
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
-library(SpaDES.tools)
+library(SpaDES.core)
 # library(CBMVolumeToBiomass)
 # library(RSQLite)
 library(magrittr) # this is needed to use "%>%" below
