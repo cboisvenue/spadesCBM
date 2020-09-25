@@ -66,43 +66,125 @@ defineModule(sim, list(
     ),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "userDistFile", objectClass = "character", desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files, if not there the userDist will be created with defaults", sourceURL = NA),
-    expectsInput(objectName = "userDist", objectClass = "data.table", desc = "User provided file that identifies disturbances for simulation, if not there it will use userDistFile", sourceURL = NA),
-    expectsInput(objectName = "ageRasterURL", objectClass = "character", desc = "URL for ageRaster - optional, need this or a ageRaster"),
-    expectsInput(objectName = "ageRaster", objectClass = "raster", desc = "Raster ages for each pixel", sourceURL = "https://drive.google.com/file/d/1hylk0D1vO19Dpg4zFtnSNhnyYP4j-bEA/view?usp=sharing"),
-    expectsInput(objectName = "gcIndexRasterURL", objectClass = "character", desc = "URL for ageRaster - optional, need this or a ageRaster"),
-    expectsInput(objectName = "gcIndexRaster", objectClass = "raster", desc = "Raster ages for each pixel", sourceURL = "https://drive.google.com/file/d/1yunkaYCV2LIdqej45C4F9ir5j1An0KKr/view?usp=sharing"),
-    expectsInput(objectName = "spuRaster", objectClass = "raster", desc = "Raster has spatial units for each pixel"),
-    expectsInput(objectName = "ecoRaster", objectClass = "raster", desc = "Raster has ecozones for each pixel"),
-    expectsInput(objectName = "userGcM3File", objectClass = "character", desc = "User file name for the files containing:
-                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA),
-    expectsInput(objectName = "userGcM3", objectClass = "dataframe", desc = "User file containing:
-                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA),
-    expectsInput(objectName = "disturbanceRasters", objectClass = "vector", desc = "Character vector of the disturbance rasters for use in simulations - defaults are the Wulder and White rasters for SK.", sourceURL = "https://drive.google.com/drive/folders/1qMw-7nmH1yMkXquK4UpuQApT6hGpbsoB?usp=sharing"),
-    expectsInput(objectName = "masterRasterURL", objectClass = "character", desc = "URL for masterRaster - optional, need this or a masterRaster"),
     expectsInput(
-      objectName = "masterRaster", objectClass = "raster", sourceURL = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW/view?usp=sharing",
-      desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results"
+      objectName = "userDistFile", objectClass = "character",
+      desc = "User provided file name that identifies disturbances for simulation (key words for searching CBM files, if not there the userDist will be created with defaults", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "userDist", objectClass = "data.table",
+      desc = "User provided file that identifies disturbances for simulation, if not there it will use userDistFile", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "ageRasterURL", objectClass = "character",
+      desc = "URL for ageRaster - optional, need this or a ageRaster"
+    ),
+    expectsInput(
+      objectName = "ageRaster", objectClass = "raster",
+      desc = "Raster ages for each pixel",
+      sourceURL = "https://drive.google.com/file/d/1hylk0D1vO19Dpg4zFtnSNhnyYP4j-bEA/view?usp=sharing"
+    ),
+    expectsInput(
+      objectName = "gcIndexRasterURL", objectClass = "character",
+      desc = "URL for ageRaster - optional, need this or a ageRaster"
+    ),
+    expectsInput(
+      objectName = "gcIndexRaster", objectClass = "raster",
+      desc = "Raster ages for each pixel",
+      sourceURL = "https://drive.google.com/file/d/1yunkaYCV2LIdqej45C4F9ir5j1An0KKr/view?usp=sharing"
+    ),
+    expectsInput(
+      objectName = "spuRaster", objectClass = "raster",
+      desc = "Raster has spatial units for each pixel"
+    ),
+    expectsInput(
+      objectName = "ecoRaster", objectClass = "raster",
+      desc = "Raster has ecozones for each pixel"
+    ),
+    expectsInput(
+      objectName = "userGcM3File", objectClass = "character",
+      desc = "User file name for the files containing:
+                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "userGcM3", objectClass = "dataframe",
+      desc = "User file containing:
+                 GrowthCurveComponentID,Age,MerchVolume. Default name userGcM3", sourceURL = NA
+    ),
+    expectsInput(
+      objectName = "disturbanceRasters", objectClass = "vector",
+      desc = "Character vector of the disturbance rasters for use in simulations - defaults are the Wulder and White rasters for SK.",
+      sourceURL = "https://drive.google.com/drive/folders/1qMw-7nmH1yMkXquK4UpuQApT6hGpbsoB?usp=sharing"
+    ),
+    expectsInput(
+      objectName = "masterRasterURL", objectClass = "character",
+      desc = "URL for masterRaster - optional, need this or a masterRaster"
+    ),
+    expectsInput(
+      objectName = "masterRaster", objectClass = "raster",
+      desc = "Raster has NAs where there are no species and the pixel groupID where the pixels were simulated. It is used to map results",
+      sourceURL = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW/view?usp=sharing"
     )
   ),
   outputObjects = bind_rows(
     # createsOutput("objectName", "objectClass", "output object description", ...),
     # createsOutput(objectName = NA, objectClass = NA, desc = NA)
     createsOutput(objectName = "pools", objectClass = "matrix", desc = NA),
-    createsOutput(objectName = "ages", objectClass = "numeric", desc = "Ages of the stands from the inventory in 1990"),
-    createsOutput(objectName = "nStands", objectClass = "numeric", desc = "not really the number of stands, but the number of pixel groups"),
-    createsOutput(objectName = "gcids", objectClass = "numeric", desc = "The identification of which growth curves to use on the specific stands provided by..."),
-    createsOutput(objectName = "historicDMIDs", objectClass = "numeric", desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup."),
-    createsOutput(objectName = "lastPassDMIDS", objectClass = "numeric", desc = "Vector, one for each stand, indicating final disturbance type, linked to the S4 table called cbmData. Only Spinup."),
-    createsOutput(objectName = "delays", objectClass = "numeric", desc = "Vector, one for each stand, indicating regeneration delay post disturbance. Only Spinup."),
-    createsOutput(objectName = "minRotations", objectClass = "numeric", desc = "Vector, one for each stand, indicating minimum number of rotations. Only Spinup."),
-    createsOutput(objectName = "maxRotations", objectClass = "numeric", desc = "Vector, one for each stand, indicating maximum number of rotations. Only Spinup."),
-    createsOutput(objectName = "returnIntervals", objectClass = "numeric", desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup."),
-    createsOutput(objectName = "spatialUnits", objectClass = "numeric", desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData"),
-    createsOutput(objectName = "ecozones", objectClass = "numeric", desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"),
-    createsOutput(objectName = "level3DT", objectClass = "data.table", desc = "the table linking the spu id, with the disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White"),
-    createsOutput(objectName = "spatialDT", objectClass = "data.table", desc = "the table containing one line per pixel"),
-    createsOutput(objectName = "mySpuDmids", objectClass = "data.frame", desc = "the table containing one line per pixel")
+    createsOutput(
+      objectName = "ages", objectClass = "numeric",
+      desc = "Ages of the stands from the inventory in 1990"
+    ),
+    createsOutput(
+      objectName = "nStands", objectClass = "numeric",
+      desc = "not really the number of stands, but the number of pixel groups"
+    ),
+    createsOutput(
+      objectName = "gcids", objectClass = "numeric",
+      desc = "The identification of which growth curves to use on the specific stands provided by..."
+    ),
+    createsOutput(
+      objectName = "historicDMIDs", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating historical disturbance type, linked to the S4 table called cbmData. Only Spinup."
+    ),
+    createsOutput(
+      objectName = "lastPassDMIDS", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating final disturbance type, linked to the S4 table called cbmData. Only Spinup."
+    ),
+    createsOutput(
+      objectName = "delays", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating regeneration delay post disturbance. Only Spinup."
+    ),
+    createsOutput(
+      objectName = "minRotations", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating minimum number of rotations. Only Spinup."
+    ),
+    createsOutput(
+      objectName = "maxRotations", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating maximum number of rotations. Only Spinup."
+    ),
+    createsOutput(
+      objectName = "returnIntervals", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating the fixed fire return interval. Only Spinup."
+    ),
+    createsOutput(
+      objectName = "spatialUnits", objectClass = "numeric",
+      desc = "The id given to the intersection of province and ecozones across Canada, linked to the S4 table called cbmData"
+    ),
+    createsOutput(
+      objectName = "ecozones", objectClass = "numeric",
+      desc = "Vector, one for each stand, indicating the numeric represenation of the Canadian ecozones, as used in CBM-CFS3"
+    ),
+    createsOutput(
+      objectName = "level3DT", objectClass = "data.table",
+      desc = "the table linking the spu id, with the disturbance_matrix_id and the events. The events are the possible raster values from the disturbance rasters of Wulder and White"
+    ),
+    createsOutput(
+      objectName = "spatialDT", objectClass = "data.table",
+      desc = "the table containing one line per pixel"
+    ),
+    createsOutput(
+      objectName = "mySpuDmids", objectClass = "data.frame",
+      desc = "the table containing one line per pixel"
+    )
   )
 ))
 
@@ -307,7 +389,7 @@ Init <- function(sim) {
   ## not, it could be harverst. Make this optional and give the user a message
   ## saying these are the defaults.
 
-  # sim$mySpuDmids <- fread(file.path(getwd(),"/spadesCBMinputs/data/mySpuDmids.csv"))
+  # sim$mySpuDmids <- fread(file.path("data", "mySpuDmids.csv"))
 
   mySpuFires <- sim$mySpuDmids[grep("wildfire", sim$mySpuDmids$distName, ignore.case = TRUE), ]
 
@@ -333,6 +415,7 @@ Init <- function(sim) {
 
   return(invisible(sim))
 }
+
 ### template for save events
 Save <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
@@ -344,236 +427,216 @@ Save <- function(sim) {
 }
 
 .inputObjects <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
   dataPath <- file.path(modulePath(sim), "data") ## TODO: don't use directory outside of the module
 
+  # if we chose to not use the RSQLite library in this module, and extract
+  # disturbance matrix id (dmid) from sim$cbmData@disturbanceMatrixAssociation,
+  # then $sqlDir and $dbPath are not needed.
   if (!suppliedElsewhere(sim$sqlDir)) {
     sim$sqlDir <- file.path(dataPath, "cbm_defaults")
   }
   if (!suppliedElsewhere(sim$dbPath)) {
     sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
   }
-  if (!suppliedElsewhere(sim$gcurveFileName)) {
-    sim$gcurveFileName <- file.path(dataPath, "spadesGCurvesSK.csv")
-  } # "SK_ReclineRuns30m", "LookupTables",
-  if (!suppliedElsewhere(sim$gcurveComponentsFileName)) {
-    sim$gcurveComponentsFileName <- file.path(dataPath, "yieldComponentSK.csv")
-  } # "SK_ReclineRuns30m", "LookupTables",
 
-  ### template for your event1
+  if (!suppliedElsewhere(sim$cbmData)) {
+    spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
+    disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
+    sim$cbmData <- new("dataset",
+      turnoverRates = as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
+      rootParameters = as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
+      decayParameters = as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
+      spinupParameters = as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
+      climate = as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
+      spatialUnitIds = spatialUnitIds,
+      slowAGtoBGTransferRate = as.matrix(0.006),
+      biomassToCarbonRate = as.matrix(0.5),
+      stumpParameters = as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
+      overmatureDeclineParameters = as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
+      disturbanceMatrix = disturbanceMatrix,
+      disturbanceMatrixAssociation = as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
+      disturbanceMatrixValues = as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
+      landclasses = as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
+      pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
+      domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
+    )
+  }
+  if (!suppliedElsewhere(sim$pooldef)) {
+    sim$pooldef <- c(
+      "Input",
+      "SoftwoodMerch",
+      "SoftwoodFoliage",
+      "SoftwoodOther",
+      "SoftwoodCoarseRoots",
+      "SoftwoodFineRoots",
+      "HardwoodMerch",
+      "HardwoodFoliage",
+      "HardwoodOther",
+      "HardwoodCoarseRoots",
+      "HardwoodFineRoots",
+      "AboveGroundVeryFastSoil",
+      "BelowGroundVeryFastSoil",
+      "AboveGroundFastSoil",
+      "BelowGroundFastSoil",
+      "MediumSoil",
+      "AboveGroundSlowSoil",
+      "BelowGroundSlowSoil",
+      "SoftwoodStemSnag",
+      "SoftwoodBranchSnag",
+      "HardwoodStemSnag",
+      "HardwoodBranchSnag",
+      "CO2",
+      "CH4",
+      "CO",
+      "Products"
+    )
+    sim$PoolCount <- length(sim$pooldef)
+  }
 
-  .inputObjects <- function(sim) {
-    # this is from spadesCBMdefaults
-    dataPath <- file.path(modulePath(sim), "data")
-    # if we chose to not use the RSQLite library in this module, and extract
-    # disturbance matrix id (dmid) from sim$cbmData@disturbanceMatrixAssociation,
-    # then $sqlDir and $dbPath are not needed.
-    if (!suppliedElsewhere(sim$sqlDir)) {
-      sim$sqlDir <- file.path(dataPath, "cbm_defaults")
-    }
-    if (!suppliedElsewhere(sim$dbPath)) {
-      sim$dbPath <- file.path(dataPath, "cbm_defaults", "cbm_defaults.db")
-    }
+  # user provided data tables------------------------------------------------------
 
-    if (!suppliedElsewhere(sim$cbmData)) {
-      spatialUnitIds <- as.matrix(getTable("spatialUnitIds.sql", sim$dbPath, sim$sqlDir))
-      disturbanceMatrix <- as.matrix(getTable("disturbanceMatrix.sql", sim$dbPath, sim$sqlDir))
-      sim$cbmData <- new("dataset",
-        turnoverRates = as.matrix(getTable("turnoverRates.sql", sim$dbPath, sim$sqlDir)),
-        rootParameters = as.matrix(getTable("rootParameters.sql", sim$dbPath, sim$sqlDir)),
-        decayParameters = as.matrix(getTable("decayParameters.sql", sim$dbPath, sim$sqlDir)),
-        spinupParameters = as.matrix(getTable("spinupParameters.sql", sim$dbPath, sim$sqlDir)),
-        climate = as.matrix(getTable("climate.sql", sim$dbPath, sim$sqlDir)),
-        spatialUnitIds = spatialUnitIds,
-        slowAGtoBGTransferRate = as.matrix(0.006),
-        biomassToCarbonRate = as.matrix(0.5),
-        stumpParameters = as.matrix(getTable("stumpParameters.sql", sim$dbPath, sim$sqlDir)),
-        overmatureDeclineParameters = as.matrix(getTable("overmaturedecline.sql", sim$dbPath, sim$sqlDir)),
-        disturbanceMatrix = disturbanceMatrix,
-        disturbanceMatrixAssociation = as.matrix(getTable("disturbanceMatrixAssociation.sql", sim$dbPath, sim$sqlDir)),
-        disturbanceMatrixValues = as.matrix(getTable("disturbanceMatrixValues.sql", sim$dbPath, sim$sqlDir)),
-        landclasses = as.matrix(getTable("landclasses.sql", sim$dbPath, sim$sqlDir)),
-        pools = as.matrix(getTable("pools.sql", sim$dbPath, sim$sqlDir)),
-        domPools = as.matrix(getTable("domPools.sql", sim$dbPath, sim$sqlDir))
+  # 1. growth and yield information
+  # userGcM3 and userGcM3File, these files are the m3/ha and age info by growth
+  # curve ID, columns should be GrowthCurveComponentID	Age	MerchVolume
+  ## TO DO: add a data manipulation to adjust if the m3 are not given on a yearly basis
+  if (!suppliedElsewhere("userGcM3", sim)) {
+    if (!suppliedElsewhere("userGcM3File", sim)) {
+      sim$userGcM3File <- file.path("spadesCBMm3ToBiomass", "data", "userGcM3.csv") ## TODO: don't use another module's data!; use prepInputs
+      sim$userGcM3 <- fread(sim$userGcM3File)
+      message(
+        "User has not supplied growth curves (m3 by age or the file name for the growth curves). ",
+        "The default will be used which is for a region in Saskatchewan."
       )
     }
-    if (!suppliedElsewhere(sim$pooldef)) {
-      sim$pooldef <- c(
-        "Input",
-        "SoftwoodMerch",
-        "SoftwoodFoliage",
-        "SoftwoodOther",
-        "SoftwoodCoarseRoots",
-        "SoftwoodFineRoots",
-        "HardwoodMerch",
-        "HardwoodFoliage",
-        "HardwoodOther",
-        "HardwoodCoarseRoots",
-        "HardwoodFineRoots",
-        "AboveGroundVeryFastSoil",
-        "BelowGroundVeryFastSoil",
-        "AboveGroundFastSoil",
-        "BelowGroundFastSoil",
-        "MediumSoil",
-        "AboveGroundSlowSoil",
-        "BelowGroundSlowSoil",
-        "SoftwoodStemSnag",
-        "SoftwoodBranchSnag",
-        "HardwoodStemSnag",
-        "HardwoodBranchSnag",
-        "CO2",
-        "CH4",
-        "CO",
-        "Products"
-      )
-      sim$PoolCount <- length(sim$pooldef)
-    }
-
-    # user provided data tables------------------------------------------------------
-
-    # 1. growth and yield information
-    # userGcM3 and userGcM3File, these files are the m3/ha and age info by growth
-    # curve ID, columns should be GrowthCurveComponentID	Age	MerchVolume
-    ## TO DO: add a data manipulation to adjust if the m3 are not given on a yearly basis
-    if (!suppliedElsewhere("userGcM3", sim)) {
-      if (!suppliedElsewhere("userGcM3File", sim)) {
-        sim$userGcM3File <- file.path(getwd(), "spadesCBMm3ToBiomass", "data/userGcM3.csv")
-        sim$userGcM3 <- fread(sim$userGcM3File)
-        message(
-          "User has not supplied growth curves (m3 by age or the file name for the growth curves). ",
-          "The default will be used which is for a region in Saskatchewan."
-        )
-      }
-      names(sim$userGcM3) <- c("GrowthCurveComponentID", "Age", "MerchVolume")
-    }
-    # 2. Disturbance information - see disturbance raster below
-    # this may be provided by the user, by the defaults or by other modules/family
-    # of modules. It is the link between the spatial location of the disturbance
-    # (like a raster value) and the disturbance name.
-    if (!suppliedElsewhere(sim$userDist)) {
-      if (!suppliedElsewhere(sim$userDistFile)) {
-        message("There is no disturbance information provided; defaults for the Saskatchewan example run will be used.")
-        # DO THIS: make a default of the basic ones
-        # distName <- c("fire", "clearcut")
-        # rasterId <- c(1,2)
-        # sim$userDist <- data.table(distName,rasterId)
-        # warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
-        ## NOT WORKING DON'T KNOW WHY
-        ## sim$userDistFile <- c("https://drive.google.com/file/d/1Ax-y71FRlBZudn9t8kPG5_A1Hz-Pt-YP/view?usp=sharing")
-        ## workaround
-        sim$userDistFile <- file.path(getwd(), "spadesCBMinputs", "data/userDist.csv")
-        sim$userDist <- fread(sim$userDistFile)
-      }
+    names(sim$userGcM3) <- c("GrowthCurveComponentID", "Age", "MerchVolume")
+  }
+  # 2. Disturbance information - see disturbance raster below
+  # this may be provided by the user, by the defaults or by other modules/family
+  # of modules. It is the link between the spatial location of the disturbance
+  # (like a raster value) and the disturbance name.
+  if (!suppliedElsewhere(sim$userDist)) {
+    if (!suppliedElsewhere(sim$userDistFile)) {
+      message("There is no disturbance information provided; defaults for the Saskatchewan example run will be used.")
+      # DO THIS: make a default of the basic ones
+      # distName <- c("fire", "clearcut")
+      # rasterId <- c(1,2)
+      # sim$userDist <- data.table(distName,rasterId)
+      # warning("Default disturbances will be used. They are fire and clearcut, assigned raster values of 1 and 2 respectively.")
+      ## NOT WORKING DON'T KNOW WHY
+      ## sim$userDistFile <- c("https://drive.google.com/file/d/1Ax-y71FRlBZudn9t8kPG5_A1Hz-Pt-YP/view?usp=sharing")
+      ## workaround
+      sim$userDistFile <- file.path("spadesCBMm3ToBiomass", "data", "userDist.csv") ## TODO: don't use another module's data!; use prepInputs
       sim$userDist <- fread(sim$userDistFile)
     }
-
-    # user provided rasters or spatial information------------------------
-
-    # 1. Raster to match (masterRaster). This is the study area.
-    if (!suppliedElsewhere("masterRaster", sim)) {
-      if (!suppliedElsewhere("masterRasterURL", sim)) {
-        sim$masterRasterURL <- extractURL("masterRaster")
-        ## TO DO: why is this
-        message(
-          "User has not supplied a masterRaster or a URL for a masterRaster (masterRasterURL object).",
-          "masterRaster is going to be read from the default URL given in the inputObjects for",
-          currentModule(sim)
-        )
-      }
-      sim$masterRaster <- Cache(
-        prepInputs,
-        url = sim$masterRasterURL,
-        fun = "raster::raster"
-      )
-      # sim$masterRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/ldSp_TestArea.tif"))
-
-      sim$masterRaster[sim$masterRaster == 0] <- NA
-    }
-
-    # 2. Age raster from inventory
-    if (!suppliedElsewhere(sim$ageRaster)) {
-      if (!suppliedElsewhere(sim$ageRasterURL)) {
-        sim$ageRasterURL <- extractURL("ageRaster")
-      }
-      # sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/age_TestArea.tif"))
-      sim$ageRaster <- Cache(prepInputs,
-        url = sim$ageRasterURL,
-        fun = "raster::raster"
-      )
-      ## TO DO: put in a message to out pointing out the max age (this has to be
-      ## sinked to the max age on the growth curve max age for the spinup)
-      # maxAge <- max(sim$ageRaster)
-      # message(max age on the raster is XX)
-    }
-
-    # 3. What growth curve should be applied to what pixels?
-    if (!suppliedElsewhere(sim$gcIndexRaster)) {
-      if (!suppliedElsewhere(sim$gcIndexRasterURL)) {
-        sim$gcIndexRasterURL <- extractURL("gcIndexRaster")
-      }
-      # sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/gcIndex.tif"))
-      sim$gcIndexRaster <- Cache(prepInputs,
-        url = sim$gcIndexRasterURL,
-        fun = "raster::raster"
-      )
-    }
-
-    # 4. Spatial Unit raster. This takes the masterRaster (study area) and figures
-    # out what CBM-specific spatial units each pixels. This determines some
-    # defaults CBM-parameters across Canada.
-    if (!suppliedElsewhere(sim$spuRaster)) {
-      canadaSpu <- shapefile("data/spUnit_Locator.shp")
-      spuShp <- postProcess(canadaSpu,
-        rasterToMatch = sim$masterRaster, targetCRS = crs(sim$masterRaster),
-        useCache = FALSE, filename2 = NULL
-      )
-      sim$spuRaster <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = sim$masterRaster, field = "spu_id")
-
-      # sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/spUnits_TestArea.tif"))
-    }
-
-    # 5. Ecozone raster. This takes the masterRaster (study area) and figures
-    # out what ecozones each pixels are in. This determines some
-    # defaults CBM-parameters across Canada.
-    if (!suppliedElsewhere(sim$ecoRaster)) {
-      # sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/ecoRaster.tif"))
-      ecozones <- prepInputs( # targetFile = asPath(ecodistrictFilename),
-        # archive = asPath("ecodistrict_shp.zip"),
-        url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
-        # alsoExtract = ecodistrictAE,
-        destinationPath = file.path(getwd(), "spadesCBMinputs/data/"),
-        rasterToMatch = sim$masterRaster,
-        overwrite = TRUE,
-        fun = "raster::shapefile",
-        filename2 = TRUE
-      ) # ,
-      # userTags = cacheTags)
-      ecozones <- cropInputs(ecozones, rasterToMatch = sim$masterRaster)
-      sim$ecoRaster <- fasterize::fasterize(sf::st_as_sf(ecozones),
-        raster = sim$masterRaster,
-        field = "ECOZONE"
-      )
-    }
-
-    # 6. Disturbance rasters. The default example is a list of rasters, one for
-    # each year. But these can be provided by another family of modules in the
-    # annual event.
-    ### TO DO: add a message if no information is provided asking the user if
-    ### disturbances will be provided on a yearly basis.
-    if (!suppliedElsewhere("disturbanceRasters", sim)) {
-      ### Why is this failing??
-      # distHere <- extractURL(disturbanceRasters)
-      # sim$disturbanceRasters <- list.files(distHere,full.names = TRUE) %>%
-      #   grep(., pattern = ".grd$", value = TRUE)
-      # # if all fails
-      sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
-        full.names = TRUE
-      ) %>%
-        grep(., pattern = ".grd$", value = TRUE)
-    }
-
-    # ! ----- STOP EDITING ----- ! #
-
-    return(invisible(sim))
+    sim$userDist <- fread(sim$userDistFile)
   }
+
+  # user provided rasters or spatial information------------------------
+
+  # 1. Raster to match (masterRaster). This is the study area.
+  if (!suppliedElsewhere("masterRaster", sim)) {
+    if (!suppliedElsewhere("masterRasterURL", sim)) {
+      sim$masterRasterURL <- extractURL("masterRaster")
+      ## TO DO: why is this
+      message(
+        "User has not supplied a masterRaster or a URL for a masterRaster (masterRasterURL object).",
+        "masterRaster is going to be read from the default URL given in the inputObjects for",
+        currentModule(sim)
+      )
+    }
+    sim$masterRaster <- Cache(
+      prepInputs,
+      url = sim$masterRasterURL,
+      fun = "raster::raster"
+    )
+    # sim$masterRaster <- raster(file.path("spadesCBMinputs", "data", "ldSp_TestArea.tif"))
+
+    sim$masterRaster[sim$masterRaster == 0] <- NA
+  }
+
+  # 2. Age raster from inventory
+  if (!suppliedElsewhere(sim$ageRaster)) {
+    if (!suppliedElsewhere(sim$ageRasterURL)) {
+      sim$ageRasterURL <- extractURL("ageRaster")
+    }
+    # sim$ageRaster <- raster(file.path(getwd(),"/spadesCBMinputs/data/age_TestArea.tif")) ## TODO: remove
+    sim$ageRaster <- Cache(prepInputs,
+      url = sim$ageRasterURL,
+      fun = "raster::raster"
+    )
+    ## TO DO: put in a message to out pointing out the max age (this has to be
+    ## sinked to the max age on the growth curve max age for the spinup)
+    # maxAge <- max(sim$ageRaster)
+    # message(max age on the raster is XX)
+  }
+
+  # 3. What growth curve should be applied to what pixels?
+  if (!suppliedElsewhere(sim$gcIndexRaster)) {
+    if (!suppliedElsewhere(sim$gcIndexRasterURL)) {
+      sim$gcIndexRasterURL <- extractURL("gcIndexRaster")
+    }
+    # sim$gcIndexRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/gcIndex.tif")) ## TODO: rm
+    sim$gcIndexRaster <- Cache(prepInputs,
+      url = sim$gcIndexRasterURL,
+      fun = "raster::raster"
+    )
+  }
+
+  # 4. Spatial Unit raster. This takes the masterRaster (study area) and figures
+  # out what CBM-specific spatial units each pixels. This determines some
+  # defaults CBM-parameters across Canada.
+  if (!suppliedElsewhere(sim$spuRaster)) {
+    canadaSpu <- shapefile("data/spUnit_Locator.shp")
+    spuShp <- postProcess(canadaSpu,
+      rasterToMatch = sim$masterRaster, targetCRS = crs(sim$masterRaster),
+      useCache = FALSE, filename2 = NULL
+    )
+    sim$spuRaster <- fasterize::fasterize(sf::st_as_sf(spuShp), raster = sim$masterRaster, field = "spu_id")
+
+    # sim$spuRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/spUnits_TestArea.tif")) ## TODO: rm
+  }
+
+  # 5. Ecozone raster. This takes the masterRaster (study area) and figures
+  # out what ecozones each pixels are in. This determines some
+  # defaults CBM-parameters across Canada.
+  if (!suppliedElsewhere(sim$ecoRaster)) {
+    # sim$ecoRaster <- raster(file.path(getwd(),"spadesCBMinputs/data/ecoRaster.tif")) ## TODO: rm
+    ecozones <- prepInputs( # targetFile = asPath(ecodistrictFilename),
+      # archive = asPath("ecodistrict_shp.zip"),
+      url = "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip",
+      # alsoExtract = ecodistrictAE,
+      destinationPath = "data",
+      rasterToMatch = sim$masterRaster,
+      overwrite = TRUE,
+      fun = "raster::shapefile",
+      filename2 = TRUE
+    ) # ,
+    # userTags = cacheTags)
+    ecozones <- cropInputs(ecozones, rasterToMatch = sim$masterRaster)
+    sim$ecoRaster <- fasterize::fasterize(sf::st_as_sf(ecozones),
+      raster = sim$masterRaster,
+      field = "ECOZONE"
+    )
+  }
+
+  # 6. Disturbance rasters. The default example is a list of rasters, one for
+  # each year. But these can be provided by another family of modules in the
+  # annual event.
+  ### TO DO: add a message if no information is provided asking the user if
+  ### disturbances will be provided on a yearly basis.
+  if (!suppliedElsewhere("disturbanceRasters", sim)) {
+    ### Why is this failing??
+    # distHere <- extractURL(disturbanceRasters)
+    # sim$disturbanceRasters <- list.files(distHere,full.names = TRUE) %>%
+    #   grep(., pattern = ".grd$", value = TRUE)
+    # # if all fails
+    sim$disturbanceRasters <- list.files("data/forIan/SK_data/CBM_GIS/disturbance_testArea",
+      full.names = TRUE
+    ) %>%
+      grep(., pattern = ".grd$", value = TRUE)
+  }
+
+  # ! ----- STOP EDITING ----- ! #
+
+  return(invisible(sim))
 }

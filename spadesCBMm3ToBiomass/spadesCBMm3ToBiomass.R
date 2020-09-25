@@ -798,7 +798,7 @@ Event2 <- function(sim) {
   ## TO DO: add a data manipulation to adjust if the m3 are not given on a yearly basis
   if (!suppliedElsewhere("userGcM3", sim)) {
     if (!suppliedElsewhere("userGcM3File", sim)) {
-      sim$userGcM3File <- file.path(getwd(), "spadesCBMm3ToBiomass", "data/userGcM3.csv")
+      sim$userGcM3File <- file.path("data", "userGcM3.csv") ## TODO: use prepInputs from url
       sim$userGcM3 <- fread(sim$userGcM3File)
       message(
         "User has not supplied growth curves (m3 by age or the file name for the growth curves). ",
@@ -844,7 +844,7 @@ Event2 <- function(sim) {
 
   if (!suppliedElsewhere("gcMeta", sim)) {
     if (!suppliedElsewhere("gcMetaFile", sim)) {
-      sim$gcMetaFile <- file.path(getwd(), "spadesCBMm3ToBiomass", "data/gcMetaEg.csv")
+      sim$gcMetaFile <- file.path("data", "gcMetaEg.csv") ## TODO: use dPath
       # or could use this "https://drive.google.com/file/d/1LYnShgd0Q7idNNKX9hHYju4kMDwMSkW5/view?usp=sharing"
       sim$gcMeta <- fread(sim$gcMetaFile)
     }
@@ -854,7 +854,7 @@ Event2 <- function(sim) {
   # abbreviation and cbm spatial units and ecoBoudnary id is provided with the
   # adminName to avoid confusion.
   if (!suppliedElsewhere("cbmAdmin", sim)) {
-    sim$cbmAdmin <- fread(file.path(getwd(), "spadesCBMm3ToBiomass", "data/cbmAdmin.csv"))
+    sim$cbmAdmin <- fread(file.path("data", "cbmAdmin.csv")) ## TODO: use dPath
   }
 
   # canfi_species: for the BOudewyn parameters, the species have to be matched
@@ -869,17 +869,9 @@ Event2 <- function(sim) {
   # 3  3       Hardwood
   # 4  9 Not Applicable
   if (!suppliedElsewhere("canfi_species", sim)) {
-    sim$canfi_species <- fread(file.path(getwd(), "spadesCBMm3ToBiomass", "data/canfi_species.csv"))
+    sim$canfi_species <- fread(file.path("data", "canfi_species.csv")) ## TODO: use dPath
   }
-
-
-
-
-
-  # ! ----- EDIT BELOW ----- ! #
 
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
-
-### add additional events as needed by copy/pasting from above

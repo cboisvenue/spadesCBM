@@ -75,7 +75,7 @@ parameters <- list(
                       poolsToPlot = c("totalCarbon"))
 )
 
-modules <- list("spadesCBMdefaults","spadesCBMinputs","spadesCBMm3ToBiomass","spadesCBMcore")
+modules <- list("spadesCBMdefaults", "spadesCBMinputs", "spadesCBMm3ToBiomass", "spadesCBMcore")
 objects <- list(
   dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
   sqlDir = file.path(inputDir,"cbm_defaults")

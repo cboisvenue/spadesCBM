@@ -312,9 +312,7 @@ spinup <- function(sim) {
   # sim$ages[sim$ages>max(spadesCBMout$growth_increments[,2])] <- max(spadesCBMout$growth_increments[,2])
   ## END AGE
 
-
-
-  spinupResult <- Cache(Spinup,
+  spinupResult <- Spinup( ## TODO: cache this
     pools = sim$pools,
     opMatrix = opMatrix,
     constantProcesses = sim$processes,
