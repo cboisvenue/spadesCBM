@@ -250,21 +250,21 @@ spinup <- function(sim) {
 
 
   spinupResult <- Cache(Spinup,pools = sim$pools,
-                         opMatrix = opMatrix,
-                         constantProcesses = sim$processes,
-                         growthIncrements = sim$gcHash,
-                         ages = sim$ages,
-                         gcids = sim$gcids,
-                         historicdmids = sim$historicDMIDs,
-                         lastPassdmids = sim$lastPassDMIDS,
-                         delays = sim$delays,
-                         minRotations = sim$minRotations,
-                         maxRotations = sim$maxRotations,
-                         returnIntervals = sim$returnIntervals$return_interval,
-                         rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
-                         turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
-                         biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
-                         debug=P(sim)$spinupDebug)
+                        opMatrix = opMatrix,
+                        constantProcesses = sim$processes,
+                        growthIncrements = sim$gcHash,
+                        ages = sim$ages,
+                        gcids = sim$gcids,
+                        historicdmids = sim$historicDMIDs,
+                        lastPassdmids = sim$lastPassDMIDS,
+                        delays = sim$delays,
+                        minRotations = sim$minRotations,
+                        maxRotations = sim$maxRotations,
+                        returnIntervals = sim$returnIntervals$return_interval,
+                        rootParameters = as.data.frame(t(sim$cbmData@rootParameters[1,])),
+                        turnoverParams = as.data.frame(t(sim$cbmData@turnoverRates[1,])),
+                        biomassToCarbonRate = as.numeric(sim$cbmData@biomassToCarbonRate),
+                        debug=P(sim)$spinupDebug)
 
   # # setting CO2, CH4, CO and products to 0 before starting the simulations
   spinupResult[,23:dim(spinupResult)[2]] <- 0
@@ -488,8 +488,8 @@ annual <- function(sim) {
   )
 
   colnames(sim$opMatrixCBM) <- c("disturbance", "growth 1", "domturnover",
-                             "bioturnover", "overmature", "growth 2",
-                             "domDecay", "slow decay", "slow mixing")
+                                 "bioturnover", "overmature", "growth 2",
+                                 "domDecay", "slow decay", "slow mixing")
 
   # 3. select the matrices that apply to this annual event and specific sim
   # allProcesses contains all the default matrices for disturbances in CBM, gets
@@ -530,8 +530,8 @@ annual <- function(sim) {
 
   # 5. All the work happens here: update all the pools.
   sim$pools <- StepPools(pools=sim$pools,
-                      opMatrix = sim$opMatrixCBM,
-                      flowMatrices = sim$allProcesses)
+                         opMatrix = sim$opMatrixCBM,
+                         flowMatrices = sim$allProcesses)
 
   ##########################END PROCESSES#########################################
   #-------------------------------------------------------------------------------
@@ -683,7 +683,9 @@ annual <- function(sim) {
 
   # 3. Update the final simluation horizon table with all the pools/year/pixelGroup
   #names(distPixOut) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
-  updatePools <-   cbind(rep(time(sim)[1],length(sim$pixelGroupC$ages)),pixelCount[,2],sim$pixelGroupC$pixelGroup, sim$pixelGroupC$ages, sim$pixelGroupC[,Input:Products])
+  updatePools <-   cbind(rep(time(sim)[1], length(sim$pixelGroupC$ages)), pixelCount[,2],
+                         sim$pixelGroupC$pixelGroup, sim$pixelGroupC$ages,
+                         sim$pixelGroupC[, Input:Products])
   names(updatePools) <- c( c("simYear","pixelCount","pixelGroup", "ages"), sim$pooldef)
 
   sim$cbmPools <- rbind(sim$cbmPools,updatePools)
