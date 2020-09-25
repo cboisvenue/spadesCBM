@@ -50,15 +50,20 @@ Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$
 # Simulations
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
+library(dplyr) ## TODO: Eliot remaved dplyr from SpaDES.core; needed for bind_rows in modules!
 library(SpaDES.core)
 # library(CBMVolumeToBiomass)
 # library(RSQLite)
 library(magrittr) # this is needed to use "%>%" below
+library(carbonara)
+
+stopifnot(packageVersion("carbonara") >= 0.0.3)
+
 options("reproducible.useRequire" = FALSE) #Require doesn't seem to work with RSQLite
-moduleDir <- file.path(getwd())#"C:/Celine/GitHub/spadesCBM")
-inputDir <- file.path(moduleDir,"data") %>% reproducible::checkPath(create = TRUE) #"C:/Celine/GitHub/spadesCBM/data")
-outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
-cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
+moduleDir <- file.path(".")#"C:/Celine/GitHub/spadesCBM")
+inputDir <- file.path(moduleDir, "data") %>% reproducible::checkPath(create = TRUE) #"C:/Celine/GitHub/spadesCBM/data")
+outputDir <- file.path(moduleDir, "outputs") #"C:/Celine/SpaDEScacheOutputs/outputs")
+cacheDir <- file.path(outputDir, "cache")#C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 1993.00)
 parameters <- list(
   spadesCBMdefaults = list(.useCache = TRUE),
@@ -74,13 +79,13 @@ modules <- list("spadesCBMdefaults","spadesCBMinputs","spadesCBMm3ToBiomass","sp
 objects <- list(
   dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
   sqlDir = file.path(inputDir,"cbm_defaults")
-  )
+)
 paths <- list(
   cachePath = cacheDir,
   modulePath = moduleDir,
   inputPath = inputDir,
   outputPath = outputDir
-  )
+)
 
 spadesCBMSim <- simInit(times = times,
                         params = parameters,
@@ -88,10 +93,10 @@ spadesCBMSim <- simInit(times = times,
                         objects = objects, 
                         paths = paths,
                         loadOrder = unlist(modules))
+
 dev()
 clearPlot()
 spadesCBMout <- spades(spadesCBMSim,debug=TRUE)
-
 ```
 
 # Functions
