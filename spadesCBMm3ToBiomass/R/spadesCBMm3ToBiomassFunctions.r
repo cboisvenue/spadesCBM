@@ -141,7 +141,7 @@ m3ToBiomIncOnlyPlots <- function(inc=increments){
   gInc <- as.data.table(inc)
   idSim <- unique(gInc$id)
   gcSim <- gInc[id %in% idSim,]
-  gc <- melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:dim(gInc)[2])
+  gc <- data.table::melt(gcSim, id.vars = c("id", "age"), measure.vars = 3:dim(gInc)[2])
   names(idSim) <- idSim
   plots <- lapply(idSim, function(idLoop) {
     ggplot(data=gc[id == idLoop], 
