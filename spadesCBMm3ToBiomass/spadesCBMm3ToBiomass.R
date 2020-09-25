@@ -15,7 +15,8 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.txt", "spadesCBMm3ToBiomass.Rmd")),
-  reqdPkgs = list("mgcv","ggplot2","quickPlot","ggpubr"),
+  reqdPkgs = list("mgcv","ggplot2","quickPlot", "ggpubr",
+                  "carbonara"), ## TODO: use PredictiveEcology/carbonaro
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,

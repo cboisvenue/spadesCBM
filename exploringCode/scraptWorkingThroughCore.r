@@ -8,11 +8,7 @@
 #----------------------------------------------------
 
 ######### rewriting annual event here
-  # compile c++ functions
-  Sys.setenv(PKG_CXXFLAGS = "-std=c++0x")
-  #sourceCpp(file='RCBMStep.cpp')
-  Rcpp::sourceCpp(file='RCBMGrowthIncrements.cpp')##, cacheDir = cachePath(sim), 
-  ##env = envir(sim)[[".mods"]][["spadesCBMcore"]])
+  #Rcpp::sourceCpp(file='RCBMGrowthIncrements.cpp') ## NOTE: use this function from carbonara pkg
   
 
 ##annual <- function(sim) {
