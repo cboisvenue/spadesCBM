@@ -62,15 +62,16 @@ outputDir <- file.path(moduleDir,"outputs") #"C:/Celine/SpaDEScacheOutputs/outpu
 cacheDir <- file.path(outputDir,"cache")#C:/Celine/SpaDEScacheOutputs/cache")
 times <- list(start = 1990.00, end = 1993.00)
 parameters <- list(
+  spadesCBMdefaults = list(.useCache = TRUE),
+  spadesCBMinputs = list(.useCache = TRUE),
+  spadesCBMm3ToBiomass = list(.useCache = TRUE),
   spadesCBMcore = list(.useCache = FALSE,#c(".inputObjects", "init")
                       .plotInterval = 3,
                       .plotInitialTime = 1990,
-                      poolsToPlot = c("totalCarbon")),
-  spadesCBMinputs = list(.useCache = FALSE),
-  spadesCBMdefaults = list(.useCache = FALSE)
+                      poolsToPlot = c("totalCarbon"))
 )
 
-modules <- list("spadesCBM")
+modules <- list("spadesCBMdefaults","spadesCBMinputs","spadesCBMm3ToBiomass","spadesCBMcore")
 objects <- list(
   dbPath = file.path(inputDir,"cbm_defaults","cbm_defaults.db"),
   sqlDir = file.path(inputDir,"cbm_defaults")
@@ -86,7 +87,8 @@ spadesCBMSim <- simInit(times = times,
                         params = parameters,
                         modules = modules, 
                         objects = objects, 
-                        paths = paths)
+                        paths = paths,
+                        loadOrder = unlist(modules))
 dev()
 clearPlot()
 spadesCBMout <- spades(spadesCBMSim,debug=TRUE)

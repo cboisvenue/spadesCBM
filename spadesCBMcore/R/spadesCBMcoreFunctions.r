@@ -505,3 +505,14 @@ spuDist <- function(mySpu = c(27,28),dbPath = file.path(getwd(),"data","cbm_defa
   return(spuDist)
 }
 
+#----------when you need other modules to be run before---------------
+suggestModules <- function(sim, suggestedModules) {
+  io <- inputObjects(sim, currentModule(sim))
+  objectNamesExpected <- io$objectName
+  available <- objectNamesExpected %in% ls(sim)
+  if (any(!available)) stop("The inputObjects for spadesCBMcore are not all available:",
+                            "These are missing:", paste(objectNamesExpected[!available], collapse = ", "),
+                            ". \n\nHave you run ", 
+                            suggestedModules,
+                            "?")
+}

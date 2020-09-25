@@ -9,6 +9,7 @@ editor_options:
 
 # Overview
 
+NPP: Net primary productivity is for both above and below ground productivity.
 Provide an overview of what the module does / how to use the module.
 
 Module documentation should be written so that others can use your module.
