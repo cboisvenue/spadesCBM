@@ -120,7 +120,7 @@ Init <- function(sim) {
     "Products"
   )
 
-  # TODO: These objects currently are required to be in the .GlobalEnv
+  # TODO: These objects currently are required to be in the .GlobalEnv -- ## TODO: no longer true?
   #   due to cpp code in RCBMGrowthIncrements.cpp. This should be
   #   changed in the cpp and also here so it is in the sim
   for (i in 1:length(sim$pooldef)) {
