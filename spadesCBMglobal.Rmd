@@ -167,9 +167,9 @@ parameters <- list(
   spadesCBMinputs = list(.useCache = TRUE),
   spadesCBMm3ToBiomass = list(.useCache = TRUE),
   spadesCBMcore = list(.useCache = FALSE, #c(".inputObjects", "init")
-                      .plotInterval = 3,
-                      .plotInitialTime = 1990,
-                      poolsToPlot = c("totalCarbon"))
+                       .plotInterval = 3,
+                       .plotInitialTime = 1990,
+                       poolsToPlot = c("totalCarbon"))
 )
 
 modules <- list("spadesCBMdefaults", "spadesCBMinputs", "spadesCBMm3ToBiomass", "spadesCBMcore")
