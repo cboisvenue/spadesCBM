@@ -296,16 +296,23 @@ Init <- function(sim) {
   ## End data.table for simulations-------------------------------------------
 
 
-  ############################################################
-  ## SK: can't seem to solve why growth curve id 58 (white birch, good
-  ## productivity) will not run with ages=1 it gets stuck in the spinup. Alex
-  ## Chubaty is working on this problem. There is a mismatch in the
-  ## disturbances' carbon transfers which creates problems with this specific
-  ## growth curve (id 58 in SK). Because the first few years of growth are 0 it
-  ## does not grow and it does not fill-up the soil pools.
-  ###########################################################
-  # temp fix should work for this problem for most curves for now:
-  sim$level3DT[ages == 1, ages := 3]
+  ## TODO: problem with ages<=1
+  ##################################################### # SK example: can't seem
+  #to solve why growth curve id 52 (white birch, good # productivity) will not
+  #run with ages= c(0,1,2) it gets stuck in the spinup. Tried ages==1, # and
+  #ages==2. Maybe because the first few years of growth are 0 ? (to check) it #
+  #does not grow and it does not fill-up the soil pools. # Notes: the GAMs are
+  #fit on the cumulative curves of carbon/ha for three # pools. This is to make
+  #sure the curves go through 0...but maybe it would # work better for GAMs to
+  #be fit on the increments (?). # since all growth curves are for merchantible
+  #timber (with diameter limits), it is acceptable to start all increments at
+  #the level of year==3.
+  #work for this problem for most curves for now: this is from SK runs
+  #sim$level3DT[ages==0 & growth_curve_component_id==52,ages:=3]
+ ######################################
+  ##################### temp fix should
+
+  sim$level3DT[ages <= 1, ages := 3]
   sim$level3DT[order(pixelGroup), ]
 
   ## Creating all the vectors for the spinup --------------------------------
