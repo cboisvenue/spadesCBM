@@ -231,13 +231,6 @@ doEvent.spadesCBMcore <- function(sim, eventTime, eventType, debug = FALSE) {
         years = time(sim)
       )
 
-      spatialPlot(
-        cbmPools = sim$cbmPools,
-        poolsToPlot = P(sim)$poolsToPlot,
-        masterRaster = sim$masterRaster,
-        pixelkeep = sim$pixelKeep,
-        years = time(sim)
-      )
 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "spadesCBMcore", "plot", eventPriority = 9)
     },
@@ -334,6 +327,7 @@ spinup <- function(sim) {
   # # setting CO2, CH4, CO and products to 0 before starting the simulations
   spinupResult[, 23:dim(spinupResult)[2]] <- 0
   sim$spinupResult <- spinupResult
+  sim$spinupResult[which(is.na(sim$spinupResult))] <- 0
   return(invisible(sim))
 }
 
@@ -598,6 +592,7 @@ annual <- function(sim) {
     opMatrix = sim$opMatrixCBM,
     flowMatrices = sim$allProcesses
   )
+  sim$pools[which(is.na(sim$pools))] <- 0
 
   ########################## END PROCESSES#########################################
   #-------------------------------------------------------------------------------
@@ -729,7 +724,8 @@ annual <- function(sim) {
   # re-zeroed at the end of the spinup event.
 
   # 1. Add the emissions and Products for this year
-  emissionsProducts <- pixelGroupForAnnual[, .(pixelGroup, CO2, CH4, CO, Products)]
+  emissionsProducts <- as.data.table(cbind(rep(time(sim)[1], length(pixelGroupForAnnual$pixelGroup)),pixelGroupForAnnual$pixelGroup,sim$pools[,23:26]))
+  names(emissionsProducts) <- c("simYear","pixelGroup", "CO2", "CH4", "CO", "Products")
   sim$emissionsProducts <- rbind(sim$emissionsProducts, emissionsProducts)
 
   # 2. Re-zero the pools for emissions and Products
