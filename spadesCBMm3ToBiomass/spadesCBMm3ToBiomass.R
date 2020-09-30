@@ -412,7 +412,6 @@ Init <- function(sim) {
 
   # plotting and save the plots of the raw-translation in the sim$
   rawPlots <- m3ToBiomIncOnlyPlots(inc = cumPoolsRaw)
-
   # From: http://www.sthda.com/english/articles/32-r-graphics-essentials/126-combine-multiple-ggplots-in-one-graph/
 
   # do.call(ggarrange, rawPlots)
@@ -431,69 +430,136 @@ Init <- function(sim) {
   )
   # dev.new()
   annotate_figure(sim$plotsRawCumulativeBiomass,
-    top = text_grob("Cumulative merch fol other by gc id", face = "bold", size = 14)
+                  top = text_grob("Cumulative merch fol other by gc id", face = "bold", size = 14)
   )
   message("User: please inspect the translation of your growth curves via sim$plotsRawCumulativeBiomass.")
 
   # sim$gg
   # end plotting direct translations----------------------------------------
 
-  # created smooth cumulative curves using GAMs
-  sMerch <- NULL
-  sFol <- NULL
-  sOther <- NULL
+  # Example of smoothing: two choices presented, smoothing of the cumulative
+  # carbon/ha curves or smoothing of the increment curves of carbon/ha
 
-  ### HELP: module not loading the package mgcv even though it is in reqdPkgs
-  library(mgcv)
+  # ####### Smoothing of start here#######################################################
+  # ## CHOICE 1. on cumulative curves ###################################################
+  # # created smooth cumulative curves using GAMs
+  # sMerch <- NULL
+  # sFol <- NULL
+  # sOther <- NULL
+  #
+  # ## TODO: module not loading the package mgcv even though it is in reqdPkgs
+  # #library(mgcv)
+  #
+  #
+  # id <- unique(cumPoolsRaw$id)
+  # for (val in id) {
+  #   # per column
+  #   # totMerch
+  #   oneSet <- cumPoolsRaw[id == val, ]
+  #   wts <- c(
+  #     100, rep(2, (which(oneSet$totMerch == max(oneSet$totMerch)) - 1)),
+  #     rep(1, (length(oneSet$age) - which(oneSet$totMerch == max(oneSet$totMerch))))
+  #   )
+  #   k <- 20
+  #   gamMerch <- gam(oneSet$totMerch ~ s(oneSet$age, k = k), weight = wts, method = "REML")
+  #   df1 <- as.data.frame(cbind(age = oneSet$age, totMerch = gamMerch$fitted.values))
+  #   # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+  #   # ggplot(oneSet, aes(age, totMerch)) + geom_point() +
+  #   #  geom_line(data=df1,aes(color="Fitted GAM cumulative totMerch"))
+  #   sMerch <- rbind(sMerch, df1)
+  #   # fol
+  #   # oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,fol)])
+  #   wts <- c(
+  #     100, rep(2, (which(oneSet$fol == max(oneSet$fol)) - 1)),
+  #     rep(1, (length(oneSet$age) - which(oneSet$fol == max(oneSet$fol))))
+  #   )
+  #   k <- 20
+  #   gamMerch <- gam(oneSet$fol ~ s(oneSet$age, k = k), weight = wts, method = "REML")
+  #   df2 <- as.data.frame(cbind(age = oneSet$age, fol = gamMerch$fitted.values))
+  #   # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+  #   # ggplot(oneSet, aes(age, fol)) + geom_point() +
+  #   #   geom_line(data=df2,aes(color="Fitted GAM cumulative fol"))
+  #   sFol <- rbind(sFol, df2)
+  #   # other
+  #   # oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,other)])
+  #   wts <- c(
+  #     100, rep(2, (which(oneSet$other == max(oneSet$other)) - 1)),
+  #     rep(1, (length(oneSet$age) - which(oneSet$other == max(oneSet$other))))
+  #   )
+  #   k <- 20
+  #   gamMerch <- gam(oneSet$other ~ s(oneSet$age, k = k), weight = wts, method = "REML")
+  #   df3 <- as.data.frame(cbind(age = oneSet$age, other = gamMerch$fitted.values))
+  #   # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+  #   # ggplot(oneSet, aes(age, other)) + geom_point() +
+  #   #   geom_line(data=df3,aes(color="Fitted GAM cumulative other"))
+  #   sOther <- rbind(sOther, df3)
+  # }
+  # # putting it all together
+  # smoothCumPools <- as.data.table(cbind(cumPoolsRaw$id, sMerch, sFol[, 2], sOther[, 2]))
+  # names(smoothCumPools) <- names(cumPoolsRaw)
+  # setkey(smoothCumPools, id)
+  # # half the increments are use at the begining of simulations and half later in
+  # # the simulation. The order is:
+  # # names(sim$allProcesses)
+  # # [1] "Disturbance"       "Growth1"           "DomTurnover"
+  # # [4] "BioTurnover"       "OvermatureDecline" "Growth2"
+  # # [7] "DomDecay"          "SlowDecay"         "SlowMixing"
+  # # here, calculating the increment, then dividing it in 2.
+  # cols <- c("totMerch", "fol", "other")
+  # newCols <- c("lMerch", "lFol", "lOther")
+  # lagPools <- smoothCumPools[, (newCols) := lapply(.SD, data.table::shift), .SDcols = cols, by = "id"]
+  # lagPools[is.na(lagPools)] <- 0
+  # incCols <- c("incMerch", "incFol", "incOther")
+  # incPools <- lagPools[, (incCols) := list(totMerch - lMerch, fol - lFol, other - lOther)][, .(id, age, incMerch, incFol, incOther)]
+  #
+  # forestType <- gcMeta[, .(id = growth_curve_component_id, forest_type_id)]
+  # #       #FYI:
+  # #       # cbmTables$forest_type
+  # #       # id           name
+  # #       # 1  1       Softwood
+  # #       # 2  2      Mixedwood
+  # #       # 3  3       Hardwood
+  # #       # 4  9 Not Applicable
+  # setkey(forestType, id)
+  # incPools <- merge(incPools, forestType)
+  # swCols <- c("swmerch", "swfol", "swother")
+  # hwCols <- c("hwmerch", "hwfol", "hwother")
+  #
+  # totalIncrements <- incPools[forest_type_id == 1, (swCols) := list((incMerch), (incFol), (incOther))][forest_type_id == 3, (hwCols) := list((incMerch), (incFol), (incOther))]
+  # totalIncrements[is.na(totalIncrements)] <- 0
+  # outCols <- c("incMerch", "incFol", "incOther", "forest_type_id")
+  # incCols <- c(swCols, hwCols)
+  # totalIncrements[, (outCols) := NULL]
+  # increments <- totalIncrements[, (incCols) := list(
+  #   swmerch / 2, swfol / 2,
+  #   swother / 2, hwmerch / 2, hwfol / 2, hwother / 2
+  # )] %>% .[order(id, age), ]
+  # incPlots <- m3ToBiomIncOnlyPlots(inc = increments)
+  #
+  # # From: http://www.sthda.com/english/articles/32-r-graphics-essentials/126-combine-multiple-ggplots-in-one-graph/
+  # # do.call(ggarrange, rawPlots)
+  # sim$checkInc <- do.call(
+  #   ggarrange,
+  #   append(
+  #     incPlots,
+  #     list(
+  #       common.legend = TRUE,
+  #       legend = "right",
+  #       labels = names(rawPlots),
+  #       font.label = list(size = 10, color = "black", face = "bold"),
+  #       label.x = 0.5
+  #     )
+  #   )
+  # )
+  # # dev.new()
+  # annotate_figure(sim$checkInc,
+  #   top = text_grob("Halved increments for merch fol other by gc id", face = "bold", size = 14)
+  # )
+  # message("User: please inspect the halved increments that are used in your simulation via sim$checkInc.")
 
-  # setseed(0)
-  id <- unique(cumPoolsRaw$id)
-  for (val in id) {
-    # per column
-    # totMerch
-    oneSet <- cumPoolsRaw[id == val, ]
-    wts <- c(
-      100, rep(2, (which(oneSet$totMerch == max(oneSet$totMerch)) - 1)),
-      rep(1, (length(oneSet$age) - which(oneSet$totMerch == max(oneSet$totMerch))))
-    )
-    k <- 20
-    gamMerch <- gam(oneSet$totMerch ~ s(oneSet$age, k = k), weight = wts, method = "REML")
-    df1 <- as.data.frame(cbind(age = oneSet$age, totMerch = gamMerch$fitted.values))
-    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
-    # ggplot(oneSet, aes(age, totMerch)) + geom_point() +
-    #  geom_line(data=df1,aes(color="Fitted GAM cumulative totMerch"))
-    sMerch <- rbind(sMerch, df1)
-    # fol
-    # oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,fol)])
-    wts <- c(
-      100, rep(2, (which(oneSet$fol == max(oneSet$fol)) - 1)),
-      rep(1, (length(oneSet$age) - which(oneSet$fol == max(oneSet$fol))))
-    )
-    k <- 20
-    gamMerch <- gam(oneSet$fol ~ s(oneSet$age, k = k), weight = wts, method = "REML")
-    df2 <- as.data.frame(cbind(age = oneSet$age, fol = gamMerch$fitted.values))
-    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
-    # ggplot(oneSet, aes(age, fol)) + geom_point() +
-    #   geom_line(data=df2,aes(color="Fitted GAM cumulative fol"))
-    sFol <- rbind(sFol, df2)
-    # other
-    # oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,other)])
-    wts <- c(
-      100, rep(2, (which(oneSet$other == max(oneSet$other)) - 1)),
-      rep(1, (length(oneSet$age) - which(oneSet$other == max(oneSet$other))))
-    )
-    k <- 20
-    gamMerch <- gam(oneSet$other ~ s(oneSet$age, k = k), weight = wts, method = "REML")
-    df3 <- as.data.frame(cbind(age = oneSet$age, other = gamMerch$fitted.values))
-    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
-    # ggplot(oneSet, aes(age, other)) + geom_point() +
-    #   geom_line(data=df3,aes(color="Fitted GAM cumulative other"))
-    sOther <- rbind(sOther, df3)
-  }
-  # putting it all together
-  smoothCumPools <- as.data.table(cbind(cumPoolsRaw$id, sMerch, sFol[, 2], sOther[, 2]))
-  names(smoothCumPools) <- names(cumPoolsRaw)
-  setkey(smoothCumPools, id)
+  ## CHOICE 2.on increment curves ###################################################
+
+  setkey(cumPoolsRaw, id)
   # half the increments are use at the begining of simulations and half later in
   # the simulation. The order is:
   # names(sim$allProcesses)
@@ -503,13 +569,110 @@ Init <- function(sim) {
   # here, calculating the increment, then dividing it in 2.
   cols <- c("totMerch", "fol", "other")
   newCols <- c("lMerch", "lFol", "lOther")
-  lagPools <- smoothCumPools[, (newCols) := lapply(.SD, data.table::shift), .SDcols = cols, by = "id"]
+  lagPools <- cumPoolsRaw[, (newCols) := lapply(.SD, data.table::shift), .SDcols = cols, by = "id"]
   lagPools[is.na(lagPools)] <- 0
   incCols <- c("incMerch", "incFol", "incOther")
   incPools <- lagPools[, (incCols) := list(totMerch - lMerch, fol - lFol, other - lOther)][, .(id, age, incMerch, incFol, incOther)]
+  rawIncPlots <- m3ToBiomIncOnlyPlots(inc = incPools)
+  plotsRawInc <- do.call(
+    ggarrange,
+    append(
+      rawIncPlots,
+      list(
+        common.legend = TRUE,
+        legend = "right",
+        labels = names(rawIncPlots),
+        font.label = list(size = 10, color = "black", face = "bold"),
+        label.x = 0.5
+      )
+    )
+  )
+  # dev.new()
+  annotate_figure(plotsRawInc,
+                  top = text_grob("RawIncrements merch fol other by gc id", face = "bold", size = 14)
+  )
 
-  # swInc <- NULL
-  # hwInc <- NULL
+  ## calculate the GAMs on increments
+  # created smooth cumulative curves using GAMs
+  sIncMerch <- NULL
+  sIncFol <- NULL
+  sIncOther <- NULL
+
+  ## TODO: module not loading the package mgcv even though it is in reqdPkgs
+  library(mgcv)
+
+
+  id <- unique(incPools$id)
+  for (val in id) {
+    # per column
+    # incMerch
+    oneSet <- incPools[id == val, ]
+    wts <- c(
+      100, rep(2, (which(oneSet$incMerch == max(oneSet$incMerch)) - 1)),
+      rep(1, (length(oneSet$age) - which(oneSet$incMerch == max(oneSet$incMerch))))
+    )
+    k <- 20
+    gamMerch <- gam(oneSet$incMerch ~ s(oneSet$age, k = k), weight = wts, method = "REML")
+    df1 <- as.data.frame(cbind(age = oneSet$age, incMerch = gamMerch$fitted.values))
+    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+    # ggplot(oneSet, aes(age, incMerch)) + geom_point() +
+    #  geom_line(data=df1,aes(color="Fitted GAM cumulative incMerch"))
+    sIncMerch <- rbind(sIncMerch, df1)
+    # incFol
+    # oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,incFol)])
+    wts <- c(
+      100, rep(2, (which(oneSet$incFol == max(oneSet$incFol)) - 1)),
+      rep(1, (length(oneSet$age) - which(oneSet$incFol == max(oneSet$incFol))))
+    )
+    k <- 20
+    gamMerch <- gam(oneSet$incFol ~ s(oneSet$age, k = k), weight = wts, method = "REML")
+    df2 <- as.data.frame(cbind(age = oneSet$age, incFol = gamMerch$fitted.values))
+    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+    # ggplot(oneSet, aes(age, incFol)) + geom_point() +
+    #   geom_line(data=df2,aes(color="Fitted GAM cumulative incFol"))
+    sIncFol <- rbind(sIncFol, df2)
+    # other
+    # oneSet <- cbind(cumPoolsRaw[id==id[i],.(age,incOther)])
+    wts <- c(
+      100, rep(2, (which(oneSet$incOther == max(oneSet$incOther)) - 1)),
+      rep(1, (length(oneSet$age) - which(oneSet$incOther == max(oneSet$incOther))))
+    )
+    k <- 20
+    gamMerch <- gam(oneSet$incOther ~ s(oneSet$age, k = k), weight = wts, method = "REML")
+    df3 <- as.data.frame(cbind(age = oneSet$age, incOther = gamMerch$fitted.values))
+    # User: this would be a check of the estimates from Boudewyn with the fitted GAM values
+    # ggplot(oneSet, aes(age, incOther)) + geom_point() +
+    #   geom_line(data=df3,aes(color="Fitted GAM cumulative incOther"))
+    sIncOther <- rbind(sIncOther, df3)
+  }
+  # putting it all together
+
+  smoothIncPools <- as.data.table(cbind(incPools$id, sIncMerch, sIncFol[, 2], sIncOther[, 2]))
+  names(smoothIncPools) <- names(incPools)
+  smoothIncPlots <- m3ToBiomIncOnlyPlots(inc = smoothIncPools )
+  # plot the smooth increments pools - any better?
+  plotsSmoothIncs <- do.call(
+    ggarrange,
+    append(
+      smoothIncPlots,
+      list(
+        common.legend = TRUE,
+        legend = "right",
+        labels = names(smoothIncPlots),
+        font.label = list(size = 10, color = "black", face = "bold"),
+        label.x = 0.5
+      )
+    )
+  )
+  # dev.new()
+  annotate_figure(plotsSmoothIncs,
+                  top = text_grob("RawIncrements merch fol other by gc id", face = "bold", size = 14)
+  )
+
+
+  sim$smoothIncPools <- smoothIncPools
+  sim$plotsSmoothIncs <- plotsSmoothIncs
+
   forestType <- gcMeta[, .(id = growth_curve_component_id, forest_type_id)]
   #       #FYI:
   #       # cbmTables$forest_type
@@ -519,41 +682,34 @@ Init <- function(sim) {
   #       # 3  3       Hardwood
   #       # 4  9 Not Applicable
   setkey(forestType, id)
-  incPools <- merge(incPools, forestType)
+  smoothIncPools <- merge(smoothIncPools, forestType, by = "id")
   swCols <- c("swmerch", "swfol", "swother")
   hwCols <- c("hwmerch", "hwfol", "hwother")
 
-  totalIncrements <- incPools[forest_type_id == 1, (swCols) := list((incMerch), (incFol), (incOther))][forest_type_id == 3, (hwCols) := list((incMerch), (incFol), (incOther))]
-  totalIncrements[is.na(totalIncrements)] <- 0
+  totalIncrementsSmooth <- smoothIncPools[forest_type_id == 1, (swCols) := list((incMerch), (incFol), (incOther))][forest_type_id == 3, (hwCols) := list((incMerch), (incFol), (incOther))]
+  totalIncrementsSmooth[is.na(totalIncrementsSmooth)] <- 0
   outCols <- c("incMerch", "incFol", "incOther", "forest_type_id")
   incCols <- c(swCols, hwCols)
-  totalIncrements[, (outCols) := NULL]
-  increments <- totalIncrements[, (incCols) := list(
+  totalIncrementsSmooth[, (outCols) := NULL]
+  increments <- totalIncrementsSmooth[, (incCols) := list(
     swmerch / 2, swfol / 2,
     swother / 2, hwmerch / 2, hwfol / 2, hwother / 2
   )] %>% .[order(id, age), ]
-  incPlots <- m3ToBiomIncOnlyPlots(inc = increments)
+  ########finish here ##################
 
-  # From: http://www.sthda.com/english/articles/32-r-graphics-essentials/126-combine-multiple-ggplots-in-one-graph/
-  # do.call(ggarrange, rawPlots)
-  sim$checkInc <- do.call(
-    ggarrange,
-    append(
-      incPlots,
-      list(
-        common.legend = TRUE,
-        legend = "right",
-        labels = names(rawPlots),
-        font.label = list(size = 10, color = "black", face = "bold"),
-        label.x = 0.5
-      )
-    )
-  )
-  # dev.new()
-  annotate_figure(sim$checkInc,
-    top = text_grob("Halved increments for merch fol other by gc id", face = "bold", size = 14)
-  )
-  message("User: please inspect the halved increments that are used in your simulation via sim$checkInc.")
+  ## these are the fixes needed to make the smoothed increments curves usable
+  ## for simulation in the default example provided.
+  hardFixes <- readline(prompt = "Are you use the default example for this simulation? \n Press Y for yes or N for no.")
+  if(hardFixes == "Y"){
+     ### Danger hard coded fixes to see if the age=0 issue ("stuck in spinup")
+  ### Using the smoothed increment
+  ## replace id 34 with 35, and 55 with 56.
+  increments[id==34,3:8] <- increments[id==35,3:8]
+  increments[id==55,3:8] <- increments[id==56,3:8]
+  }
+
+
+
   sim$growth_increments <- as.matrix(increments)
   # END process growth curves -------------------------------------------------------------------------------
 
