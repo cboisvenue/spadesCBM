@@ -1,6 +1,0 @@
-CLASSIFIED,DisturbanceType,RegenDelay,AgeAfter,SpeciesAfter,ManagementStatusAfter,ForestDistrictAfter,prodClassClassifierAfter,SpeciesClassifierAfter
-Fire,Wildfire,0,0,?,?,?,?,?
-Harvesting,Clearcut harvesting with salvage,0,0,?,?,?,?,?
-Road,"Deforestation — Transportation — Salvage, uprooting and burn",0,0,?,?,?,?,?
-Lcondition,Generic 20% mortality,0,0,?,?,?,?,?
-Unclass,Generic 20% mortality,0,0,?,?,?,?,?
