@@ -1,0 +1,102 @@
+---
+title: "CBM_dataPrep_SK"
+author:
+  - Celine Boisvenue
+  - Alex Chubaty
+date: "September 2020"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Overview
+
+This module runs independently with the global script below.
+Its main task is to read-in user-provided information or provide defaults.
+It reads-in rasters (`ageRaster`, `ecoRaster`, `gcIndexRaster`, `spuRaster`, and `masterRaster`) from either defaults of provided by the user.
+From the rasters is creates `pixelGroup` which are unique combinations of the rasters values.
+`pixelGroup` is a main processing unit in SpaDS `CBM` simulations. In a first step, a `spatialDT` which is a `data.table` listing all pixels with their respective values of `raster`, `pixelIndex` and `pixelGroup` is created (`sim$spatialDT`).
+From the `spatialDT`, a reduced `data.table` is create (`sim$level3DT`) which is the data.table from which processing will start in `CBM_core`.
+The number of records in this data.table (`sim$level3DT`) should equal the number of pixel groups that will be processed in the spinup event of the `CBM_core` module.
+This present module also creates variables of the same length as the rows in `level3DT` for use in other events of the `CBM_core` module.
+These are: `returnIntervals`, `maxRotations`, `minRotations`, `lastPassDMIDs`, `historicDMIDs`, and delays all stored in the `simList.`
+
+Another important object created in this module is `mySpuDmids`.
+This `data.table` links the user-defined disturbances (`$userDist`) with a spatial unit and a disturbance matrix.
+This will be used to apply disturbances to pixel groups in the annual event of the `CBM_core` module.
+The `mySpuDmids` object is created starting from a user provided list of disturbances (`userDist`) that matches the `rasterId` of the disturbance raster to the disturbance name.
+That name and the location of the disturbance (spatial unit id) is used to associate a disturbance matrix identification number to the disturbed `pixelGroup`.
+Disturbance Matrices (DM) determine what proportion of a carbon pool gets transferred to another because of disturbance.
+There are 426 matrix IDs in the present default data (`outDefaults$processes$disturbanceMatrices`).
+DMIDs (Disturbance Matrix IDs) are part of the default data that come with CBM-CFS3.
+DMs are specific to spatial units which are a numbering (48 of them `outDefaults$cbmData@spatialUnitIds`) of the overlay of the administrative boundaries and ecozones in Canada. 
+Spatial units are central units in CBM-CFS3, as are ecozones because both determining various ecological and other parameters that will be used in simulations via the `CBM_core` module. 
+The proportion of carbon transferred by a specific DMID can be found here `outDefaults$cbmData@disturbanceMatrixValues`.
+A series of R-functions were built to help users associate the correct disturbance matrices (`spuDist()`, `mySpu()`, `seeDist()`, `simDist()`) and are searchable in this package.
+
+Note: 
+* CBM_defaults objects are recreated in the `.inputObject` of this module
+* nothing is in carbon or carbon increments at this point. This module feeds into the CBM_core module as does the CBM_vol2biomass.R module. 
+
+# Usage
+
+```{r module_usage}
+library(igraph)
+library(SpaDES.core)
+
+moduleDir <- getwd()
+inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(moduleDir, "outputs")
+cacheDir <- file.path(outputDir, "cache")
+times <- list(start = 0, end = 10)
+parameters <- list(
+  #CBM_dataPrep = list(.useCache = ".inputObjects")
+ #.progress = list(type = "text", interval = 1), # for a progress bar
+ ## If there are further modules, each can have its own set of parameters:
+ #module1 = list(param1 = value1, param2 = value2),
+ #module2 = list(param1 = value1, param2 = value2)
+ )
+modules <- list("CBM_dataPrep")
+objects <- list(
+  userDistFile = file.path(moduleDir,"CBM_dataPrep","data","userDist.csv")
+)
+paths <- list(
+ cachePath = cacheDir,
+ modulePath = moduleDir,
+ inputPath = inputDir,
+ outputPath = outputDir
+ )
+
+myInputs <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects, paths = paths)
+
+outInputs <- spades(myInputs)
+```
+
+# Events
+
+Describe what happens for each event type.
+
+## Plotting
+
+Write what is plotted.
+
+## Saving
+
+Write what is saved.
+
+# Data dependencies
+
+## Input data
+
+How to obtain input data, and a description of the data required by the module.
+If `sourceURL` is specified, `downloadData("CBM_dataPrep_SK", "path/to/modules/dir")` may be sufficient.
+
+## Output data
+
+Description of the module outputs.
+
+# Links to other modules
+
+Describe any anticipated linkages to other modules.
+

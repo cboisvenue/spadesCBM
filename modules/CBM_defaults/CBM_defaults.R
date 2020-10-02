@@ -1,21 +1,19 @@
-# Everything in this file gets sourced during simInit, and all functions and objects
-# are put into the simList. To use objects, use sim$xxx, and are thus globally available
-# to all modules. Functions can be used without sim$ as they are namespaced, like functions
-# in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
 defineModule(sim, list(
-  name = "spadesCBMdefaults",
+  name = "CBM_defaults",
   description = "Reads in all the default values for CBM-CFS3 for Canada", #"insert module description here",
   keywords = c("CBM-CFS3", "forest carbon","Canada parameters"), # c("insert key words here"),
-  authors = person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre")),
+  authors = c(
+    person("Celine", "Boisvenue", email = "Celine.Boisvenue@canada.ca", role = c("aut", "cre"))
+  ),
   childModules = character(0),
-  version = list(SpaDES.core = "1.0.2", spadesCBMdefaults = "0.0.1"),
+  version = list(SpaDES.core = "1.0.2", CBM_defaults = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "spadesCBMdefaults.Rmd"),
+  documentation = list("README.txt", "CBM_defaults.Rmd"),
   reqdPkgs = list("RSQLite", "data.table",
-                  "carbonara"), ## TODO: use PredictiveEcology/carbonaro
+                  "CBMutils"), ## TODO: use PredictiveEcology/CBMutils
   parameters = rbind(
     # defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
@@ -32,12 +30,10 @@ defineModule(sim, list(
                           "where stochasticity and time are not relevant."))
   ),
   inputObjects = bind_rows(
-    # expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName = "sqlDir", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "dbPath", objectClass = "character", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    # createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = NA, objectClass = NA, desc = NA),
     createsOutput(objectName = "pooldef", objectClass = "character",
                   desc = "Vector of names (characters) for each of the carbon pools, with `Input` being the first one"),
@@ -55,7 +51,7 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialiazation
 
-doEvent.spadesCBMdefaults <- function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.CBM_defaults <- function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
@@ -66,8 +62,8 @@ doEvent.spadesCBMdefaults <- function(sim, eventTime, eventType, debug = FALSE) 
       sim <- Init(sim)
 
       # schedule future event(s)
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "spadesCBMdefaults", "plot")
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "spadesCBMdefaults", "save")
+      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "CBM_defaults", "plot")
+      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "CBM_defaults", "save")
     },
     # plot = {
     #
@@ -195,7 +191,7 @@ plot <- function(sim) {
 .inputObjects <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   if (!suppliedElsewhere(sim$sqlDir)) {
-    sim$sqlDir <- file.path(modulePath(sim), "spadesCBMdefaults", "data", "cbm_defaults")
+    sim$sqlDir <- file.path(modulePath(sim), "CBM_defaults", "data", "cbm_defaults")
   }
   if (!suppliedElsewhere(sim$dbPath)) {
     sim$dbPath <- file.path(sim$sqlDir, "cbm_defaults.db")
