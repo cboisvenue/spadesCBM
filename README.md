@@ -11,10 +11,14 @@ A map of the links and functions of the R and C++ code (created by CBoisvenue) i
 SMorken's work is archived in a GitHub repo (<https://github.com/cboisven/RCBM> branch `rcbmV1cb`).
 
 The present code is the new repo that forms the `spadesCBM` family (<https://github.com/cboisvenue/spadesCBM>).
-The initial effort has three `spadesCBM`-family modules: `spadesCBMdefaults`, `spadesCBMinputs`, and `spadesCBMcore`.
-These are three child modules that are run by the current `spadesCBM` parent module. 
+The initial effort has three `spadesCBM`-family modules:
+- [`CBM_core`](https://github.com/PredictiveEcology/CBM_core);
+- [`CBM_dataPrep_SK`](https://github.com/PredictiveEcology/CBM_dataPrep_SK);
+- [`CBM_dataPrep_RIA`](https://github.com/PredictiveEcology/CBM_dataPrep_RIA);
+- [`CBM_defaults`](https://github.com/PredictiveEcology/CBM_defaults);
+- [`CBM_vol2biomass`](https://github.com/PredictiveEcology/CBM_vol2biomass)
 
-Documentation describing these three modules is in `spadesCBM\spadesCBM.Rmd`.
+Documentation describing these modules is in `spadesCBMglobal.Rmd`.
 
 An overview of this family is in a prezi here `G:\RES_Work\Work\SpaDES\spadesCBM\Prezi WIN spadesCBM modules ov.exe`.
 

@@ -2,5 +2,5 @@
 
 All R helper functions and utilities moved to R package:
 
-https://github.com/PredictiveEcology/carbonara
+https://github.com/PredictiveEcology/CBMutils
 

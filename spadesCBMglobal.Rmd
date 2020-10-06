@@ -49,7 +49,7 @@ The parsing files are `spadesCBMdefaultFunctions.R`, `spadesCBMinputsFunctions.R
 The `spadesCBMdefaultFunctions.R` has R-language functions to build and query the S4 object `cbmData`, while `spadesCBMinputsFunctions.R`, has R-language hashing functions and calls on the library `CBMVolumeToBiomass`.
 The two parsing files for the core module has functions to identify the SPU, calculate the turnover rates and create some plots during simulations.
 In `SpaDES`, parsing files get compiled when a `simList` gets created.
-Several core utilities are provided by the [`carbonara`](https://github.com/PredictiveEcology/carbonara) package, available on GitHub (currently this is a private repository).
+Several core utilities are provided by the [`CBMutils`](https://github.com/PredictiveEcology/CBMutils) package, available on GitHub (currently this is a private repository).
 
 Many more details of this three-modules family are in this prezi `G:/RES_Work/Work/SpaDES/spadesCBM/Prezi WIN spadesCBM modules ov.exe`, which is a map and working document.
 
@@ -143,11 +143,9 @@ This happens inside the `.inputObjects` function.
 # Simulations
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
-library(dplyr)    ## TODO: Eliot remaved dplyr from SpaDES.core; needed for bind_rows in modules!
+library(dplyr)    ## TODO: Eliot removed dplyr from SpaDES.core; needed for bind_rows in modules!
 library(magrittr) # this is needed to use "%>%" below
 library(SpaDES.core)
-# library(CBMVolumeToBiomass)
-# library(RSQLite)
 library(CBMutils)
 
 stopifnot(packageVersion("CBMutils") >= "0.0.4")
@@ -213,7 +211,7 @@ It returns a `data.frame`.
 This is useful for identifying the `lastPass` disturbance possibilities in a specific SPU, or the right clearcut or fire for that specific SPU.
 
 ```{r, spuDist}
-library(carbonara)
+library(CBMutils)
 
 ## for SK
 spuDist(27)
