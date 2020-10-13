@@ -16,7 +16,7 @@ editor_options:
 
 # Overview
 
-The theme here is "Transparency, flexibility and science improvement in CFS carbon modelling". 
+The theme here is "Transparency, flexibility and science improvement in CFS carbon modelling".
 
 ## Background
 
