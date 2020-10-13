@@ -46,7 +46,7 @@ You need permission and a GitHub account to access this and for now, **please do
 
 Several core utilities are provided by the [`CBMutils`](https://github.com/PredictiveEcology/CBMutils) package, available on GitHub (currently this is a private repository).
 
-### CBMM_defaults
+### CBM_defaults
 
 This module loads all the CBM-CFS3 default parameters (Canadian defaults that is akin to the `ArchiveIndex` access database in CBM-CFS3).
 These parameters are then stored in an S4 object called `cbmData` and accessed throughout the simulations.
