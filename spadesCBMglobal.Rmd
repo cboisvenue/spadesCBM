@@ -16,30 +16,30 @@ editor_options:
 
 # Overview
 
-The theme here is "Transparency, flexibility and science improvement in CFS carbon modelling".
+This SpaDES deck (four SpaDES modules) presents a transparent and spatially explicit implementation of the logic, pools structure, equations, and default assumptions of the Carbon Budget Model of the Canadian Forest Sector (CBM-CFS3) [@Kurz:2009a]. In contrast to the Generic Carbon Budget Model (GCBM) [@Smyth:2020], the entire landscape in the provided study area is simulated on a yearly basis. This permits links to other models that modify the landscape (fire, insects, harvest), and permits contagion processes to be simulated. Further, all scripts are R-based, providing a parameter and data handling platform, and a clear understanding of the model structure and parameters to any R-proficient scientist. Results will eventually be linked to an R-shiny-based interface to present results more easily to non-R proficient users.
 
 ## Background
 
-This is a family of `SpaDES` modules, a SpaDES-deck, that emulates the science in CBM-CFS3 [@Kurz:2009a].
-It was developed on the `SpaDES` platform (a package in R; <https://cran.r-project.org/package=SpaDES>) to make it transparent, spatial explicit, and able to link to other modules/models in `SpaDES.`
+This SpaDES-deck was developed on the `SpaDES` platform (a package in R; <https://cran.r-project.org/package=SpaDES>) to make it transparent, spatial explicit, and able to link to other modules/models in `SpaDES.`
 The SpaDES-deck enables the inclusion of CFS-type carbon modelling in cumulative effects evaluation, and provides an environment in which science improvements can be explored and tested.
 `SpaDES` is a Spatial Discrete Event Simulator.
 It is an R-package that functions as a scheduler through space and time.
 Being an R-based platform, is makes modelling transparent and accessible to a large community of researchers across disciplines.
 More information on `SpaDES` and other openly available `SpaDES` modules can be found here <http://spades.predictiveecology.org/>.
 
-The only difference between `spadesCBM` and CBM-CFS3 is that `spadesCBM` modifies the carbon pools via matrix multiplications instead of simple multiplication.
-Being in the `SpaDES` environment, it is meant to be run spatially explicitly (CBM-CFS3 is not) which assumes that the required inputs are spatially explicit.
-Knowledge of the `SpaDES` structure would help an R-knowledgeable user to manipulate simulations but is not necessary to run the current simulations.
+`spadesCBM` modifies the carbon pools via matrix multiplications instead of simple multiplication used in CBM-CFS3.
+These mulstiplication happen via a C++ script originally created by Scott Morken and since modified by this team to correct errors.
+Being in the `SpaDES` environment, it is meant to be run spatially explicitly which assumes that the required inputs are spatially explicit.
+Knowledge of the `SpaDES` structure would help an R-knowledgeable user to manipulate simulations but is not necessary to run the current example simulations.
 The code-chunk in this document will run by default, simulations for $333 450 ha$ location in the managed forests of Saskatchewan, Canada.
 Prior knowledge of CBM-CFS3 would also help users understand the structure of these modules, the default parameters used, but is not necessary to run simulations.
 All modules being written in R and the publicly available description of the `SpaDES` R-package imply that any R-user can learn how to run these modules and simulate carbon on a landscape.
-In this document, we describe all three modules necessary for simulations using `spadesCBM.`
-The history of how these modules were developed can be found in `spadesCBMhistory.Rmd`.
+In this document, we describe all four modules necessary for simulations using `spadesCBM` in the traditional way, which is with growth curves as the main change-agent (m3/ha for the study area).
+
 
 # Four-module family
 
-The family of four modules is called from a global script (see also below).
+The four modules SpaDES-deck is called from a global script (see also below).
 Four modules are run: `spadesCBMdefaults`, `spadesCBMinputs`, `spadesCBMm3ToBiomass`, and `spadesCBMcore`.
 The code environment is on a private repository here: <https://github.com/cboisvenue/spadesCBM>.
 You need permission and a GitHub account to access this and for now, **please don't distribute this code.**
@@ -74,13 +74,25 @@ It requires the `dbPath` and `sqlDir` to run.
 
 ### CBM_dataPrep_SK
 
-This module reads in information that is expected to be provided by the user similarly to CBM-CFS3: the growth curves, the ages of the stands/pixels, links between each stand and the growth curves, and where these stands are in Canada (which provides a link to the default parameters read-in by the previous module).
+This module reads in information that is expected to be provided by the user similarly to CBM-CFS3. 
+User provided/expected input inclue: 
+- the growth curves and where they should be applied (which pixels) on the landbase, 
+- the ages of the stands/pixels (raster), 
+- study location information (raster or shapefile)
+- disturbance information the user wants applied in the simulations
+
+These information are used to narrows the parameter options from CBM_default to the ones that are specific to this study area.
+They are also used to create a table of similar pixels to increase processing speeds (pixelGroup). 
+All necessary vectors for annual processes (simulations) are created in this module.
+A table stored in the simList (`sim$mySpuDmid`), links the usre-provided disturbance information to the disturbance matrix ids in CBM defautls.
+The `.inputObjects` function at this end of this module provides automatic read-in of all the necessary rasers and tables for an example landbase in SK.
+All default-SK example inputs are stored on a cloud-drive and can be access as example inputs.
 
 ## spadesCBMm3ToBiomass
-This library is based on the stand-level parameters of Boudewyn _et al._ [-@Boudewyn:2007].
-This library needs to be already built before running this module.
-The code for this library is on this private github repository (<https://github.com/smorken/CBMVolumeToBiomass>).
-The volume to biomass translations will eventually be a separate module to increase transparency of this process and permit the use of other biomass curves (example from LandR-biomass, a `SpaDES` module of the vegetation dynamics model LANDIS-II).
+This module is a translation module from the user-provided growth curves (cumulative m3/ha) into the biomass increments that drive simulations in CBM. 
+It is an implementation of the stand-level biomass conversion parameters publing in Boudewyn _et al._ [-@Boudewyn:2007].
+
+ permit the use of other biomass curves (example from LandR-biomass, a `SpaDES` module of the vegetation dynamics model LANDIS-II).
 This module reads-in user-provided spatially explicit data (in this case: age, leading species, productivity level, `cbm_default` spatial unit, growth curve identification for each pixel) which define the unique pixel groups for modelling.
 It also reads-in min and max rotation lengths, mean fire return interval, and provides a place for regeneration delays.
 Disturbance events must also be spatially explicit and will redefine the pixel groups post-disturbance.
