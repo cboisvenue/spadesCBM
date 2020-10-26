@@ -191,6 +191,9 @@ Running the following script, with all the defaults (answer "Y" to running the d
 library(dplyr)    ## TODO: Eliot removed dplyr from SpaDES.core; needed for bind_rows in modules!
 library(magrittr) # this is needed to use "%>%" below
 library(SpaDES.core)
+
+#install_github("PredictiveEcology/CBMutils@development")
+#load_all("~/GitHub/PredictiveEcology/CBMutils")
 library(CBMutils)
 
 stopifnot(packageVersion("CBMutils") >= "0.0.4")
@@ -228,16 +231,16 @@ setPaths(
   rasterPath = scratchDir
 )
 
+quickPlot::dev.useRSGD(FALSE)
+dev()
+clearPlot()
+
 spadesCBMSim <- simInit(times = times,
                         params = parameters,
                         modules = modules, 
                         objects = objects, 
                         #paths = paths, ## not needed when using setPaths() above
                         loadOrder = unlist(modules))
-
-quickPlot::dev.useRSGD(FALSE)
-dev()
-clearPlot()
 
 spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
 ```
@@ -247,13 +250,12 @@ spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
 ## Disturbance matrices
 
 A series of functions were built to help get details on CBM-CFS3 default disturbances.
-These are part of the R-package CBMutils required to perform simulations with this SpaDES-deck.
+These are part of the R-package `CBMutils` required to perform simulations with this SpaDES-deck.
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
 
 # Spatial Unit 27 is one of the SPU in the SK default example
 spuDist(27, "~/GitHub/spadesCBM/modules/CBM_defaults/data/cbm_defaults/cbm_defaults.db")
-
 ```
 
 The `CBMutils::spuDist()` function identifies the ID number of the CBM-CFS3 matrices that are possible in the specific spatial unit you are in.
