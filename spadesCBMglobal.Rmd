@@ -212,9 +212,9 @@ parameters <- list(
   CBM_dataPrep_SK = list(.useCache = TRUE),
   CBM_vol2biomass = list(.useCache = TRUE),
   CBM_core = list(.useCache = "init", #c(".inputObjects", "init")
-                       #.plotInterval = 3,
-                       #.plotInitialTime = 1990,
-                       poolsToPlot = c("totalCarbon"))
+                  .plotInterval = 1,
+                  .plotInitialTime = 1990,
+                  poolsToPlot = c("totalCarbon"))
 )
 
 modules <- list("CBM_defaults", "CBM_dataPrep_SK", "CBM_vol2biomass", "CBM_core")
