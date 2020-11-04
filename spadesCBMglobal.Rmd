@@ -16,7 +16,11 @@ editor_options:
 
 # Overview
 
-This SpaDES deck (four SpaDES modules) presents a transparent and spatially explicit implementation of the logic, pools structure, equations, and default assumptions of the Carbon Budget Model of the Canadian Forest Sector (CBM-CFS3) [@Kurz:2009a]. In contrast to the Generic Carbon Budget Model (GCBM) [@Smyth:2020], the entire landscape in the provided study area is simulated on a yearly basis. This permits links to other models that modify the landscape (fire, insects, harvest), and permits contagion processes to be simulated. Further, all scripts are R-based, providing a parameter and data handling platform, and a clear understanding of the model structure and parameters to any R-proficient scientist. Results will eventually be linked to an R-shiny-based interface to present results more easily to non-R proficient users.
+This SpaDES deck (four SpaDES modules) presents a transparent and spatially explicit implementation of the logic, pools structure, equations, and default assumptions of the Carbon Budget Model of the Canadian Forest Sector (CBM-CFS3) [@Kurz:2009a].
+In contrast to the Generic Carbon Budget Model (GCBM) [@Smyth:2020], the entire landscape in the provided study area is simulated on a yearly basis.
+This permits links to other models that modify the landscape (fire, insects, harvest), and permits contagion processes to be simulated.
+Further, all scripts are R-based, providing a parameter and data handling platform, and a clear understanding of the model structure and parameters to any R-proficient scientist.
+Results will eventually be linked to an R-shiny-based interface to present results more easily to non-R proficient users.
 
 ## Background
 
@@ -28,7 +32,7 @@ Being an R-based platform, is makes modelling transparent and accessible to a la
 More information on `SpaDES` and other openly available `SpaDES` modules can be found here <http://spades.predictiveecology.org/>.
 
 `spadesCBM` modifies the carbon pools via matrix multiplications instead of simple multiplication used in CBM-CFS3.
-These mulstiplication happen via a C++ script originally created by Scott Morken and since modified by this team to correct errors.
+These multiplications happen via a C++ script originally created by Scott Morken and since modified by this team to correct errors.
 Being in the `SpaDES` environment, it is meant to be run spatially explicitly which assumes that the required inputs are spatially explicit.
 Knowledge of the `SpaDES` structure would help an R-knowledgeable user to manipulate simulations but is not necessary to run the current example simulations.
 The code-chunk in this document will run by default, simulations for $333 450 ha$ location in the managed forests of Saskatchewan, Canada.
@@ -185,7 +189,7 @@ This parameter is solely for exploring the spinup procedure used in CBM.
 
 # Simulations
 
-Running the following script, with all the defaults (answer "Y" to running the default SK example), will perform simulations from 1990 to 1993 for a forest management unit covering $333 450 ha$ in Saskatchewan Canada, applying the disturbances from the White and Wulder disturbance product used in the Boisvenue et al 2016b publication. The user can modify this inputs to run spadesCBM simulation for their study area.
+Running the following script, with all the defaults (answer "Y" to running the default SK example), will perform simulations from 1990 to 1993 for a forest management unit covering $333 450 ha$ in Saskatchewan Canada, applying the disturbances from the White and Wulder disturbance product used in the Boisvenue _et al._ 2016b publication. The user can modify this inputs to run spadesCBM simulation for their study area.
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
 library(dplyr)    ## TODO: Eliot removed dplyr from SpaDES.core; needed for bind_rows in modules!
@@ -196,7 +200,7 @@ library(SpaDES.core)
 #load_all("~/GitHub/PredictiveEcology/CBMutils")
 library(CBMutils)
 
-stopifnot(packageVersion("CBMutils") >= "0.0.4")
+stopifnot(packageVersion("CBMutils") >= "0.0.5")
 
 options("reproducible.useRequire" = FALSE) ## TODO: Require wasn't working with RSQLite
 
@@ -252,8 +256,7 @@ spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
 A series of functions were built to help get details on CBM-CFS3 default disturbances.
 These are part of the R-package `CBMutils` required to perform simulations with this SpaDES-deck.
 
-```{r, module_usage, eval=FALSE, echo=TRUE}
-
+```{r, spuDist, eval=FALSE, echo=TRUE}
 # Spatial Unit 27 is one of the SPU in the SK default example
 spuDist(27, "~/GitHub/spadesCBM/modules/CBM_defaults/data/cbm_defaults/cbm_defaults.db")
 ```
@@ -279,16 +282,16 @@ The species code table:
 
 `species_code`:
 
-| rasterValue | species_code |
-|-------------|--------------|
-|0            | No_Spp       |
-|1            | Abie_Bal     |
-|2            | Popu_Bal     |
-|3            | Pice_Mar     |
-|4            | Pinu_Ban     |
-|5            | Popu_Tre     |
-|6            | Betu_Pap     |
-|7            | Pice_Gla     |
+| **`rasterValue`** | **`species_code`** |
+|-------------------|--------------------|
+|0                  | No_Spp             |
+|1                  | Abie_Bal           |
+|2                  | Popu_Bal           |
+|3                  | Pice_Mar           |
+|4                  | Pinu_Ban           |
+|5                  | Popu_Tre           |
+|6                  | Betu_Pap           |
+|7                  | Pice_Gla           |
 
 `standIndex`: this comes out of the C++ functions.
 It is always on the right-hand side of the of assignments in the R scripts.
@@ -302,25 +305,25 @@ It has unique combinations of `ages`, `spatial_unit_id`, `growth_curve_component
 Each group is recalculated every simulation year.
 `pixelGroupC` and `pixelGroupForAnnual` populates the vectors needed for the C++ functions (`ages`, `gcids`, `spatialUnits`, etc.).
 This `data.table` is remade annually because annual disturbances reset the age and modify the amount of carbon in each pool.
-The `sim$spatialDT` is the long form of the pixelGroup table where each pixel individually is listed.
+The `sim$spatialDT` is the long form of the `pixelGroup` table where each pixel individually is listed.
 For the SK example, there are 1347529 pixels simulated out of 3705000 in the `sim$masterRaster`.
 The `sim$pixelKeep` is a `data.table` that has tracks what `pixelGroup` each pixel is in at each simulation year.
 The `sim$pixelKeep` gets build 1 column at a time for each year of the simulation.
 `sim$spatialDT` is rebuilt every year because disturbances change ages, one of the unique identifiers.
 `sim$spatialDT` is used to add a column called events that is extractor each year from the disturbance raster stack (`sim$disturbanceRasters`).
 
-In the case of the SK example, `sim$disturbanceRasters` is a raster stack from White and Wulder, are use for disturbances in these simulations as per the Boisvenue et al 2016b publication.
+In the case of the SK example, `sim$disturbanceRasters` is a raster stack from White and Wulder, are use for disturbances in these simulations as per the [@Boisvenue:2016] publication.
 The disturbance raster names are read in the `CBM_dataPrep_SK` module as a list.
 In the annual event of the `CBM_core`, the raster for that year is loaded, and an events column is added to the `sim$spatialDT` using just the simulated pixels, which in this case are the pixel with inventory information.
-The `pixelGroup` is then calculated using unique combinations of `spatial_unit_id`, `growth_curve_component_id`, `ages`, and `events` in the `spatialDT` and a function from the LandR package (`LandR::generatePixelGroups()`)
-*NOTE* the first `sim$spatialDT`, used in `CBM_core` `spinup` event does not have an `events` column, as fire is applied on a reoccuring schedule.
+The `pixelGroup` is then calculated using unique combinations of `spatial_unit_id`, `growth_curve_component_id`, `ages`, and `events` in the `spatialDT` and a function from the `LandR` package (`LandR::generatePixelGroups()`)
+*NOTE* the first `sim$spatialDT`, used in `CBM_core` `spinup` event does not have an `events` column, as fire is applied on a reoccurring schedule.
 
 # Units
 
 The user provides growth curves in $m^3/ha$ of cumulative $m^3/ha$ over time.
 Those curves are fed into the Boudewyn algorithms (`CBM_vol2biomass` module) with its results multiplied by 0.5 to give carbon.
 That gives us the `cumBiom` that is the cumulative biomass for the three above-ground live pools in tonnes of carbon/ha.
-The `sim$growth_increments` are the final increments sued for the simulation which are hashed to spedd up the processing time.
+The `sim$growth_increments` are the final increments sued for the simulation which are hashed to speed up the processing time.
 These are in metric tonnes of carbon per ha.
 All other pools and fluxes are also in metric tonnes of carbon per ha. 
 
