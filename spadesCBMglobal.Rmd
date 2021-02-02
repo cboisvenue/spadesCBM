@@ -211,13 +211,22 @@ scratchDir <- file.path(tempdir(), "scratch", "CBM") %>% reproducible::checkPath
 
 times <- list(start = 1990.00, end = 1993.00)
 parameters <- list(
-  CBM_defaults = list(.useCache = TRUE),
-  CBM_dataPrep_SK = list(.useCache = TRUE),
-  CBM_vol2biomass = list(.useCache = TRUE),
-  CBM_core = list(.useCache = "init", #c(".inputObjects", "init")
-                  .plotInterval = 1,
-                  .plotInitialTime = 1990,
-                  poolsToPlot = c("totalCarbon"))
+  CBM_defaults = list(
+    .useCache = TRUE
+  ),
+  CBM_dataPrep_SK = list(
+    .useCache = TRUE
+  ),
+  CBM_vol2biomass = list(
+    .useCache = TRUE
+  ),
+  CBM_core = list(
+    .useCache = "init", #c(".inputObjects", "init")
+    .plotInterval = 1,
+    .plotInitialTime = 1990,
+    poolsToPlot = c("totalCarbon"),
+    spinupDebug = FALSE ## TODO: temporary
+  )
 )
 
 modules <- list("CBM_defaults", "CBM_dataPrep_SK", "CBM_vol2biomass", "CBM_core")

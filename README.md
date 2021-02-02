@@ -37,9 +37,6 @@ CBM features not yet implemented:
   It determines if the results from the spinup will be saved as an external file. The default is `FALSE`.
   If this is set to `TRUE`, the `postSpinup` event re-runs the cpp `Spinup` function because the cpp `Spinup` function actually uses the `spinpupDebug` and spits-out all the runs of for all the stands until the stabilization of the DOM pools instead of the DOM for each stand needed to start the annual simulation runs.
   This could take a long time if you have a lot of stands/pixels. This can be changed later, it was a work around to get these modules running. 
-- **Known Errors carried over from `carb1`:** `Error in Spinup(pools = sim$pools, opMatrix = opMatrix, constantProcesses = sim$processes,  :   Expecting a single value: [extent=0]`.
-  This is because the `pooldef` values are expected to be in the `.GlobalEnv` due to a function inside `RCMBGrowthIncrements.cpp`. That file should be changed so it is not looking in `.GlobalEnv`.
-  Current work around is to place all the `pooldef` values in `.GlobalEnv`. This happens inside the `.inputObjects` function.
 
 List of SpaDES-related work:
 - Make this work with spatial data (module?) - first test spot SK data used in Boisvenue _et al._ 2016 (almost done - test area running January 2019)
