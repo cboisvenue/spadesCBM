@@ -192,16 +192,15 @@ This parameter is solely for exploring the spinup procedure used in CBM.
 Running the following script, with all the defaults (answer "Y" to running the default SK example), will perform simulations from 1990 to 1993 for a forest management unit covering $333 450 ha$ in Saskatchewan Canada, applying the disturbances from the White and Wulder disturbance product used in the Boisvenue _et al._ 2016b publication. The user can modify this inputs to run spadesCBM simulation for their study area.
 
 ```{r, module_usage, eval=FALSE, echo=TRUE}
-library(magrittr) # this is needed to use "%>%" below
-library(SpaDES.core)
+library(Require)
+Require("magrittr") # this is needed to use "%>%" below
+Require("SpaDES.core")
 
 #install_github("PredictiveEcology/CBMutils@development")
 #load_all("~/GitHub/PredictiveEcology/CBMutils")
-library(CBMutils)
+Require("PredictiveEcology/CBMutils (>= 0.0.6)")
 
-stopifnot(packageVersion("CBMutils") >= "0.0.5")
-
-options("reproducible.useRequire" = FALSE) ## TODO: Require wasn't working with RSQLite
+options("reproducible.useRequire" = TRUE)
 
 cacheDir <- reproducible::checkPath("cache", create = TRUE)
 moduleDir <- "modules"
