@@ -330,7 +330,7 @@ The `pixelGroup` is then calculated using unique combinations of `spatial_unit_i
 The user provides growth curves in $m^3/ha$ of cumulative $m^3/ha$ over time.
 Those curves are fed into the Boudewyn algorithms (`CBM_vol2biomass` module) with its results multiplied by 0.5 to give carbon.
 That gives us the `cumBiom` that is the cumulative biomass for the three above-ground live pools in tonnes of carbon/ha.
-The `sim$growth_increments` are the final increments sued for the simulation which are hashed to speed up the processing time.
+The `sim$growth_increments` are the final increments driving simulation which are hashed to speed up the processing time.
 These are in metric tonnes of carbon per ha.
 All other pools and fluxes are also in metric tonnes of carbon per ha. 
 
