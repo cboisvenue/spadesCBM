@@ -130,6 +130,13 @@ Another example where the GAMS were applied to the increments calculated from th
 Note that the purpose of the present SpaDES-deck is to emulate the CBM-CFS3 approach. 
 Modification to this approach will be ongoing via advancements and improvements enabled by the transparency this SpaDES-deck provides.
 Examples of this are the use of biomass increments from other sources than translations of cumulative growth curves using the Boudewyn et al approach (example from LandR-biomass, a `SpaDES` module of the vegetation dynamics model LANDIS-II, or from provincially provided biomass or carbon increments).
+In order, here are the plots produced in the SK example: 
+- `sim$volCurves` showing the user-provided curves 
+- `sim$plotsRawCumulativeBiomass` translation into cumulative biomass (1 m3/ha curve = 3 cumulative biomass curves, one for merchantable wood biomass, one for foliage and one for other (branches + bark))
+- `sim$plotsRawInc` simulations require biomass increments. These show the increments calculated from the previous cumulative biomass curves.
+- `sim$plotsSmoothIncs` these are an example of smoothing methods using GAMs for the `sim$plotsRawInc`
+- `sim$checkInc` show the increments that will be used in the simulations, for the SK example, there were some hard-coded fixed applied.
+
 
 For simulations emulating CBM-CFS3, the `CBM_default`, `CBM_dataPrep_yourStudyArea`, need to be run prior to running this module. 
 This module, however, can be run independently for translation of $m^3/ha$ stand-level, single-species translation into carbon per ha values.
