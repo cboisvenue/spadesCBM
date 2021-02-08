@@ -40,7 +40,6 @@ Prior knowledge of CBM-CFS3 would also help users understand the structure of th
 All modules being written in R and the publicly available description of the `SpaDES` R-package imply that any R-user can learn how to run these modules and simulate carbon on a landscape.
 In this document, we describe all four modules necessary for simulations using `spadesCBM` in the traditional way, which is with growth curves as the main change-agent ($m^3/ha$ for the study area).
 
-
 # Four-module family
 
 The four modules SpaDES-deck is called from a global script (see also below).
@@ -183,7 +182,6 @@ It currently creates a `.csv` file (`cPoolsPixelYear.csv`) that contains the car
 If `spinupDebug` is set to `FALSE`, the spinup event provides a line for each stand with the initial pool values to initialize the stands/pixels for the annual simulations.
 The event `spinupDebug` was put in place to explore the results of the spinup and if TRUE, it saves **ALL** the disturbed-grow cycles.
 
-
 Note: there is a special simList parameter called `P(sim)$spinupDebug`.
 This parameter is a logical parameter defined in the metadata of the `spadesCBMcore.R` module.
 This parameter is by default set to `FAlSE`.
@@ -192,7 +190,6 @@ This parameter modifies the output of the C++ function called Spinup() to output
 It determines if the results from the spinup will be saved as an external file.
 If this is set to `TRUE`, only  `saveSpinup` event is schedule, not the `postSpinup` which starts the process of the annual simulation by scheduling the `annual` event.
 This parameter is solely for exploring the spinup procedure used in CBM.
-
 
 # Simulations
 
