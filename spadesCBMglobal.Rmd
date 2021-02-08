@@ -45,7 +45,7 @@ In this document, we describe all four modules necessary for simulations using `
 
 The four modules SpaDES-deck is called from a global script (see also below).
 Four modules are run: `spadesCBMdefaults`, `spadesCBMinputs`, `spadesCBMm3ToBiomass`, and `spadesCBMcore`.
-The code environment is on a private repository here: <https://github.com/cboisvenue/spadesCBM>.
+The code environment is on a public repository here: <https://github.com/cboisvenue/spadesCBM>.
 You need permission and a GitHub account to access this and for now, **please don't distribute this code.**
 
 Several core utilities are provided by the [`CBMutils`](https://github.com/PredictiveEcology/CBMutils) package, available on GitHub (currently this is a private repository).
