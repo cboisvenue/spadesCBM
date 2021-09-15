@@ -200,14 +200,16 @@ library(Require)
 Require("magrittr") # this is needed to use "%>%" below
 Require("SpaDES.core")
 
+# until the PR is complete and package re-built use this:
+devtools::load_all("C:/Celine/github/CBMutils")
 #install_github("PredictiveEcology/CBMutils@development")
 #load_all("~/GitHub/PredictiveEcology/CBMutils")
-Require("PredictiveEcology/CBMutils (>= 0.0.6)")
+#Require("PredictiveEcology/CBMutils (>= 0.0.6)")
 
 options("reproducible.useRequire" = TRUE)
 
 cacheDir <- reproducible::checkPath("cache", create = TRUE)
-moduleDir <- "modules"
+moduleDir <- reproducible::checkPath("modules")
 inputDir <- reproducible::checkPath("inputs", create = TRUE)
 outputDir <- reproducible::checkPath("outputs", create = TRUE)
 scratchDir <- file.path(tempdir(), "scratch", "CBM") %>% reproducible::checkPath(create = TRUE)
@@ -224,7 +226,7 @@ parameters <- list(
     .useCache = TRUE
   ),
   CBM_core = list(
-    .useCache = "init", #c(".inputObjects", "init")
+    #.useCache = "init", #c(".inputObjects", "init")
     .plotInterval = 1,
     .plotInitialTime = 1990,
     poolsToPlot = c("totalCarbon"),
@@ -250,14 +252,25 @@ quickPlot::dev.useRSGD(FALSE)
 dev()
 clearPlot()
 
+spadesCBMrunsSK <- simInitAndSpades(times = times,
+                                     params = parameters,
+                                     modules = modules, 
+                                     objects = objects, 
+                                     #paths = paths, ## not needed when using
+                                     #setPaths() above
+                                     loadOrder = unlist(modules),
+                                     debug = TRUE
+                                     )
+                                      
+## to run simInit and spades seperately 
 spadesCBMSim <- simInit(times = times,
                         params = parameters,
-                        modules = modules, 
-                        objects = objects, 
+                        modules = modules,
+                        objects = objects,
                         #paths = paths, ## not needed when using setPaths() above
                         loadOrder = unlist(modules))
-
-spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
+# 
+# spadesCBMout <- spades(spadesCBMSim, debug = TRUE)
 ```
 
 # Functions
