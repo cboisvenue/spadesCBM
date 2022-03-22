@@ -1,14 +1,14 @@
 ---
 title: "spadesCBM"
 author:
-  - Celine Boisvenue
-  - Ian Eddy
-  - Alex Chubaty
+- Celine Boisvenue
+- Ian Eddy
+- Alex Chubaty
 date: "September 2021"
 output:
   html_document:
     df_print: paged
-  pdf_document: default
+  word_document: default
 bibliography: references.bib
 editor_options:
   chunk_output_type: console
@@ -139,12 +139,10 @@ Modification to this approach will be ongoing via advancements and improvements 
 Examples of this are the use of biomass increments from other sources than translations of cumulative growth curves using the Boudewyn _et al._ [-@Boudewyn:2007] algorithms.
 This module saves figures for users to evaluate in `spadesCBM_RIA/data/modules/CBM_vol2biomass_RIA/figures`.
 
-
 For simulations emulating CBM-CFS3, the `CBM_default`, `CBM_dataPrep_yourStudyArea_specifyScenario`, need to be run prior to running this module. 
 This module, however, can be run independently for translation of $m^3/ha$ stand-level, single-species translation into carbon per ha values (**this needs to be re-tested**).
-Important: it is the user's responsability to ensure that the increments driving the simulation produced by this current module (`CBM_vol2Biomass_studyArea`) are as realistic as possible. 
+Important: it is the user's responsibility to ensure that the increments driving the simulation produced by this current module (`CBM_vol2Biomass_studyArea`) are as realistic as possible. 
 These curves are the engine of CBM-CFS3 simulation and of the SpaDES-deck simulations that emulate them.
-
 
 ## CBM_core
 
@@ -153,7 +151,7 @@ The `CBM_default`, and `CBM_dataPrep_studyArea_specifyScenario` or `CBM_datPrep_
 The `CBM_vol2biomass_studyArea` either needs to be run or the user must provide annual increments, halved, for the three above ground pools (merch, foliage, other) by forest type (hardwood and softwood), hashed in the same format as produced by this module for simulations to be possible (see `spadesCBMrunsSK$growth_increments` in the simList created below which gets hashed in `CBM_vol2Biomass_SK` where `spadesCBMrunsSK$gcHash` gets created).
 The module has six SpaDES-events: `spinup`, `postSpinup`, `saveSpinup`, `annual`, `plot`, and `savePools`, with `saveSpinup` and `plot` being optional.
 The spinup event is the `init` event run by default in SpaDES modules.
-The `init` event (`spinup` fonction) runs the traditional spinup of CBM-CFS3: where each stand (pixel or pixel group in our case) is disturbed using the disturbance specified in `sim$historicDMIDs` (usually wildfire for the ecozone) and re-grown using the provided above ground biomass pools, repeatedly, until the dead organic matter (DOM) pools values stabilize or the maximum number of iteration is reached (`sim$maxRotations`).
+The `init` event (`spinup` function) runs the traditional spinup of CBM-CFS3: where each stand (pixel or pixel group in our case) is disturbed using the disturbance specified in `sim$historicDMIDs` (usually wildfire for the ecozone) and re-grown using the provided above ground biomass pools, repeatedly, until the dead organic matter (DOM) pools values stabilize or the maximum number of iteration is reached (`sim$maxRotations`).
 A user can set a minimum and a maximum number of rotations, and the disturbance return interval (`sim$minRotations`, `sim$maxRotations`, `sim$returnIntervals`) for the spinup.
 In the `spinup` event, carbon increment estimates from the biomass estimate of Boudewyn _et al._ [-@Boudewyn:2007]'s translation of the $m^3/ha$ curves are used for each of the pools.
 The bark, branches,  biomass nonmerch (equation 2 in Boudewyn) pools, and biomass sap (equation 3 in Boudewyn) are grouped under "other" in CBM.
