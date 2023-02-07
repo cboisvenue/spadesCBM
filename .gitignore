@@ -9,10 +9,8 @@ Thumbs.db
 .Rapp.history
 *.Rproj.user
 /.Rproj.user
-
 ## Output files
 .png
-
 ## Folders with Data
 data_*/*
 */data
@@ -21,10 +19,11 @@ output/
 cache/*
 *.db
 */cache
-
 inputs/
 outputs/
-
 exploringCode/scratchErrorsCBMinputs.R
 exploringCode/scraptGC.r
 exploringCode/errorsFromCpp.r
+.Rprofile
+4.2/*
+modules/*
