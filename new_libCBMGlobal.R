@@ -30,13 +30,13 @@ while (!require("SpaDES.project")) {
 
 out <- SpaDES.project::setupProject(paths = list(projectPath = "C:/Celine/github/spadesCBM",
                                           modulePath = "modules"),
-                             packages = c("googledrive"),
+                             packages = c("googledrive", "devtools"),
                              require =
                                c("PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
                                  "PredictiveEcology/SpaDES.core@development (>= 1.1.0.9001)"),
                              modules = c("PredictiveEcology/CBM_defaults@main",
                                          "PredictiveEcology/CBM_dataPrep_SK@development",
-                                         "PredictiveEcology/CBM_vol2biomass@main",
+                                         "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
                                          "PredictiveEcology/CBM_core@main"
                              )
 )
@@ -70,14 +70,23 @@ objects <- list(
 # quickPlot::dev.useRSGD(FALSE)
 # dev()
 # clearPlot()
+##TODO SpaDES.core is in the "require = " part of the setupProject call above.
+##Why is it not loading?
 library(SpaDES.core)
-##TODO CBMutils::gcidsCreate
+##TODO CBMutils does not seem to load
+# ::gcidsCreate
 # Error: 'gcidsCreate' is not an exported object from 'namespace:CBMutils'
 # work around until Alex can fix it, putting this in global (note in
 # CBM_DataPrep_SK.R init event)
-gcidsCreate <- function(...) {
-  do.call(paste, c(list(...)[[1]], sep= "_"))
-}
+# cumPoolsCreate wasn't loading either
+# just change all the reqdPkgs = list("PredictiveEcology/CBMutils@development")
+##TODO change this once the package is stable.
+# gcidsCreate <- function(...) {
+#   do.call(paste, c(list(...)[[1]], sep= "_"))
+# }
+##TODO added "devtools" to the setupProject packages =
+library("devtools")
+devtools::load_all("C:/Celine/github/CBMutils")
 
 spadesCBMrunsSK <- simInitAndSpades(times = times,
                                     params = parameters,
