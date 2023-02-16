@@ -2,6 +2,11 @@
 # CBoisvenue
 # newGlobal
 
+## PFC work-around
+## this is a work-around for working from PFC...R cannot connect to URL
+
+options("download.file.method" = "wininet")
+
 while (!require("SpaDES.project")) {
   install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
   require(SpaDES.project)
