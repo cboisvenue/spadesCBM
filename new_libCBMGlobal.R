@@ -12,7 +12,7 @@ while (!require("SpaDES.project")) {
   require(SpaDES.project)
 }
 
-##TODO current set-up creates input/inputs and input/outputs folder...need to
+##TODO current set-up creates input/inputs and onput/outputs folder...need to
 ##figure out which we keep and make sure the "extras" are not created. The
 ##Spades.project call creates the ones without the "s" at the end but thorughout
 ##the code the ones with the "s" are used...but this might be only in the
@@ -33,75 +33,81 @@ while (!require("SpaDES.project")) {
 #   }
 ## Need to see if we can change that to "input".
 
-out <- SpaDES.project::setupProject(paths = list(projectPath = "C:/Celine/github/spadesCBM",
-                                          modulePath = "modules"),
-                             packages = c("googledrive", "devtools"),
-                             require =
-                               c("PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
-                                 "PredictiveEcology/SpaDES.core@development (>= 1.1.0.9001)"),
-                             modules = c("PredictiveEcology/CBM_defaults@main",
-                                         "PredictiveEcology/CBM_dataPrep_SK@development",
-                                         "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
-                                         "PredictiveEcology/CBM_core@main"
-                             )
+out <- SpaDES.project::setupProject(
+  params = list(
+    CBM_defaults = list(
+      .useCache = TRUE
+    ),
+    CBM_dataPrep_SK = list(
+      .useCache = TRUE
+    ),
+    CBM_vol2biomass = list(
+      .useCache = TRUE
+    ),
+    CBM_core = list(
+      #.useCache = "init", #c(".inputObjects", "init")
+      .plotInterval = 1,
+      .plotInitialTime = 1990,
+      poolsToPlot = c("totalCarbon"),
+      spinupDebug = FALSE ## TODO: temporary
+    )
+  ),
+  paths = list(projectPath = "C:/Celine/github/spadesCBM",
+               modulePath = "modules"),
+  packages = c("googledrive"),
+  require =
+    c("PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
+      "PredictiveEcology/SpaDES.core@development (>= 1.1.0.9001)",
+      "PredictiveEcology/CBMutils@development"),
+  modules = c("PredictiveEcology/CBM_defaults@main",
+              "PredictiveEcology/CBM_dataPrep_SK@development",
+              "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
+              "PredictiveEcology/CBM_core@main"
+  ),
+  times = list(start = 1990.00, end = 1993.00)
+
 )
 
 
-times <- list(start = 1990.00, end = 1993.00)
-parameters <- list(
-  CBM_defaults = list(
-    .useCache = TRUE
-  ),
-  CBM_dataPrep_SK = list(
-    .useCache = TRUE
-  ),
-  CBM_vol2biomass = list(
-    .useCache = TRUE
-  ),
-  CBM_core = list(
-    #.useCache = "init", #c(".inputObjects", "init")
-    .plotInterval = 1,
-    .plotInitialTime = 1990,
-    poolsToPlot = c("totalCarbon"),
-    spinupDebug = FALSE ## TODO: temporary
-  )
-)
+# times <- list(start = 1990.00, end = 1993.00)
+# parameters <- list(
+#   CBM_defaults = list(
+#     .useCache = TRUE
+#   ),
+#   CBM_dataPrep_SK = list(
+#     .useCache = TRUE
+#   ),
+#   CBM_vol2biomass = list(
+#     .useCache = TRUE
+#   ),
+#   CBM_core = list(
+#     #.useCache = "init", #c(".inputObjects", "init")
+#     .plotInterval = 1,
+#     .plotInitialTime = 1990,
+#     poolsToPlot = c("totalCarbon"),
+#     spinupDebug = FALSE ## TODO: temporary
+#   )
+# )
 
-objects <- list(
+out$objects <- list(
   dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data","cbm_defaults", "cbm_defaults.db"),
   sqlDir = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults")
 )
+#out$debug = 1 is the default which is like TRUE
+out$loadOrder <- unlist(out$modules)
 
-# quickPlot::dev.useRSGD(FALSE)
-# dev()
-# clearPlot()
-##TODO SpaDES.core is in the "require = " part of the setupProject call above.
-##Why is it not loading?
-library(SpaDES.core)
-##TODO CBMutils does not seem to load
-# ::gcidsCreate
-# Error: 'gcidsCreate' is not an exported object from 'namespace:CBMutils'
-# work around until Alex can fix it, putting this in global (note in
-# CBM_DataPrep_SK.R init event)
-# cumPoolsCreate wasn't loading either
-# just change all the reqdPkgs = list("PredictiveEcology/CBMutils@development")
-##TODO change this once the package is stable.
-# gcidsCreate <- function(...) {
-#   do.call(paste, c(list(...)[[1]], sep= "_"))
-# }
-##TODO added "devtools" to the setupProject packages =
-library("devtools")
-devtools::load_all("C:/Celine/github/CBMutils")
 
-spadesCBMrunsSK <- simInitAndSpades(times = times,
-                                    params = parameters,
-                                    modules = out$modules,
-                                    objects = objects,
-                                    #paths = paths, ## not needed when using
-                                    #setPaths() above
-                                    loadOrder = unlist(out$modules),
-                                    debug = TRUE
-)
+spadesCBMrunsSK <- do.call(simInitAndSpades, out)
+
+#   simInitAndSpades(times = out$times,
+#                                     params = parameters,
+#                                     modules = out$modules,
+#                                     objects = objects,
+#                                     #paths = paths, ## not needed when using
+#                                     #setPaths() above
+#                                     loadOrder = unlist(out$modules),
+#                                     debug = TRUE
+# )
 
 
 ## scrap
