@@ -12,26 +12,6 @@ while (!require("SpaDES.project")) {
   require(SpaDES.project)
 }
 
-##TODO current set-up creates input/inputs and onput/outputs folder...need to
-##figure out which we keep and make sure the "extras" are not created. The
-##Spades.project call creates the ones without the "s" at the end but thorughout
-##the code the ones with the "s" are used...but this might be only in the
-##specific module folders. Modules .Rmd use "outputs" but no code seems to use it.
-## Inputs with an "s" seems to be only used here in CBM_core (lines 305-317):
-# spinup <- function(sim) {
-#   io <- inputObjects(sim, currentModule(sim))
-#   objectNamesExpected <- io$objectName
-#   available <- objectNamesExpected %in% ls(sim)
-#   if (any(!available)) {
-#     stop(
-#       "The inputObjects for CBM_core are not all available:",
-#       "These are missing:", paste(objectNamesExpected[!available], collapse = ", "),
-#       ". \n\nHave you run ",
-#       paste0("spadesCBM", c("defaults", "inputs", "m3ToBiomass", "userDist"), collapse = ", "),
-#       "?"
-#     )
-#   }
-## Need to see if we can change that to "input".
 
 out <- SpaDES.project::setupProject(
   params = list(
@@ -110,41 +90,3 @@ spadesCBMrunsSK <- do.call(simInitAndSpades, out)
 # )
 
 
-## scrap
-#
-# install.packages("reproducible", repos = "https://predictiveecology.r-universe.dev")
-#
-# library(sf)
-# library(reproducible)
-# library(terra)
-#
-# options("reproducible.useTerra" = TRUE)
-#
-# dataPath <- tempdir()
-# masterRaster <- Cache(
-#   prepInputs,
-#   url = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW",
-#   fun = "terra::rast",
-#   destinationPath = dataPath
-# )
-# masterRaster[masterRaster == 0] <- NA
-#
-# canadaSpu <- prepInputs(
-#   targetFile = "spUnit_Locator.shp",
-#   url = "https://drive.google.com/file/d/1D3O0Uj-s_QEgMW7_X-NhVsEZdJ29FBed",
-#   destinationPath = dataPath,
-#   alsoExtract = "similar"
-# )
-#
-# spuShp <- postProcess(
-#   canadaSpu,
-#   rasterToMatch = masterRaster,
-#   #targetCRS = terra::crs(masterRaster),
-#   useCache = FALSE, filename2 = NULL
-# ) %>%
-#   st_collection_extract("POLYGON")
-#
-# spuRaster <- terra::rasterize(
-#   terra::vect(spuShp),
-#   terra::rast(masterRaster),
-#   field = "spu_id") |> raster::raster() #### <----- if you want it to be a `Raster` object, add this pipe at end
