@@ -11,9 +11,6 @@
 .Rapp.history
 *.Rproj.user
 
-## Output files
-.png
-
 ## cache & data directories
 cache/*
 */cache

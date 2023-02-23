@@ -102,6 +102,9 @@ out <- SpaDES.project::setupProject(
       .useCache = TRUE
     ),
     CBM_vol2biomass = list(
+      outputFigurePath = switch(.user,
+                                achubaty = file.path("outputs", "figures", "CBM_vol2biomass"),
+                                NA), ## NA means use default: './modules/CBM_vol2biomass/figures/'
       .useCache = TRUE
     ),
     CBM_core = list(
@@ -134,7 +137,5 @@ if (.user == "cboiven") {
 out$loadOrder <- unlist(out$modules)
 
 ## simulation setup --------------------------------------------------------------------------------
-
-library(SpaDES.core)
 
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
