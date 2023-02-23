@@ -124,10 +124,12 @@ if (!file.exists(".gitignore")) {
   file.copy(".gitignore.orig", ".gitignore")
 }
 
-out$objects <- list(
-  dbPath = file.path(out$paths$inputPath, "cbm_defaults", "cbm_defaults.db"),
-  sqlDir = file.path(out$paths$inputPath, "CBM_defaults", "data", "cbm_defaults")
-)
+if (.user == "cboiven") {
+  out$objects <- list(
+    dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults", "cbm_defaults.db"),
+    sqlDir = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults")
+  )
+}
 
 out$loadOrder <- unlist(out$modules)
 

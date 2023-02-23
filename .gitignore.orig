@@ -20,5 +20,7 @@ cache/*
 data_*/*
 */data
 */data*
+inputs
 inputs/
+outputs
 outputs/
