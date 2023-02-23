@@ -5,7 +5,7 @@
 ## PFC work-around
 ## this is a work-around for working from PFC...R cannot connect to URL
 
-options("download.file.method" = "wininet")
+#options("download.file.method" = "wininet")
 
 while (!require("SpaDES.project")) {
   install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
@@ -105,40 +105,40 @@ spadesCBMrunsSK <- simInitAndSpades(times = times,
 
 
 ## scrap
-
-install.packages("reproducible", repos = "https://predictiveecology.r-universe.dev")
-
-library(sf)
-library(reproducible)
-library(terra)
-
-options("reproducible.useTerra" = TRUE)
-
-dataPath <- tempdir()
-masterRaster <- Cache(
-  prepInputs,
-  url = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW",
-  fun = "terra::rast",
-  destinationPath = dataPath
-)
-masterRaster[masterRaster == 0] <- NA
-
-canadaSpu <- prepInputs(
-  targetFile = "spUnit_Locator.shp",
-  url = "https://drive.google.com/file/d/1D3O0Uj-s_QEgMW7_X-NhVsEZdJ29FBed",
-  destinationPath = dataPath,
-  alsoExtract = "similar"
-)
-
-spuShp <- postProcess(
-  canadaSpu,
-  rasterToMatch = masterRaster,
-  #targetCRS = terra::crs(masterRaster),
-  useCache = FALSE, filename2 = NULL
-) %>%
-  st_collection_extract("POLYGON")
-
-spuRaster <- terra::rasterize(
-  terra::vect(spuShp),
-  terra::rast(masterRaster),
-  field = "spu_id") |> raster::raster() #### <----- if you want it to be a `Raster` object, add this pipe at end
+#
+# install.packages("reproducible", repos = "https://predictiveecology.r-universe.dev")
+#
+# library(sf)
+# library(reproducible)
+# library(terra)
+#
+# options("reproducible.useTerra" = TRUE)
+#
+# dataPath <- tempdir()
+# masterRaster <- Cache(
+#   prepInputs,
+#   url = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW",
+#   fun = "terra::rast",
+#   destinationPath = dataPath
+# )
+# masterRaster[masterRaster == 0] <- NA
+#
+# canadaSpu <- prepInputs(
+#   targetFile = "spUnit_Locator.shp",
+#   url = "https://drive.google.com/file/d/1D3O0Uj-s_QEgMW7_X-NhVsEZdJ29FBed",
+#   destinationPath = dataPath,
+#   alsoExtract = "similar"
+# )
+#
+# spuShp <- postProcess(
+#   canadaSpu,
+#   rasterToMatch = masterRaster,
+#   #targetCRS = terra::crs(masterRaster),
+#   useCache = FALSE, filename2 = NULL
+# ) %>%
+#   st_collection_extract("POLYGON")
+#
+# spuRaster <- terra::rasterize(
+#   terra::vect(spuShp),
+#   terra::rast(masterRaster),
+#   field = "spu_id") |> raster::raster() #### <----- if you want it to be a `Raster` object, add this pipe at end

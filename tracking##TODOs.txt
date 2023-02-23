@@ -7,7 +7,7 @@ Currently in CBM_dataPrep_SK.r, SPUs for Canada are read from a shape file (spUn
 - Discuss with Ben storing this "base" spatial layers on the cloud somewhere so we can all know we are using the same layers. The current PSPU data is here: \\vic-fas2\cat\NFCMARS_admin\Data\SpatialFramework\PSPUS.zip 
 - Scott put that same shapefile on a googleDrive here is a link to PSPUS.zip
 https://drive.google.com/file/d/1Z_pMwhylqMkKZfOArATaAz9pUVNXtBAd/view?usp=sharing
-- I need to compare those two files.
+- I need to compare those two files. LandR::.compareCRS?
 
 - Default parameters. 
 Get the CBM_default to read the same database as Scott's work. The parameters are mostly the same as our defaults, this batch of parameters is extracted from the most recent public release of the CBM-CFS3 toolbox, since around 2016 there are have been a few updates to the archive index and it's possible temperatures, new disturbances, and possibly DM revisions will be the differences from the version you have. Things like volume to biomass parameters have also changed but that's not relevant to cbm_exn. The db file source I have been working with is here:
