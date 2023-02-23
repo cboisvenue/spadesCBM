@@ -124,75 +124,15 @@ if (!file.exists(".gitignore")) {
   file.copy(".gitignore.orig", ".gitignore")
 }
 
-## simulation setup --------------------------------------------------------------------------------
-
-library(SpaDES.core)
-
-objects <- list(
+out$objects <- list(
   dbPath = file.path(out$paths$inputPath, "cbm_defaults", "cbm_defaults.db"),
   sqlDir = file.path(out$paths$inputPath, "CBM_defaults", "data", "cbm_defaults")
 )
 
-# quickPlot::dev.useRSGD(FALSE)
-# dev()
-# clearPlot()
+out$loadOrder <- unlist(out$modules)
 
-##TODO CBMutils does not seem to load
-# ::gcidsCreate
-# Error: 'gcidsCreate' is not an exported object from 'namespace:CBMutils'
-# work around until Alex can fix it, putting this in global (note in
-# CBM_DataPrep_SK.R init event)
-# cumPoolsCreate wasn't loading either
-# just change all the reqdPkgs = list("PredictiveEcology/CBMutils@development")
-##TODO change this once the package is stable.
-# gcidsCreate <- function(...) {
-#   do.call(paste, c(list(...)[[1]], sep= "_"))
-# }
+## simulation setup --------------------------------------------------------------------------------
 
-spadesCBMrunsSK <- simInitAndSpades(times = times,
-                                    params = parameters,
-                                    modules = out$modules,
-                                    objects = objects,
-                                    loadOrder = unlist(out$modules),
-                                    debug = TRUE
-)
+library(SpaDES.core)
 
-
-## scrap -------------------------------------------------------------------------------------------
-
-install.packages("reproducible", repos = "https://predictiveecology.r-universe.dev")
-
-library(sf)
-library(reproducible)
-library(terra)
-
-options("reproducible.useTerra" = TRUE)
-
-dataPath <- tempdir()
-masterRaster <- Cache(
-  prepInputs,
-  url = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW",
-  fun = "terra::rast",
-  destinationPath = dataPath
-)
-masterRaster[masterRaster == 0] <- NA
-
-canadaSpu <- prepInputs(
-  targetFile = "spUnit_Locator.shp",
-  url = "https://drive.google.com/file/d/1D3O0Uj-s_QEgMW7_X-NhVsEZdJ29FBed",
-  destinationPath = dataPath,
-  alsoExtract = "similar"
-)
-
-spuShp <- postProcess(
-  canadaSpu,
-  rasterToMatch = masterRaster,
-  #targetCRS = terra::crs(masterRaster),
-  useCache = FALSE, filename2 = NULL
-) %>%
-  st_collection_extract("POLYGON")
-
-spuRaster <- terra::rasterize(
-  terra::vect(spuShp),
-  terra::rast(masterRaster),
-  field = "spu_id") |> raster::raster() #### <----- if you want it to be a `Raster` object, add this pipe at end
+spadesCBMrunsSK <- do.call(simInitAndSpades, out)
