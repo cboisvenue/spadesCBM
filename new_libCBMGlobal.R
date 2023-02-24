@@ -13,6 +13,11 @@ while (!require("SpaDES.project")) {
   require(SpaDES.project)
 }
 
+##TODO Celine will check IP address first few numbers when at PFC next week.
+##This current set up sets options to wininet on any NRCan computer at PFC or
+##not.
+##TODO Alex, whow do I check the IP of a computer and check if it stars by
+##132.blabla
 ## WORKAROUND: setupProject overwriting .gitignore (SpaDES.project#23)
 # file.copy(".gitignore", ".gitignore.orig")
 # if (file.exists(".gitignore")) {
