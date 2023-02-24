@@ -56,11 +56,12 @@ out <- SpaDES.project::setupProject(
       spinupDebug = FALSE ## TODO: temporary
     )
   ),
-  packages = c(),
+  packages = "pkgload",
   require =
-    c("googledrive","PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
+    c("googledrive",
+      "PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
       "PredictiveEcology/SpaDES.core@development (>= 1.1.0.9001)",
-      "PredictiveEcology/CBMutils@development"),
+      "PredictiveEcology/CBMutils@development (HEAD)"),
   modules = c("PredictiveEcology/CBM_defaults@main",
               "PredictiveEcology/CBM_dataPrep_SK@development",
               "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
@@ -79,6 +80,7 @@ out$objects <- list(
 #out$debug = 1 is the default which is like TRUE but not quite
 out$loadOrder <- unlist(out$modules)
 
+# pkgload::load_all("C:\\Celine\\github\\CBMutils")
 
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
 
