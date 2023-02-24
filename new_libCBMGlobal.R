@@ -116,7 +116,7 @@ out <- SpaDES.project::setupProject(
     )
   ),
   options = list(
-    reproducible.destinationPath = "inputs", ## TODO: SpaDES.project#24
+    reproducible.destinationPath = if (.user == "cboiven") NULL else "inputs", ## TODO: SpaDES.project#24
     reproducible.useTerra = TRUE
   ),
   times = list(start = 1990.00, end = 1993.00),
@@ -127,7 +127,7 @@ if (!file.exists(".gitignore")) {
   file.copy(".gitignore.orig", ".gitignore")
 }
 
-if (.user == "cboiven") {
+if (.user == "cboisven") {
   out$objects <- list(
     dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults", "cbm_defaults.db"),
     sqlDir = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults")
