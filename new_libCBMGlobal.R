@@ -8,7 +8,6 @@ if (file.exists("~/.Renviron")) readRenviron("~/.Renviron") ## GITHUB_PAT
 if (file.exists("spadesCBM.Renviron")) readRenviron("spadesCBM.Renviron") ## database credentials
 
 .debug <- if (exists(".debug")) .debug else FALSE
-.ncores <- min(parallel::detectCores() / 2, 32L) ## default number of CPU cores to use, e.g. for pkg install
 .nodename <- Sys.info()[["nodename"]] ## current computer name; used to configure machine-specific settings
 .user <- Sys.info()[["user"]] ## current computer username; used to configure user-specific settings
 
@@ -22,22 +21,6 @@ prjDir <- switch(.user,
 ## ensure script being run from the project directory
 stopifnot(identical(normalizePath(prjDir), normalizePath(getwd())))
 
-options(
-  Ncpus = .ncores,
-  repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
-            SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
-            CRAN = "https://cloud.r-project.org"),
-  Require.RPackageCache = "default" ## will use default package cache directory: `RequirePkgCacheDir()`
-)
-
-## work-around for working from PFC...R cannot connect to certain urls
-## TODO: improve conditional by only using wininet if *at* PFC, not just on a PFC machine
-if ((.Platform$OS.type == "windows") && grepl("[L|W]-VIC", .nodename)) {
-  options("download.file.method" = "wininet")
-}
-
-# install and load packages -------------------------------------------------------------------
-
 ## use project-specific location for packages to avoid conflicts with other projects
 pkgDir <- file.path(tools::R_user_dir(basename(prjDir), "data"), "packages",
                     version$platform, getRversion()[, 1:2])
@@ -45,40 +28,49 @@ dir.create(pkgDir, recursive = TRUE, showWarnings = FALSE)
 .libPaths(pkgDir, include.site = FALSE)
 message("Using libPaths:\n", paste(.libPaths(), collapse = "\n"))
 
-## package installation only; do not load module packages until after install
-if (!"remotes" %in% rownames(installed.packages(lib.loc = .libPaths()[1]))) {
-  install.packages("remotes")
-}
+# R options (package options will be set in next section) -------------------------------------
 
-if (!"Require" %in% rownames(installed.packages(lib.loc = .libPaths()[1])) ||
-    packageVersion("Require", lib.loc = .libPaths()[1]) < "0.2.6") {
-  remotes::install_github("PredictiveEcology/Require@development")
-}
-
-library(Require)
-
-# setLinuxBinaryRepo() ## setup binary package installation for linux users; currently interferes with remotes installation
-
-## installs development branch of SpaDES.core and SpaDES.project from https://predictiveecology.r-universe.dev
-pkgsToInstall <- c(
-  "googledrive",
-  "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
-  "PredictiveEcology/SpaDES.project@23-gitignore (>= 0.0.7.9021)"
+options(
+  Ncpus = min(parallel::detectCores() / 2, 16L), ## default number of CPU cores to use, e.g. for pkg install
+  repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
+            SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
+            CRAN = "https://cloud.r-project.org")
 )
-Require(pkgsToInstall, upgrade = FALSE, standAlone = TRUE)
 
-if (.user == "cboisven") {
-  ## TODO CBMutils does not seem to load - I am connected to the development branch of CBMutils
-  devtools::load_all("C:/Celine/github/CBMutils")
-} else if (.user == "achubaty" && isTRUE(.debug)) {
-  devtools::load_all("~/GitHub/PredictiveEcology/CBMutils")
-} else {
-  ## TODO: Require fails to install
-  # Install("PredictiveEcology/CBMutils@development", dependencies = TRUE, standAlone = TRUE, upgrade = FALSE)
-  remotes::install_github("PredictiveEcology/CBMutils@development", repos = "https://cloud.r-project.org", upgrade = FALSE)
+## work-around for working from PFC...R cannot connect to certain urls
+## TODO: improve conditional by only using wininet if *at* PFC, not just on a PFC machine
+##       e.g., use external IP address or machine names
+if ((.Platform$OS.type == "windows") && grepl("[L|W]-VIC", .nodename)) {
+  # options("download.file.method" = "wininet") ## TODO: not needed unless actually at PFC
 }
 
 ## project setup using SpaDES.project --------------------------------------------------------------
+
+needPkgs <- list(
+  reproducible =  "PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
+  SpaDES.core = "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
+  SpaDES.project = "PredictiveEcology/SpaDES.project@23-gitignore (>= 0.0.7.9021)"
+)
+
+## WORKAROUND SpaDES.project failures to install packages correctly
+while (!require("Require", quietly = TRUE)) {
+  ## will install latest development version from PE r-universe
+  install.packages("Require", lib = pkgDir)
+  require("Require", lib.loc = pkgDir)
+}
+
+while (!require("SpaDES.core", quietly = TRUE)) {
+  Require::Install(needPkgs$SpaDES.core)
+}
+## END WORKAROUND
+
+while (!require("SpaDES.project", quietly = TRUE)) {
+  ## TODO: PE r-universe tracks development; need diff branch
+  # install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
+  # require(SpaDES.project)
+
+  Require::Install(needPkgs$SpaDES.project)
+}
 
 options(
   Require.updateRprofile = FALSE,
@@ -91,9 +83,17 @@ out <- SpaDES.project::setupProject(
                modulePath = "modules",
                inputPath = "inputs",
                outputPath = "outputs"),
-  packages = c(pkgsToInstall, "CBMutils"), ## TODO: Require fails to install packages
-  require = c("PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
-              "PredictiveEcology/SpaDES.core@development (>= 1.1.0.9001)"),
+  packages = c(
+    "PredictiveEcology/CBMutils@development (>= 0.0.7.9009)", ## TODO: this should be pulled in via modules already
+    "googledrive",
+    "PredictiveEcology/Require@development (>= 0.2.6)",
+    "rgdal", "sf", ## TODO: why is Require trying to install binary versions?? not using RSPM!
+    needPkgs$SpaDES.core
+  ),
+  require = c(
+    needPkgs$reproducible,
+    needPkgs$SpaDES.core
+  ),
   modules = c("PredictiveEcology/CBM_defaults@main",
               "PredictiveEcology/CBM_dataPrep_SK@development",
               "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
@@ -138,5 +138,11 @@ if (.user == "cboisven") {
 out$loadOrder <- unlist(out$modules)
 
 ## simulation setup --------------------------------------------------------------------------------
+
+if (.user == "cboisven") {
+  # pkgload::load_all("C:/Celine/github/CBMutils")
+} else if (.user == "achubaty" && isTRUE(.debug)) {
+  pkgload::load_all("~/GitHub/PredictiveEcology/CBMutils")
+}
 
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
