@@ -89,8 +89,8 @@ out <- SpaDES.project::setupProject(
   options = list(
     # repos = cranRepos, ## set above b/c needed for package installation prior to SpaDES.project
     reproducible.destinationPath = if (.user == "cboisven") NULL else "inputs", ## TODO: SpaDES.project#24
-    reproducible.useTerra = TRUE,
-    reproducible.rasterRead = "terra::rast"
+    reproducible.rasterRead = "terra::rast",
+    reproducible.useTerra = TRUE
   ),
   params = list(
     CBM_defaults = list(
