@@ -116,7 +116,7 @@ out <- SpaDES.project::setupProject(
     )
   ),
   options = list(
-    reproducible.destinationPath = if (.user == "cboiven") NULL else "inputs", ## TODO: SpaDES.project#24
+    reproducible.destinationPath = if (.user == "cboisven") NULL else "inputs", ## TODO: SpaDES.project#24
     reproducible.useTerra = TRUE
   ),
   times = list(start = 1990.00, end = 1993.00),
