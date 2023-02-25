@@ -81,6 +81,7 @@ if (.user == "cboisven") {
 ## project setup using SpaDES.project --------------------------------------------------------------
 
 options(
+  Require.updateRprofile = FALSE,
   SpaDES.project.updateGitIgnore = FALSE
 )
 
