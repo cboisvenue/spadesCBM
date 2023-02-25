@@ -9,7 +9,7 @@
 .Rhistory*
 .Ruserdata*
 .Rapp.history
-*.Rproj.user
+.Rproj.user
 
 ## cache & data directories
 cache/*
