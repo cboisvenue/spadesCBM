@@ -30,11 +30,13 @@ message("Using libPaths:\n", paste(.libPaths(), collapse = "\n"))
 
 # R options (package options will be set in next section) -------------------------------------
 
+cranRepos <- c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictiveEcology packages
+               SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
+               CRAN = "https://cloud.r-project.org")
+
 options(
   Ncpus = min(parallel::detectCores() / 2, 16L), ## default number of CPU cores to use, e.g. for pkg install
-  repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
-            SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
-            CRAN = "https://cloud.r-project.org")
+  repos = cranRepos
 )
 
 ## work-around for working from PFC...R cannot connect to certain urls
@@ -78,26 +80,18 @@ options(
 )
 
 out <- SpaDES.project::setupProject(
-  paths = list(projectPath = prjDir,
-               packagePath = pkgDir,
+  name = basename(prjDir),
+  paths = list(projectPath = prjDir, ## set above because we need user info before packages installed
+               packagePath = pkgDir, ## set above because we need user info before packages installed
                modulePath = "modules",
                inputPath = "inputs",
                outputPath = "outputs"),
-  packages = c(
-    "PredictiveEcology/CBMutils@development (>= 0.0.7.9009)", ## TODO: this should be pulled in via modules already
-    "googledrive",
-    "PredictiveEcology/Require@development (>= 0.2.6)",
-    "rgdal", "sf", ## TODO: why is Require trying to install binary versions?? not using RSPM!
-    needPkgs$SpaDES.core
+  options = list(
+    # repos = cranRepos, ## set above b/c needed for package installation prior to SpaDES.project
+    reproducible.destinationPath = if (.user == "cboisven") NULL else "inputs", ## TODO: SpaDES.project#24
+    reproducible.useTerra = TRUE,
+    reproducible.rasterRead = "terra::rast"
   ),
-  require = c(
-    needPkgs$reproducible,
-    needPkgs$SpaDES.core
-  ),
-  modules = c("PredictiveEcology/CBM_defaults@main",
-              "PredictiveEcology/CBM_dataPrep_SK@development",
-              "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
-              "PredictiveEcology/CBM_core@main"),
   params = list(
     CBM_defaults = list(
       .useCache = TRUE
@@ -119,9 +113,22 @@ out <- SpaDES.project::setupProject(
       spinupDebug = FALSE ## TODO: temporary
     )
   ),
-  options = list(
-    reproducible.destinationPath = if (.user == "cboisven") NULL else "inputs", ## TODO: SpaDES.project#24
-    reproducible.useTerra = TRUE
+  packages = c(
+    "PredictiveEcology/CBMutils@development (>= 0.0.7.9009)", ## TODO: this should be pulled in via modules already
+    "googledrive", "pkgload",
+    "PredictiveEcology/Require@development (>= 0.2.6)",
+    "rgdal", "sf", ## TODO: why is Require trying to install binary versions?? not using RSPM!
+    needPkgs$SpaDES.core
+  ),
+  require = c(
+    needPkgs$reproducible,
+    needPkgs$SpaDES.core
+  ),
+  modules = c(
+    "PredictiveEcology/CBM_defaults@main",
+    "PredictiveEcology/CBM_dataPrep_SK@development",
+    "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
+    "PredictiveEcology/CBM_core@main"
   ),
   times = list(start = 1990.00, end = 1993.00),
   setLinuxBinaryRepo = FALSE, ## TODO: interferes with other package installation
@@ -135,6 +142,7 @@ if (.user == "cboisven") {
   )
 }
 
+# out$debug = 1 is the default which is like TRUE but not quite
 out$loadOrder <- unlist(out$modules)
 
 ## simulation setup --------------------------------------------------------------------------------
