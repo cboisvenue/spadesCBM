@@ -60,11 +60,12 @@ library(Require)
 # setLinuxBinaryRepo() ## setup binary package installation for linux users; currently interferes with remotes installation
 
 ## installs development branch of SpaDES.core and SpaDES.project from https://predictiveecology.r-universe.dev
-pkgsToInstall <- c("googledrive", "SpaDES.core", "SpaDES.project")
-#Install(pkgsToInstall), upgrade = FALSE, standAlone = TRUE) ## TODO: fails with spatial pkgs + quickPlot
-if (!all(pkgsToInstall %in% rownames(installed.packages(lib.loc = .libPaths()[1])))) {
-  install.packages(pkgsToInstall)
-}
+pkgsToInstall <- c(
+  "googledrive",
+  "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
+  "PredictiveEcology/SpaDES.project@23-gitignore (>= 0.0.7.9021)"
+)
+Require(pkgsToInstall, upgrade = FALSE, standAlone = TRUE)
 
 if (.user == "cboisven") {
   ## TODO CBMutils does not seem to load - I am connected to the development branch of CBMutils
@@ -79,11 +80,10 @@ if (.user == "cboisven") {
 
 ## project setup using SpaDES.project --------------------------------------------------------------
 
-## WORKAROUND: setupProject overwriting .gitignore (SpaDES.project#23)
-# file.copy(".gitignore", ".gitignore.orig")
-if (file.exists(".gitignore")) {
-  unlink(".gitignore")
-}
+options(
+  SpaDES.project.updateGitIgnore = FALSE
+)
+
 out <- SpaDES.project::setupProject(
   paths = list(projectPath = prjDir,
                packagePath = pkgDir,
@@ -126,9 +126,6 @@ out <- SpaDES.project::setupProject(
   setLinuxBinaryRepo = FALSE, ## TODO: interferes with other package installation
   updateRprofile  = FALSE ## TODO: verify what it is doing
 )
-if (!file.exists(".gitignore")) {
-  file.copy(".gitignore.orig", ".gitignore")
-}
 
 if (.user == "cboisven") {
   out$objects <- list(
