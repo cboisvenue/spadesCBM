@@ -7,6 +7,7 @@
 if (file.exists("~/.Renviron")) readRenviron("~/.Renviron") ## GITHUB_PAT
 if (file.exists("spadesCBM.Renviron")) readRenviron("spadesCBM.Renviron") ## database credentials
 
+.debug <- if (exists(".debug")) .debug else FALSE
 .ncores <- min(parallel::detectCores() / 2, 32L) ## default number of CPU cores to use, e.g. for pkg install
 .nodename <- Sys.info()[["nodename"]] ## current computer name; used to configure machine-specific settings
 .user <- Sys.info()[["user"]] ## current computer username; used to configure user-specific settings
@@ -68,6 +69,8 @@ if (!all(pkgsToInstall %in% rownames(installed.packages(lib.loc = .libPaths()[1]
 if (.user == "cboisven") {
   ## TODO CBMutils does not seem to load - I am connected to the development branch of CBMutils
   devtools::load_all("C:/Celine/github/CBMutils")
+} else if (.user == "achubaty" && isTRUE(.debug)) {
+  devtools::load_all("~/GitHub/PredictiveEcology/CBMutils")
 } else {
   ## TODO: Require fails to install
   # Install("PredictiveEcology/CBMutils@development", dependencies = TRUE, standAlone = TRUE, upgrade = FALSE)
