@@ -2,6 +2,12 @@
 # CBoisvenue
 # newGlobal
 
+if (FALSE) {
+  ## this is done below, in the correct sequence (i.e., libPaths set, prereqs installed)
+  ## but added this line here to quickly reinstall if needed
+  remotes::install_github("PredictiveEcology/SpaDES.project@23-gitignore")
+}
+
 # project basic setup -------------------------------------------------------------------------
 
 if (file.exists("~/.Renviron")) readRenviron("~/.Renviron") ## GITHUB_PAT
