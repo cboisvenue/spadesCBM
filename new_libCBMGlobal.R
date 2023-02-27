@@ -55,18 +55,18 @@ needPkgs <- list(
 )
 
 ## WORKAROUND SpaDES.project failures to install packages correctly
-while (!require("Require", quietly = TRUE)) {
+if (!require("Require", quietly = TRUE)) {
   ## will install latest development version from PE r-universe
   install.packages("Require", lib = pkgDir)
   require("Require", lib.loc = pkgDir)
 }
 
-while (!require("SpaDES.core", quietly = TRUE)) {
+if (!require("SpaDES.core", quietly = TRUE)) {
   Require::Install(needPkgs$SpaDES.core)
 }
 ## END WORKAROUND
 
-while (!require("SpaDES.project", quietly = TRUE)) {
+if (!require("SpaDES.project", quietly = TRUE)) {
   ## TODO: PE r-universe tracks development; need diff branch
   # install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
   # require(SpaDES.project)
