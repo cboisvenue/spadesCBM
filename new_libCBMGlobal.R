@@ -7,21 +7,22 @@
 if (file.exists("~/.Renviron")) readRenviron("~/.Renviron") ## GITHUB_PAT
 if (file.exists("spadesCBM.Renviron")) readRenviron("spadesCBM.Renviron") ## database credentials
 
-.debug <- if (exists(".debug")) .debug else FALSE
+.debug <- if (exists(".debug")) .debug else FALSE ## used to debug C++ code
 .nodename <- Sys.info()[["nodename"]] ## current computer name; used to configure machine-specific settings
 .user <- Sys.info()[["user"]] ## current computer username; used to configure user-specific settings
 
 ## define project directory - this code expects it is being run from this location
 ## **do not change the paths defined here**
 ## if you need to add a machine- or user-specific path, please do so _conditionally_
-prjDir <- switch(.user,
+prjDir <- switch(.user, ## SpaDES.project::user() gets used below, but it's not available yet b/c not loaded
                  cboisven = "C:/Celine/github/spadesCBM",
-                 "~/GitHub/spadesCBM")
+                 "~/GitHub/spadesCBM") ## GitHub desktop client put cloned repos in ~/GitHub by default
 
-## ensure script being run from the project directory
+## ensure script being run from the project directory -- in case user isn't using the Rstudio project
 stopifnot(identical(normalizePath(prjDir), normalizePath(getwd())))
 
 ## use project-specific location for packages to avoid conflicts with other projects
+## this is the default SpaDES.project will use (but it's not loaded yet)
 pkgDir <- file.path(tools::R_user_dir(basename(prjDir), "data"), "packages",
                     version$platform, getRversion()[, 1:2])
 dir.create(pkgDir, recursive = TRUE, showWarnings = FALSE)
@@ -46,7 +47,7 @@ if ((.Platform$OS.type == "windows") && grepl("[L|W]-VIC", .nodename)) {
   # options("download.file.method" = "wininet") ## TODO: not needed unless actually at PFC
 }
 
-## project setup using SpaDES.project --------------------------------------------------------------
+## define specific package versions here that will be used below ------------------------------
 
 needPkgs <- list(
   reproducible =  "PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
@@ -54,11 +55,14 @@ needPkgs <- list(
   SpaDES.project = "PredictiveEcology/SpaDES.project@23-gitignore (>= 0.0.7.9021)"
 )
 
-## WORKAROUND SpaDES.project failures to install packages correctly
+## workarounds for package installation etc. for SpaDES.project -------------------------------
+
 if (!require("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
 
+## this is for macOS only, in order to install sf from source using homebrew
+## and it's only needed to install latest development version of sf until v1.0.10 gets to CRAN
 if (Sys.info()[["sysname"]] == "Darwin") {
   ## install sf + rgdal following <https://github.com/r-spatial/sf#macos>
   if (!require("sf", quietly = TRUE)) {
@@ -76,6 +80,7 @@ if (Sys.info()[["sysname"]] == "Darwin") {
   }
 }
 
+## TODO: unresolved Require issues
 # if (!require("Require", quietly = TRUE)) {
 #   ## will install latest development version from PE r-universe
 #   install.packages("Require", lib = pkgDir)
@@ -85,10 +90,13 @@ if (Sys.info()[["sysname"]] == "Darwin") {
 # if (!require("SpaDES.core", quietly = TRUE)) {
 #   Require::Install(needPkgs$SpaDES.core)
 # }
-## END WORKAROUND
+
+## END WORKAROUNDS
+
+## project setup using SpaDES.project --------------------------------------------------------------
 
 if (!require("SpaDES.project", quietly = TRUE)) {
-  ## TODO: PE r-universe tracks development; need diff branch
+  ## TODO: PE r-universe tracks development; need diff branch until merged into development
   # install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
   # require(SpaDES.project)
 
@@ -97,12 +105,12 @@ if (!require("SpaDES.project", quietly = TRUE)) {
 }
 
 options(
-  Require.updateRprofile = FALSE,
-  SpaDES.project.updateGitIgnore = FALSE
+  Require.updateRprofile = FALSE, ## used by SpaDES.project@development (and 23-gitignore)
+  SpaDES.project.updateGitIgnore = FALSE ## used by SpaDES.project@23-gitignore
 )
 
 out <- SpaDES.project::setupProject(
-  name = basename(prjDir),
+  name = basename(prjDir), ## "spadesCBM"
   paths = list(projectPath = prjDir, ## set above because we need user info before packages installed
                packagePath = pkgDir, ## set above because we need user info before packages installed
                modulePath = "modules",
@@ -110,7 +118,7 @@ out <- SpaDES.project::setupProject(
                outputPath = "outputs"),
   options = list(
     # repos = cranRepos, ## set above b/c needed for package installation prior to SpaDES.project
-    reproducible.destinationPath = if (.user == "cboisven") NULL else "inputs", ## TODO: SpaDES.project#24
+    reproducible.destinationPath = if (.user == "achubaty") "inputs" else NULL, ## TODO: SpaDES.project#24
     reproducible.rasterRead = "terra::rast",
     reproducible.useTerra = TRUE
   ),
@@ -130,7 +138,7 @@ out <- SpaDES.project::setupProject(
     CBM_core = list(
       #.useCache = "init", #c(".inputObjects", "init")
       .plotInterval = 1,
-      .plotInitialTime = 1990,
+      .plotInitialTime = times$start,
       poolsToPlot = c("totalCarbon"),
       spinupDebug = FALSE ## TODO: temporary
     )
@@ -157,7 +165,8 @@ out <- SpaDES.project::setupProject(
   updateRprofile  = FALSE ## TODO: verify what it is doing
 )
 
-if (.user == "cboisven") {
+## default: use the copy in the modules' `data/` directories, unless user overrides destinationPath above
+if (is.null(getOption("reproducible.destinationPath"))) {
   out$objects <- list(
     dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults", "cbm_defaults.db"),
     sqlDir = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults")
