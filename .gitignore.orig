@@ -1,0 +1,23 @@
+## misc OS files
+*.bak
+*.db
+
+## R related files
+*.Rdata
+*.RData
+*.Rhistory
+.Rhistory*
+.Ruserdata*
+.Rapp.history
+.Rproj.user
+
+## cache & data directories
+cache/*
+*/cache
+data_*/*
+*/data
+*/data*
+inputs
+inputs/
+outputs
+outputs/

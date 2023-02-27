@@ -1,4 +1,6 @@
-Thumbs.db
+## misc OS files
+*.bak
+*.db
 
 ## R related files
 *.Rdata
@@ -7,23 +9,15 @@ Thumbs.db
 .Rhistory*
 .Ruserdata*
 .Rapp.history
-*.Rproj.user
-/.Rproj.user
-## Output files
-.png
-## Folders with Data
+.Rproj.user
+
+## cache & data directories
+cache/*
+*/cache
 data_*/*
 */data
 */data*
-output/
-cache/*
-*.db
-*/cache
+inputs
 inputs/
+outputs
 outputs/
-exploringCode/scratchErrorsCBMinputs.R
-exploringCode/scraptGC.r
-exploringCode/errorsFromCpp.r
-.Rprofile
-4.2/*
-modules/*

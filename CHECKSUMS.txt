@@ -1,7 +1,0 @@
-"file" "checksum" "filesize" "algorithm"
-"ldSp_TestArea.tif" "f96b2eff6b5ad17d" "521707" "xxhash64"
-"spUnit_Locator.dbf" "429e87b85586cfb7" "380411" "xxhash64"
-"spUnit_Locator.prj" "945971d6bc2abce7" "419" "xxhash64"
-"spUnit_Locator.shp" "0a1e272c99667a4c" "50073960" "xxhash64"
-"spUnit_Locator.shx" "9a761e2862995ffd" "5676" "xxhash64"
-"spUnit_Locator.zip" "48875d539f6a68b5" "31279695" "xxhash64"
