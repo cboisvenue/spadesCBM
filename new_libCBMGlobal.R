@@ -59,6 +59,23 @@ if (!require("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
 
+if (Sys.info()[["sysname"]] == "Darwin") {
+  ## install sf + rgdal following <https://github.com/r-spatial/sf#macos>
+  if (!require("sf", quietly = TRUE)) {
+    # install.packages("sf", type = "source", configure.args = "--with-proj-lib=/usr/local/lib/") ## (intel)
+    install.packages("sf", type = "source", configure.args = "--with-proj-lib=/opt/homebrew/lib/") ## (arm; M1/M2)
+  }
+  if (!require("rgdal", quietly = TRUE)) {
+    # install.packages("rgdal", type = "source",
+    #                  configure.args = c("--with-proj-lib=/usr/local/lib/",
+    #                                     "--with-proj-include=/usr/local/include/")) ## (intel)
+    # install.packages("rgdal", type = "source",
+    #                  configure.args = c("--with-proj-lib=/usr/local/lib/",
+    #                                     "--with-proj-include=/opt/homebrew/include/")) ## (arm; M1/M2)
+    install.package("rgdal", type = "binary")
+  }
+}
+
 # if (!require("Require", quietly = TRUE)) {
 #   ## will install latest development version from PE r-universe
 #   install.packages("Require", lib = pkgDir)
