@@ -146,9 +146,9 @@ out <- SpaDES.project::setupProject(
   packages = c(
     #"PredictiveEcology/CBMutils@development (>= 0.0.7.9009)", ## this should be pulled in via modules already
     "googledrive", "pkgload",
-    #"PredictiveEcology/Require@development (>= 0.2.6)",
+    #"PredictiveEcology/Require@development (>= 0.2.6)", ## not needed b/c it's a dependencies of SpaDES.project and installed already
     "rgdal", "sf" ## TODO: why is Require trying to install binary versions?? not using RSPM!
-    #needPkgs$SpaDES.core
+    #needPkgs$SpaDES.core ## not needed b/c it's a dependencies of SpaDES.project and installed already
   ),
   require = c(
     needPkgs$reproducible,
