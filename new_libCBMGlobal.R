@@ -55,15 +55,19 @@ needPkgs <- list(
 )
 
 ## WORKAROUND SpaDES.project failures to install packages correctly
-if (!require("Require", quietly = TRUE)) {
-  ## will install latest development version from PE r-universe
-  install.packages("Require", lib = pkgDir)
-  require("Require", lib.loc = pkgDir)
+if (!require("remotes", quietly = TRUE)) {
+  install.packages("remotes")
 }
 
-if (!require("SpaDES.core", quietly = TRUE)) {
-  Require::Install(needPkgs$SpaDES.core)
-}
+# if (!require("Require", quietly = TRUE)) {
+#   ## will install latest development version from PE r-universe
+#   install.packages("Require", lib = pkgDir)
+#   require("Require", lib.loc = pkgDir)
+# }
+#
+# if (!require("SpaDES.core", quietly = TRUE)) {
+#   Require::Install(needPkgs$SpaDES.core)
+# }
 ## END WORKAROUND
 
 if (!require("SpaDES.project", quietly = TRUE)) {
@@ -71,7 +75,8 @@ if (!require("SpaDES.project", quietly = TRUE)) {
   # install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
   # require(SpaDES.project)
 
-  Require::Install(needPkgs$SpaDES.project)
+  #Require::Install(needPkgs$SpaDES.project)
+  remotes::install_github("PredictiveEcology/SpaDES.project@23-gitignore")
 }
 
 options(
