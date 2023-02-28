@@ -21,3 +21,9 @@ These are different from the old parameters because:
 4 flux.json - carries fluxes without hw/sw pools
 
 - the masterRaster is not quite 30m. Need to figure out where the original raster came from and fix it.
+
+- the default sql bd is not copied in the CBM_vol2biomass.R module. It will need to be if this is to be run independently.
+
+- there were some code changes in the first pass of building spadesCBM. THey are listed here G:\RES_Work\Work\SpaDES\spadesCBM. Need to check if these are fixed in new default data
+
+- some NaNs are created in the sim$ecozone raster. Need to figure out why.
