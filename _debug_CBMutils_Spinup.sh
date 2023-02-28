@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## ---------------------------------------------------------------------------------------------- ##
-## based on: <https://blog.davisvaughan.com/posts/2019-04-05-debug-r-package-with-cpp/>            ##
+## based on: <https://blog.davisvaughan.com/posts/2019-04-05-debug-r-package-with-cpp/>           ##
 ## ---------------------------------------------------------------------------------------------- ##
 
 cd ~/GitHub/spadesCBM
