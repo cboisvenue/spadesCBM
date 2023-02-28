@@ -2,12 +2,6 @@
 # CBoisvenue
 # newGlobal
 
-if (FALSE) {
-  ## this is done below, in the correct sequence (i.e., libPaths set, prereqs installed)
-  ## but added this line here to quickly reinstall if needed
-  remotes::install_github("PredictiveEcology/SpaDES.project@23-gitignore")
-}
-
 # project basic setup -------------------------------------------------------------------------
 
 if (file.exists("~/.Renviron")) readRenviron("~/.Renviron") ## GITHUB_PAT
@@ -57,8 +51,7 @@ if ((.Platform$OS.type == "windows") && grepl("[L|W]-VIC", .nodename)) {
 
 needPkgs <- list(
   reproducible =  "PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
-  SpaDES.core = "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
-  SpaDES.project = "PredictiveEcology/SpaDES.project@23-gitignore (>= 0.0.7.9021)"
+  SpaDES.core = "PredictiveEcology/SpaDES.core@development (>= 1.1.1)"
 )
 
 ## workarounds for package installation etc. for SpaDES.project -------------------------------
@@ -102,17 +95,12 @@ if (Sys.info()[["sysname"]] == "Darwin") {
 ## project setup using SpaDES.project --------------------------------------------------------------
 
 if (!require("SpaDES.project", quietly = TRUE)) {
-  ## TODO: PE r-universe tracks development; need diff branch until merged into development
-  # install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
-  # require(SpaDES.project)
-
-  #Require::Install(needPkgs$SpaDES.project)
-  remotes::install_github("PredictiveEcology/SpaDES.project@23-gitignore")
+  install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
+  require(SpaDES.project)
 }
 
 options(
-  Require.updateRprofile = FALSE, ## used by SpaDES.project@development (and 23-gitignore)
-  SpaDES.project.updateGitIgnore = FALSE ## used by SpaDES.project@23-gitignore
+  Require.updateRprofile = FALSE ## used by SpaDES.project
 )
 
 out <- SpaDES.project::setupProject(
