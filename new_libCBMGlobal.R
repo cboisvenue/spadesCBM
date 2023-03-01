@@ -79,17 +79,6 @@ if (Sys.info()[["sysname"]] == "Darwin") {
   }
 }
 
-## TODO: unresolved Require issues
-# if (!require("Require", quietly = TRUE)) {
-#   ## will install latest development version from PE r-universe
-#   install.packages("Require", lib = pkgDir)
-#   require("Require", lib.loc = pkgDir)
-# }
-#
-# if (!require("SpaDES.core", quietly = TRUE)) {
-#   Require::Install(needPkgs$SpaDES.core)
-# }
-
 ## END WORKAROUNDS
 
 ## project setup using SpaDES.project --------------------------------------------------------------
