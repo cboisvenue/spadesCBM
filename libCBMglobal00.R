@@ -6,7 +6,7 @@
 ## this is a work-around for working from PFC...R cannot connect to URL
 
 #need to compare current ipaddress to "132.156" "at PFC"
-#options("download.file.method" = "wininet")
+options("download.file.method" = "wininet")
 
 while (!require("SpaDES.project")) {
   install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
@@ -30,7 +30,10 @@ out <- SpaDES.project::setupProject(
                  switch(user(),
                         cboisven = "C:/Celine/github/spadesCBM",
                         "~/GitHub/spadesCBM"),
-               modulePath = "modules"),
+               modulePath = "modules",
+               packagePath = file.path(tools::R_user_dir("spadesCBM", "data"),
+                                       "packages", version$platform, getRversion()[, 1:2])
+               ),
   options = list(
     repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
               SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
@@ -65,7 +68,7 @@ out <- SpaDES.project::setupProject(
   require =
     c("googledrive",
       "PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
-      "PredictiveEcology/SpaDES.core@development (>= 1.1.0.9001)",
+      "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
       "PredictiveEcology/CBMutils@development (HEAD)"),
   modules = c("PredictiveEcology/CBM_defaults@main",
               "PredictiveEcology/CBM_dataPrep_SK@development",
