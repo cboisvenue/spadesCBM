@@ -9,7 +9,9 @@
 options("download.file.method" = "wininet")
 
 while (!require("SpaDES.project")) {
-  install.packages("SpaDES.project", repos = "https://predictiveecology.r-universe.dev")
+  install.packages("SpaDES.project",
+                   repos = c("https://predictiveecology.r-universe.dev",
+                             getOption("repos")))
   require(SpaDES.project)
 }
 
@@ -30,9 +32,7 @@ out <- SpaDES.project::setupProject(
                  switch(user(),
                         cboisven = "C:/Celine/github/spadesCBM",
                         "~/GitHub/spadesCBM"),
-               modulePath = "modules",
-               packagePath = file.path(tools::R_user_dir("spadesCBM", "data"),
-                                       "packages", version$platform, getRversion()[, 1:2])
+               modulePath = "modules"
                ),
   options = list(
     repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
