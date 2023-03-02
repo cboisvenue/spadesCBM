@@ -41,10 +41,16 @@ options(
 )
 
 ## work-around for working from PFC...R cannot connect to certain urls
-## TODO: improve conditional by only using wininet if *at* PFC, not just on a PFC machine
-##       e.g., use external IP address or machine names
-if ((.Platform$OS.type == "windows") && grepl("[L|W]-VIC", .nodename)) {
-  # options("download.file.method" = "wininet") ## TODO: not needed unless actually at PFC
+## only using wininet if *at* PFC (based on IP), not just on a PFC machine
+if (.Platform$OS.type == "windows") {
+  ## based on <https://stackoverflow.com/a/14357701/1380598>
+  ip <- system("ipconfig", intern = TRUE) %>%
+    .[grep("IPv4", .)] %>%
+    gsub(".*? ([[:digit:]])", "\\1", .)
+
+  if (any(grepl("^132[.]156[.]", ip))) {
+    options("download.file.method" = "wininet")
+  }
 }
 
 ## define specific package versions here that will be used below ------------------------------
@@ -78,17 +84,6 @@ if (Sys.info()[["sysname"]] == "Darwin") {
     install.package("rgdal", type = "binary")
   }
 }
-
-## TODO: unresolved Require issues
-# if (!require("Require", quietly = TRUE)) {
-#   ## will install latest development version from PE r-universe
-#   install.packages("Require", lib = pkgDir)
-#   require("Require", lib.loc = pkgDir)
-# }
-#
-# if (!require("SpaDES.core", quietly = TRUE)) {
-#   Require::Install(needPkgs$SpaDES.core)
-# }
 
 ## END WORKAROUNDS
 
