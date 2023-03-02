@@ -4,27 +4,27 @@
 
 ## PFC work-around
 ## this is a work-around for working from PFC...R cannot connect to URL
+##This current set up sets options to wininet on any NRCan computer at PFC
+if (.Platform$OS.type == "windows") {
+  ## based on <https://stackoverflow.com/a/14357701/1380598>
+  ip <- system("ipconfig", intern = TRUE)
+  ip <- ip[grep("IPv4", ip)]
+  ip <- gsub(".*? ([[:digit:]])", "\\1", ip)
 
-#need to compare current ipaddress to "132.156" "at PFC"
-options("download.file.method" = "wininet")
+  if (any(grepl("^132[.]156[.]", ip))) {
+    options("download.file.method" = "wininet")
+  }
+}
+#options("download.file.method" = "wininet")
 
-while (!require("SpaDES.project")) {
-  install.packages("SpaDES.project",
+if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
+        tryCatch(packageVersion("Require") < "0.2.6.9010", error = function(e) TRUE))) {
+  install.packages(c("Require", "SpaDES.project"),
                    repos = c("https://predictiveecology.r-universe.dev",
                              getOption("repos")))
-  require(SpaDES.project)
 }
 
-##TODO Celine will check IP address first few numbers when at PFC next week.
-##This current set up sets options to wininet on any NRCan computer at PFC or
-##not.
-##TODO Alex, whow do I check the IP of a computer and check if it stars by
-##132.blabla
-## WORKAROUND: setupProject overwriting .gitignore (SpaDES.project#23)
-# file.copy(".gitignore", ".gitignore.orig")
-# if (file.exists(".gitignore")) {
-#   unlink(".gitignore")
-# }
+
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
