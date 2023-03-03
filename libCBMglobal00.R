@@ -67,7 +67,7 @@ out <- SpaDES.project::setupProject(
   packages = "pkgload",
   require =
     c("googledrive",
-      "PredictiveEcology/reproducible@development (>= 1.2.16.9017)",
+      "PredictiveEcology/reproducible@dev (HEAD)", #development (>= 1.2.16.9017)",
       "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
       "PredictiveEcology/CBMutils@development (HEAD)"),
   modules = c("PredictiveEcology/CBM_defaults@main",
