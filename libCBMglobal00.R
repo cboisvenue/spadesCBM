@@ -88,7 +88,17 @@ out$objects <- list(
 #out$debug = 1 is the default which is like TRUE but not quite
 out$loadOrder <- unlist(out$modules)
 
+# This line is when is to locally load the CBMutils package, to debug or modify
+# CBMutils functions
 # pkgload::load_all("C:\\Celine\\github\\CBMutils")
+
+##TODO: deal with plotting issues. Plotting takes longer than the simulation,
+## and if the window is not big enough, the simulation will crash. If you open a
+## window (as the lines below do) the sim will run.
+# quickPlot::dev.useRSGD(FALSE)
+# dev()
+# clearPlot()
+
 
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
 
