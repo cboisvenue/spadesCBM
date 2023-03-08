@@ -99,7 +99,12 @@ out$loadOrder <- unlist(out$modules)
 # dev()
 # clearPlot()
 
-
+# creating a data.frame to save $cbmPools and $NPP at specific time steps.
+out$outputs <- as.data.frame(expand.grid(objectName = c("cbmPools", "NPP"),
+                                         saveTime = sort(c(out$times$start,
+                                                           out$times$start +
+                                                             c(1:(out$times$end - out$times$start))
+                                                           ))))
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
 
 #   simInitAndSpades(times = out$times,
