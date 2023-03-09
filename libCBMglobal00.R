@@ -54,6 +54,7 @@ out <- SpaDES.project::setupProject(
                                 achubaty =
                                 file.path("outputs", "figures", "CBM_vol2biomass"),
                                 NA), ## NA means use default: './modules/CBM_vol2biomass/figures/'
+      .plotInitialTime = 1990,
       .useCache = TRUE
     ),
     CBM_core = list(
@@ -80,6 +81,16 @@ out <- SpaDES.project::setupProject(
   updateRprofile  = FALSE ## TODO: verify what it is doing
 )
 
+##TODO: At the end of each annual event, sim$cbmPools is replaced by updated
+## pools where all the carbon transactions are done for that year and pools
+## updated.However, because annual inter variability is useful for carbon
+## dynamics, the default behaviour in this example is for to write yearly
+## results to sim$$outputPath via the out$outputs below. This may become really
+## big for large of fine-pixelled areas. Need to create a user-controlled
+## parameter for "# of years saved". Note that the second to last sim$cbmPools
+## needs to be saved if we want to be able to use the
+## CBMutils::checkTransactions() function. Maybe make that saving a default?
+
 
 out$objects <- list(
   dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data","cbm_defaults",
@@ -91,7 +102,7 @@ out$loadOrder <- unlist(out$modules)
 
 # This line is when is to locally load the CBMutils package, to debug or modify
 # CBMutils functions
- pkgload::load_all("C:\\Celine\\github\\CBMutils")
+# pkgload::load_all("C:\\Celine\\github\\CBMutils")
 
 ##TODO: deal with plotting issues. Plotting takes longer than the simulation,
 ## and if the window is not big enough, the simulation will crash. If you open a
