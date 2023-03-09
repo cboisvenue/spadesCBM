@@ -82,7 +82,8 @@ out <- SpaDES.project::setupProject(
 
 
 out$objects <- list(
-  dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data","cbm_defaults", "cbm_defaults.db"),
+  dbPath = file.path(out$paths$modulePath, "CBM_defaults", "data","cbm_defaults",
+                     "cbm_defaults.db"),
   sqlDir = file.path(out$paths$modulePath, "CBM_defaults", "data", "cbm_defaults")
 )
 #out$debug = 1 is the default which is like TRUE but not quite
@@ -90,7 +91,7 @@ out$loadOrder <- unlist(out$modules)
 
 # This line is when is to locally load the CBMutils package, to debug or modify
 # CBMutils functions
-# pkgload::load_all("C:\\Celine\\github\\CBMutils")
+ pkgload::load_all("C:\\Celine\\github\\CBMutils")
 
 ##TODO: deal with plotting issues. Plotting takes longer than the simulation,
 ## and if the window is not big enough, the simulation will crash. If you open a
