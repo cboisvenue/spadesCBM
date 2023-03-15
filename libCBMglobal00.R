@@ -12,7 +12,8 @@ if (.Platform$OS.type == "windows") {
   ip <- gsub(".*? ([[:digit:]])", "\\1", ip)
 
   if (any(grepl("^132[.]156[.]", ip))) {
-    options("download.file.method" = "wininet")
+    #options("download.file.method" = "wininet")
+    Sys.setenv(REQUESTS_CA_BUNDLE = normalizePath("~/NRCAN-RootCA.crt"))
   }
 }
 #options("download.file.method" = "wininet")
