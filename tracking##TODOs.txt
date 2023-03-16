@@ -26,4 +26,6 @@ These are different from the old parameters because:
 
 - there were some code changes in the first pass of building spadesCBM. THey are listed here G:\RES_Work\Work\SpaDES\spadesCBM. Need to check if these are fixed in new default data
 
-- some NaNs are created in the sim$ecozone raster. Need to figure out why.
+- some NaNs are created in the sim$ecozone raster. Need to figure out why. This is solved (by Eliot)
+
+- Need to create a user-friendly parameter to control what years the cbmPools and/or NPP tables are saved. Current default is that sim$cbmPools is one that sim year's pools, but each year $cbmPools and NPP are saved in sim$outputPath (using the out$outputs feature).
