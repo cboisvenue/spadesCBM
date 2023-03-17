@@ -19,7 +19,7 @@ if (.Platform$OS.type == "windows") {
 #options("download.file.method" = "wininet")
 
 if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
-        tryCatch(packageVersion("Require") < "0.2.6.9010", error = function(e) TRUE))) {
+        tryCatch(packageVersion("Require") < "0.3.0", error = function(e) TRUE))) {
   install.packages(c("Require", "SpaDES.project"),
                    repos = c("https://predictiveecology.r-universe.dev",
                              getOption("repos")))
