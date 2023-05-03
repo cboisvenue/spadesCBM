@@ -4,20 +4,22 @@
 
 ## PFC work-around
 ## this is a work-around for working from PFC...R cannot connect to URL
-##This current set up sets options to wininet on any NRCan computer at PFC
-if (.Platform$OS.type == "windows") {
-  ## based on <https://stackoverflow.com/a/14357701/1380598>
-  ip <- system("ipconfig", intern = TRUE)
-  ip <- ip[grep("IPv4", ip)]
-  ip <- gsub(".*? ([[:digit:]])", "\\1", ip)
-
-  if (any(grepl("^132[.]156[.]", ip))) {
-    #options("download.file.method" = "wininet")
-    Sys.setenv(REQUESTS_CA_BUNDLE = normalizePath("~/NRCAN-RootCA.crt"))
-  }
-}
+##This current set up sets options to wininet on any NRCan computer at PFC Not
+##sure if this is needed anymore. See notes
+##G:\RES_Work\Work\LandRCBM\libCBMtransition\SSLissuePFC.docx
+# if (.Platform$OS.type == "windows") {
+#   ## based on <https://stackoverflow.com/a/14357701/1380598>
+#   ip <- system("ipconfig", intern = TRUE)
+#   ip <- ip[grep("IPv4", ip)]
+#   ip <- gsub(".*? ([[:digit:]])", "\\1", ip)
+#
+#   if (any(grepl("^132[.]156[.]", ip))) {
+#     #options("download.file.method" = "wininet")
+#     Sys.setenv(REQUESTS_CA_BUNDLE = normalizePath("~/NRCAN-RootCA.crt"))
+#   }
+# }
 #options("download.file.method" = "wininet")
-
+#options(repos = "https://cloud.r-project.org")
 if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
         tryCatch(packageVersion("Require") < "0.3.0", error = function(e) TRUE))) {
   install.packages(c("Require", "SpaDES.project"),
@@ -118,6 +120,7 @@ out$outputs <- as.data.frame(expand.grid(objectName = c("cbmPools", "NPP"),
                                                            out$times$start +
                                                              c(1:(out$times$end - out$times$start))
                                                            ))))
+dev()
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
 
 #   simInitAndSpades(times = out$times,
