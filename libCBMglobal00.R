@@ -20,14 +20,28 @@
 # }
 #options("download.file.method" = "wininet")
 #options(repos = "https://cloud.r-project.org")
-if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
-        tryCatch(packageVersion("Require") < "0.3.0", error = function(e) TRUE))) {
-  install.packages(c("Require", "SpaDES.project"),
-                   repos = c("https://predictiveecology.r-universe.dev",
-                             getOption("repos")))
-}
 
+##TODO work being done on SpaDES.project, this will need to be changed
 
+## This is not working
+# install.packages("Require")#, lib = 'C:/Users/cboisven/AppData/Local/R/win-library/4.3')
+#
+# Require::Require("PredictiveEcology/SpaDES.project@transition")
+
+## this is me trying
+library(remotes)
+remotes::install_github("PredictiveEcology/SpaDES.project@transition")
+#remotes::install_github("PredictiveEcology/reproducible@development")
+
+## below is what I used to use...
+# if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
+#         tryCatch(packageVersion("Require") < "0.3.0", error = function(e) TRUE))) {
+#   install.packages(c("Require", "SpaDES.project"),
+#                    repos = c("https://predictiveecology.r-universe.dev",
+#                              getOption("repos")))
+# }
+
+library(SpaDES.project)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
@@ -71,7 +85,7 @@ out <- SpaDES.project::setupProject(
   packages = "pkgload",
   require =
     c("googledrive",
-      "PredictiveEcology/reproducible@dev (HEAD)", #development (>= 1.2.16.9017)",
+      "reproducible",
       "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
       "PredictiveEcology/CBMutils@development (HEAD)"),
   modules = c("PredictiveEcology/CBM_defaults@main",
@@ -120,7 +134,8 @@ out$outputs <- as.data.frame(expand.grid(objectName = c("cbmPools", "NPP"),
                                                            out$times$start +
                                                              c(1:(out$times$end - out$times$start))
                                                            ))))
-dev()
+#dev()
+
 spadesCBMrunsSK <- do.call(simInitAndSpades, out)
 
 #   simInitAndSpades(times = out$times,
