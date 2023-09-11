@@ -90,7 +90,7 @@ out <- SpaDES.project::setupProject(
     c("googledrive",
       "PredictiveEcology/reproducible@development (>= 2.0.8.9001)", ##fixed a problem with caching dataPrep
       "PredictiveEcology/SpaDES.core@useCache2 (>= 2.0.2.9003)",
-      "PredictiveEcology/CBMutils@development (HEAD)"),
+      "CBMutils (HEAD)"),
   modules = c("PredictiveEcology/CBM_defaults",
               "PredictiveEcology/CBM_dataPrep_SK",
               "PredictiveEcology/CBM_vol2biomass",
