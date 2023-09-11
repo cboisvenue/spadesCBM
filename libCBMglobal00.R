@@ -60,6 +60,7 @@ out <- SpaDES.project::setupProject(
     reproducible.rasterRead = "terra::rast",
     ## These are for speed
     reproducible.useMemoise = TRUE,
+    # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
   params = list(
