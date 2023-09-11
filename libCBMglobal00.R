@@ -89,12 +89,12 @@ out <- SpaDES.project::setupProject(
   require =
     c("googledrive",
       "PredictiveEcology/reproducible@development (>= 2.0.8.9001)", ##fixed a problem with caching dataPrep
-      "PredictiveEcology/SpaDES.core@useCache2 (HEAD)",
+      "PredictiveEcology/SpaDES.core@useCache2 (>= 2.0.2.9003)",
       "PredictiveEcology/CBMutils@development (HEAD)"),
-  modules = c("PredictiveEcology/CBM_defaults@main",
-              "PredictiveEcology/CBM_dataPrep_SK@development",
+  modules = c("PredictiveEcology/CBM_defaults",
+              "PredictiveEcology/CBM_dataPrep_SK",
               "PredictiveEcology/CBM_vol2biomass",
-              "PredictiveEcology/CBM_core@main"
+              "PredictiveEcology/CBM_core"
   ),
   times = list(start = 1990.00, end = 1993.00),
   setLinuxBinaryRepo = FALSE, ## TODO: interferes with other package installation
