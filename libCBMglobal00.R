@@ -57,7 +57,10 @@ out <- SpaDES.project::setupProject(
               CRAN = "https://cloud.r-project.org"),
     reproducible.destinationPath = "inputs", ## TODO: SpaDES.project#24
     reproducible.useTerra = TRUE,
-    reproducible.rasterRead = "terra::rast"
+    reproducible.rasterRead = "terra::rast",
+    ## These are for speed
+    reproducible.useMemoise = TRUE,
+    spades.moduleCodeChecks = FALSE
   ),
   params = list(
     CBM_defaults = list(
@@ -85,12 +88,12 @@ out <- SpaDES.project::setupProject(
   packages = "pkgload",
   require =
     c("googledrive",
-      "reproducible",
-      "PredictiveEcology/SpaDES.core@development (>= 1.1.1)",
+      "PredictiveEcology/reproducible@development (>= 2.0.8.9001)", ##fixed a problem with caching dataPrep
+      "PredictiveEcology/SpaDES.core@useCache2 (HEAD)",
       "PredictiveEcology/CBMutils@development (HEAD)"),
   modules = c("PredictiveEcology/CBM_defaults@main",
               "PredictiveEcology/CBM_dataPrep_SK@development",
-              "PredictiveEcology/CBM_vol2biomass@CBM_vol2biomass_SK",
+              "PredictiveEcology/CBM_vol2biomass",
               "PredictiveEcology/CBM_core@main"
   ),
   times = list(start = 1990.00, end = 1993.00),
