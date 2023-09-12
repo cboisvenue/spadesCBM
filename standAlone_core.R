@@ -4,7 +4,7 @@ times <- list(start = 1998, end = 2000)
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
   paths = list(modulePath = "modules",
-               inputPath = "inputs"),
+               inputPath = "inputsForScott"),
   options = list(
     repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
               SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
@@ -18,11 +18,11 @@ out <- SpaDES.project::setupProject(
   modules =  "PredictiveEcology/CBM_core",
   times = times,
   require = "PredictiveEcology/SpaDES.core@useCache2 (>= 2.0.2.9003)",
-  processes = readRDS("processes.rds"),
+  processes = readRDS(file.path(paths$inputPath, "processes.rds")),
 
   # these two files are specific to the study area used here
-  gcHash = readRDS("gcHash.rds"),
-  spatialDT = readRDS("spatialDT.rds"),
+  gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
+  spatialDT = readRDS(file.path(paths$inputPath, "spatialDT.rds")),
 
   # provide values for CBM_core --> these are all in `expectsInput` metadata
   pooldef = c("Input", "SoftwoodMerch", "SoftwoodFoliage", "SoftwoodOther",
@@ -63,7 +63,7 @@ out <- SpaDES.project::setupProject(
   maxRotations = rep(30, nStands),
   returnIntervals = list(return_interval = rep(75, nStands)),
 
-  dPath = ".", #file.path(paths$inputPath, "disturbance_testArea"),
+  dPath = paths$inputPath,
   disturbanceRasters = {
     rasts <- terra::rast(file.path(dPath, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
@@ -98,7 +98,7 @@ out <- SpaDES.project::setupProject(
     masterRaster <- terra::rast(extent, res = 30)
     terra::crs(masterRaster) <- "PROJCRS[\"Lambert_Conformal_Conic_2SP\",\n    BASEGEOGCRS[\"GCS_GRS_1980_IUGG_1980\",\n        DATUM[\"D_unknown\",\n            ELLIPSOID[\"GRS80\",6378137,298.257222101,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",49,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-95,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",49,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",77,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
     masterRaster[] <- rep(1, terra::ncell(masterRaster))
-    mr <- reproducible::prepInputs(url = "https://drive.google.com/file/d/1zUyFH8k6Ef4c_GiWMInKbwAl6m6gvLJW",
+    mr <- reproducible::prepInputs(targetFile = file.path(paths$inputPath, "ldSp_TestArea.tif"),
                      to = masterRaster,
                      method = "near")
     mr[mr[] == 0] <- NA
@@ -113,7 +113,7 @@ out <- SpaDES.project::setupProject(
   )
 
 library(CBMutils)
-out$cbmData = readRDS("cbmData.rds")
+out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
 # Run
 simCoreAlone <- do.call(simInitAndSpades, out)

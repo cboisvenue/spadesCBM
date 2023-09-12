@@ -1,0 +1,2 @@
+"file" "checksum" "filesize" "algorithm"
+"ldSp_TestArea.tif" "f96b2eff6b5ad17d" "521707" "xxhash64"
