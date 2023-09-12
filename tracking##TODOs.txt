@@ -22,10 +22,13 @@ These are different from the old parameters because:
 
 - the masterRaster is not quite 30m. Need to figure out where the original raster came from and fix it.
 
-- the default sql bd is not copied in the CBM_vol2biomass.R module. It will need to be if this is to be run independently.
+- the default sql db is not copied in the CBM_vol2biomass.R module. It will need to be if this is to be run independently.
 
 - there were some code changes in the first pass of building spadesCBM. THey are listed here G:\RES_Work\Work\SpaDES\spadesCBM. Need to check if these are fixed in new default data
 
 - some NaNs are created in the sim$ecozone raster. Need to figure out why. This is solved (by Eliot)
 
 - Need to create a user-friendly parameter to control what years the cbmPools and/or NPP tables are saved. Current default is that sim$cbmPools is one that sim year's pools, but each year $cbmPools and NPP are saved in sim$outputPath (using the out$outputs feature).
+
+- CBMutils needs a lot of cleaning. For instance it should not use quickPlot as it has too many dependencies. quickPlot is still being maintained by Eliot but the plotting in CBMutils is not working. 
+- CBMutils::checkTransactions needs to be tested as the arguments were changed to not use the whole sim as an argument
