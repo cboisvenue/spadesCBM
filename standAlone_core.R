@@ -1,10 +1,14 @@
 # start in 1998 because there are known disturbances in the study area
+
+# NOTE: This is using a temporary directory for package installation, so if
+#  the R session is restarted, then the packages will be reinstalled (40 seconds after each restart)
 times <- list(start = 1998, end = 2000)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
   paths = list(modulePath = "modules",
-               inputPath = "inputsForScott"),
+               inputPath = "inputsForScott",
+               packagePath = file.path(tempdir(), "testsSpadesCBM7")),
   options = list(
     repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
               SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
