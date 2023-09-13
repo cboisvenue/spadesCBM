@@ -1,14 +1,37 @@
+## PFC work-around
+## this is a work-around for working from PFC...R cannot connect to URL
+##This current set up sets options to wininet on any NRCan computer at PFC Not
+##sure if this is needed anymore. See notes
+##G:\RES_Work\Work\LandRCBM\libCBMtransition\SSLissuePFC.docx
+# if (.Platform$OS.type == "windows") {
+#   ## based on <https://stackoverflow.com/a/14357701/1380598>
+#   ip <- system("ipconfig", intern = TRUE)
+#   ip <- ip[grep("IPv4", ip)]
+#   ip <- gsub(".*? ([[:digit:]])", "\\1", ip)
+#
+#   if (any(grepl("^132[.]156[.]", ip))) {
+#     #options("download.file.method" = "wininet")
+#     Sys.setenv(REQUESTS_CA_BUNDLE = normalizePath("~/NRCAN-RootCA.crt"))
+#   }
+# }
+#options("download.file.method" = "wininet")
+#options(repos = "https://cloud.r-project.org")
+
 # start in 1998 because there are known disturbances in the study area
 
 # NOTE: This is using a temporary directory for package installation, so if
 #  the R session is restarted, then the packages will be reinstalled (40 seconds after each restart)
+# install.packages("remotes")
+library(remotes)
+remotes::install_github("PredictiveEcology/SpaDES.project@transition")
+
 times <- list(start = 1998, end = 2000)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
   paths = list(modulePath = "modules",
-               inputPath = "inputsForScott",
-               packagePath = file.path(tempdir(), "testsSpadesCBM7")),
+               inputPath = "inputsForScott"),
+               #packagePath = file.path(tempdir(), "testsSpadesCBM7")),
   options = list(
     repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
               SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
@@ -21,7 +44,7 @@ out <- SpaDES.project::setupProject(
   ),
   modules =  "PredictiveEcology/CBM_core",
   times = times,
-  require = "PredictiveEcology/SpaDES.core@useCache2 (>= 2.0.2.9003)",
+  require = "PredictiveEcology/SpaDES.core@development",
   processes = readRDS(file.path(paths$inputPath, "processes.rds")),
 
   # these two files are specific to the study area used here
@@ -117,6 +140,7 @@ out <- SpaDES.project::setupProject(
 
   )
 
+## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
 library(CBMutils)
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
