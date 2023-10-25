@@ -28,18 +28,29 @@
 #
 # Require::Require("PredictiveEcology/SpaDES.project@transition")
 
-## this is me trying
-library(remotes)
-remotes::install_github("PredictiveEcology/SpaDES.project@transition")
-#remotes::install_github("PredictiveEcology/reproducible@development")
+# ## this is me trying
+# library(remotes)
+# remotes::install_github("PredictiveEcology/SpaDES.project@transition")
+# #remotes::install_github("PredictiveEcology/reproducible@development")
+#
+# ## below is what I used to use...
+# # if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
+# #         tryCatch(packageVersion("Require") < "0.3.0", error = function(e) TRUE))) {
+# #   install.packages(c("Require", "SpaDES.project"),
+# #                    repos = c("https://predictiveecology.r-universe.dev",
+# #                              getOption("repos")))
+# # }
 
-## below is what I used to use...
-# if (all(tryCatch(packageVersion("SpaDES.project") < "0.0.7.9023", error = function(e) TRUE),
-#         tryCatch(packageVersion("Require") < "0.3.0", error = function(e) TRUE))) {
-#   install.packages(c("Require", "SpaDES.project"),
-#                    repos = c("https://predictiveecology.r-universe.dev",
-#                              getOption("repos")))
-# }
+getOrUpdatePkg <- function(p, minVer, repo) {
+  if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
+    if (missing(repo)) repo = c("predictiveecology.r-universe.dev", getOption("repos"))
+    install.packages(p, repos = repo)
+  }
+}
+
+# getOrUpdatePkg("Require", "0.3.1.14")
+
+getOrUpdatePkg("SpaDES.project", "0.0.8.9026")
 
 library(SpaDES.project)
 
