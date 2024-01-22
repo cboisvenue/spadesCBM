@@ -136,7 +136,8 @@ out <- SpaDES.project::setupProject(
                                       saveTime = sort(c(times$start,
                                                         times$start +
                                                           c(1:(times$end - times$start))
-                                      ))))
+                                      )))),
+  updateRprofile = TRUE
 
   )
 
