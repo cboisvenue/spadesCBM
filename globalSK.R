@@ -22,16 +22,12 @@
 #options(repos = "https://cloud.r-project.org")
 
 ##TODO work being done on SpaDES.project, this will need to be changed
-getOrUpdatePkg <- function(p, minVer) {
-  if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
-    repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
-    install.packages(p, repos = repo)
-  }
-}
 
+## This is not working
+# install.packages("Require")#, lib = 'C:/Users/cboisven/AppData/Local/R/win-library/4.3')
+#
+# Require::Require("PredictiveEcology/SpaDES.project@transition")
 
-getOrUpdatePkg("Require", "0.3.1.9015")
-getOrUpdatePkg("SpaDES.project", "0.0.8.9028")
 # ## this is me trying
 # library(remotes)
 # remotes::install_github("PredictiveEcology/SpaDES.project@transition")
@@ -44,6 +40,17 @@ getOrUpdatePkg("SpaDES.project", "0.0.8.9028")
 # #                    repos = c("https://predictiveecology.r-universe.dev",
 # #                              getOption("repos")))
 # # }
+
+getOrUpdatePkg <- function(p, minVer, repo) {
+  if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
+    if (missing(repo)) repo = c("predictiveecology.r-universe.dev", getOption("repos"))
+    install.packages(p, repos = repo)
+  }
+}
+
+# getOrUpdatePkg("Require", "0.3.1.14")
+
+getOrUpdatePkg("SpaDES.project", "0.0.8.9026")
 
 library(SpaDES.project)
 
@@ -93,8 +100,8 @@ out <- SpaDES.project::setupProject(
   packages = "pkgload",
   require =
     c("googledrive",
-      "PredictiveEcology/reproducible@modsForLargeArchives (>=2.0.10.9018)", ##fixed a problem with caching dataPrep
-      "PredictiveEcology/SpaDES.core@sequentialCaching (>=2.0.3.9007)",
+      "PredictiveEcology/reproducible@development (>= 2.0.8.9001)", ##fixed a problem with caching dataPrep
+      "PredictiveEcology/SpaDES.core@development",
       "PredictiveEcology/CBMutils@development"),
   modules = c("PredictiveEcology/CBM_defaults",
               "PredictiveEcology/CBM_dataPrep_SK",
