@@ -49,30 +49,30 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  "PredictiveEcology/CBM_core1", ##TODO not linked yet!
+  modules =  "PredictiveEcology/CBM_core@libcbmr_transition", ##TODO not linked yet!
   times = times,
   require = "PredictiveEcology/SpaDES.core@development",
+  ####M begin manually passed inputs ####
+  functions = "PredictiveEcology/spadesCBM@main/R/temporaryFuns.R",
   processes = readRDS(file.path(paths$inputPath, "processes.rds")),
-
   # these two files are specific to the study area used here
   gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
   spatialDT = readRDS(file.path(paths$inputPath, "spatialDT.rds")),
-
   # provide values for CBM_core --> these are all in `expectsInput` metadata
   pooldef = c("Input", "SoftwoodMerch", "SoftwoodFoliage", "SoftwoodOther",
-               "SoftwoodCoarseRoots", "SoftwoodFineRoots", "HardwoodMerch",
-               "HardwoodFoliage", "HardwoodOther", "HardwoodCoarseRoots",
-               "HardwoodFineRoots", "AboveGroundVeryFastSoil",
-               "BelowGroundVeryFastSoil", "AboveGroundFastSoil",
-               "BelowGroundFastSoil", "MediumSoil", "AboveGroundSlowSoil",
-               "BelowGroundSlowSoil", "SoftwoodStemSnag",
-               "SoftwoodBranchSnag", "HardwoodStemSnag", "HardwoodBranchSnag",
-               "CO2", "CH4", "CO", "Products"),
+              "SoftwoodCoarseRoots", "SoftwoodFineRoots", "HardwoodMerch",
+              "HardwoodFoliage", "HardwoodOther", "HardwoodCoarseRoots",
+              "HardwoodFineRoots", "AboveGroundVeryFastSoil",
+              "BelowGroundVeryFastSoil", "AboveGroundFastSoil",
+              "BelowGroundFastSoil", "MediumSoil", "AboveGroundSlowSoil",
+              "BelowGroundSlowSoil", "SoftwoodStemSnag",
+              "SoftwoodBranchSnag", "HardwoodStemSnag", "HardwoodBranchSnag",
+              "CO2", "CH4", "CO", "Products"),
 
   PoolCount = length(pooldef),
   ages = c(100, 100, 100, 100, 101, 101, 101, 102, 102, 109, 109, 11,
-            110, 12, 12, 128, 129, 13, 13, 130, 14, 79, 81, 81, 82, 88, 89,
-            89, 9, 90, 90, 91, 91, 92, 92, 93, 93, 94, 99, 99, 99),
+           110, 12, 12, 128, 129, 13, 13, 130, 14, 79, 81, 81, 82, 88, 89,
+           89, 9, 90, 90, 91, 91, 92, 92, 93, 93, 94, 99, 99, 99),
   nStands = length(ages),
   pools = {
     pls <- matrix(ncol = PoolCount, nrow = nStands, data = 0)
@@ -84,9 +84,9 @@ out <- SpaDES.project::setupProject(
   realAges = ages,
 
   gcids = structure(c(1L, 2L, 3L, 5L, 1L, 2L, 5L, 1L, 2L, 1L, 2L, 3L, 2L,
-                       1L, 3L, 2L, 2L, 1L, 3L, 2L, 1L, 4L, 1L, 2L, 2L, 1L, 1L, 2L, 3L,
-                       1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 2L, 5L),
-                     levels = c("49", "50", "52", "58", "61"), class = "factor"),
+                      1L, 3L, 2L, 2L, 1L, 3L, 2L, 1L, 4L, 1L, 2L, 2L, 1L, 1L, 2L, 3L,
+                      1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 2L, 5L),
+                    levels = c("49", "50", "52", "58", "61"), class = "factor"),
 
   ecozones = rep(9, nStands),
   spatialUnits = rep(28, nStands),
@@ -102,19 +102,19 @@ out <- SpaDES.project::setupProject(
     rasts <- terra::rast(file.path(dPath, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
     rasts
-    },
+  },
 
   userDist = data.table(distName = c("wildfire", "clearcut", "deforestation", "20% mortality", "20% mortality"),
-                         rasterID = c(1L, 2L, 4L, 3L, 5L),
-                         wholeStand = c(1L, 1L, 1L, 0L, 0L)),
+                        rasterID = c(1L, 2L, 4L, 3L, 5L),
+                        wholeStand = c(1L, 1L, 1L, 0L, 0L)),
   sqlDir = file.path(paths$modulePath, "CBM_defaults", "data", "cbm_defaults"),
   dbPath = file.path(sqlDir, "cbm_defaults.db"),
 
   level3DT = {
     df <- data.table(ages, spatialUnits, gcids, gcids,
-                         ecozones, pixelGroup = seq(nStands), gcids)
+                     ecozones, pixelGroup = seq(nStands), gcids)
     colnames(df) <- c("ages", "spatial_unit_id", "growth_curve_component_id",
-                          "growth_curve_id", "ecozones", "pixelGroup", "gcids")
+                      "growth_curve_id", "ecozones", "pixelGroup", "gcids")
     df
   },
 
@@ -125,20 +125,21 @@ out <- SpaDES.project::setupProject(
     spatial_unit_id = c(28),
     disturbance_matrix_id = c(371, 409, 26, 91, 91)),
   mySpuDmids = userDist[dmPerSpu, on = "rasterID"],
-
   masterRaster = {
     extent = reproducible::.unwrap(structure(list(xmin = -687696, xmax = -681036,
-                                                   ymin = 711955, ymax = 716183), class = "PackedSpatExtent"))
+                                                  ymin = 711955, ymax = 716183), class = "PackedSpatExtent"))
     masterRaster <- terra::rast(extent, res = 30)
     terra::crs(masterRaster) <- "PROJCRS[\"Lambert_Conformal_Conic_2SP\",\n    BASEGEOGCRS[\"GCS_GRS_1980_IUGG_1980\",\n        DATUM[\"D_unknown\",\n            ELLIPSOID[\"GRS80\",6378137,298.257222101,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",49,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-95,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",49,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",77,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
     masterRaster[] <- rep(1, terra::ncell(masterRaster))
     mr <- reproducible::prepInputs(targetFile = file.path(paths$inputPath, "ldSp_TestArea.tif"),
                                    destinationPath = ".",
-                     to = masterRaster,
-                     method = "near")
+                                   to = masterRaster,
+                                   method = "near")
     mr[mr[] == 0] <- NA
     mr
   },
+  gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
+
   outputs = as.data.frame(expand.grid(objectName = c("cbmPools", "NPP"),
                                       saveTime = sort(c(times$start,
                                                         times$start +
@@ -146,14 +147,14 @@ out <- SpaDES.project::setupProject(
                                       )))),
   updateRprofile = TRUE
 
-  )
+)
 
 ## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
-library(CBMutils)
+devtools::load_all("../CBMutils")
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
 # Run
-simCoreAlone <- do.call(simInitAndSpades, out)
+simCoreAlone <- do.call(SpaDES.core::simInitAndSpades, out)
 
 # Read all years from disk
 savedOutputs <- outputs(simCoreAlone)[, "file"]
