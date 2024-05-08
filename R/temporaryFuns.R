@@ -8,7 +8,7 @@ for (gcid in ls(gc_hash)){
     gc_df <- rbind(gc_df, row)
   }
 }
-gc_df <- data.frame(gc_df)
+gc_df <- data.table(gc_df)
 rownames(gc_df) <- NULL
 colnames(gc_df) <- c(
   "gcid",
