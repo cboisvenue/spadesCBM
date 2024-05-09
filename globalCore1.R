@@ -49,7 +49,7 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  "PredictiveEcology/CBM_core@libcbmr_transition", ##TODO not linked yet!
+  modules =  "PredictiveEcology/CBM_core@python", ##TODO not linked yet!
   times = times,
   require = "PredictiveEcology/SpaDES.core@development",
   ####M begin manually passed inputs ####
