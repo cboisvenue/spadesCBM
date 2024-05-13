@@ -98,12 +98,6 @@ out <- SpaDES.project::setupProject(
   returnIntervals = list(return_interval = rep(75, nStands)),
 
   dPath = paths$inputPath,
-  disturbanceRasters = {
-    rasts <- terra::rast(file.path(dPath, paste0("SaskDist_", times$start:times$end, ".grd")))
-    names(rasts) <- times$start:times$end
-    rasts
-  },
-
   userDist = data.table(distName = c("wildfire", "clearcut", "deforestation", "20% mortality", "20% mortality"),
                         rasterID = c(1L, 2L, 4L, 3L, 5L),
                         wholeStand = c(1L, 1L, 1L, 0L, 0L)),
@@ -137,6 +131,12 @@ out <- SpaDES.project::setupProject(
                                    method = "near")
     mr[mr[] == 0] <- NA
     mr
+  },
+  disturbanceRasters = {
+    rasts <- terra::rast(file.path(dPath, paste0("SaskDist_", times$start:times$end, ".grd")))
+    names(rasts) <- times$start:times$end
+    rasts <- postProcessTerra(rasts, cropTo = out$masterRaster, projectTo = out$masterRaster,
+                              maskTo = out$masterRaster)
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
 
