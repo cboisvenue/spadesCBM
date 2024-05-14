@@ -42,7 +42,7 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  "PredictiveEcology/CBM_core",
+  modules =  "PredictiveEcology/CBM_core@main",
   times = times,
   require = "PredictiveEcology/SpaDES.core@development",
   processes = readRDS(file.path(paths$inputPath, "processes.rds")),
@@ -144,6 +144,7 @@ out <- SpaDES.project::setupProject(
 library(CBMutils)
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
+library(data.table)
 # Run
 simCoreAlone <- do.call(simInitAndSpades, out)
 
