@@ -10,7 +10,6 @@
 .Ruserdata*
 .Rapp.history
 .Rproj.user
-
 ## cache & data directories
 cache/*
 */cache
@@ -21,3 +20,6 @@ inputs
 inputs/
 outputs
 outputs/
+inputsForScott
+.secret
+.secrets
