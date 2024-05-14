@@ -21,3 +21,6 @@ inputs/
 outputs
 outputs/
 cache
+inputsForScott
+.secret
+.secrets
