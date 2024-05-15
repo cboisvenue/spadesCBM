@@ -96,8 +96,6 @@ out <- SpaDES.project::setupProject(
   minRotations = rep(10, nStands),
   maxRotations = rep(30, nStands),
   returnIntervals = list(return_interval = rep(75, nStands)),
-
-  dPath = paths$inputPath,
   userDist = data.table(distName = c("wildfire", "clearcut", "deforestation", "20% mortality", "20% mortality"),
                         rasterID = c(1L, 2L, 4L, 3L, 5L),
                         wholeStand = c(1L, 1L, 1L, 0L, 0L)),
@@ -133,10 +131,10 @@ out <- SpaDES.project::setupProject(
     mr
   },
   disturbanceRasters = {
-    rasts <- terra::rast(file.path(dPath, paste0("SaskDist_", times$start:times$end, ".grd")))
+    rasts <- terra::rast(file.path(paths$inputPath, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
     rasts <- postProcessTerra(rasts, cropTo = out$masterRaster, projectTo = out$masterRaster,
-                              maskTo = out$masterRaster)
+                              maskTo = out$masterRaster, method = "near")
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
 
@@ -150,7 +148,8 @@ out <- SpaDES.project::setupProject(
 )
 
 ## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
-devtools::load_all("../CBMutils")
+devtools::load_all("../libcbmr")
+install_libcbm(method = "virutalenv")
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
 # Run
