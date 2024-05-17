@@ -135,6 +135,7 @@ out <- SpaDES.project::setupProject(
     names(rasts) <- times$start:times$end
     rasts <- postProcessTerra(rasts, cropTo = out$masterRaster, projectTo = out$masterRaster,
                               maskTo = out$masterRaster, method = "near")
+    rasts
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
 
