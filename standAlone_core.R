@@ -42,7 +42,7 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  "PredictiveEcology/CBM_core",
+  modules =  "PredictiveEcology/CBM_core@main",
   times = times,
   require = "PredictiveEcology/SpaDES.core@development",
   processes = readRDS(file.path(paths$inputPath, "processes.rds")),

@@ -53,7 +53,7 @@ out <- SpaDES.project::setupProject(
   times = times,
   require = "PredictiveEcology/SpaDES.core@development",
   ####M begin manually passed inputs ####
-  functions = "PredictiveEcology/spadesCBM@main/R/temporaryFuns.R",
+  functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
   processes = readRDS(file.path(paths$inputPath, "processes.rds")),
   # these two files are specific to the study area used here
   gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
@@ -145,7 +145,6 @@ out <- SpaDES.project::setupProject(
                                                           c(1:(times$end - times$start))
                                       )))),
   updateRprofile = TRUE
-
 )
 
 ## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
