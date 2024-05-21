@@ -149,10 +149,20 @@ out <- SpaDES.project::setupProject(
 ## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
 devtools::load_all("../libcbmr")
 install_libcbm(method = "virutalenv")
+# Error in basename(condaenv) : a character vector argument expected
+# In addition: Warning message:
+#   In any(cfg$anaconda, cfg$conda) :
+#   coercing argument of type 'character' to logical
+##TODO do we need to install libcbm? (this is a python package) doesn't having
+##libcbmr suffice? don't we have to do it like this?
+# library(reticulate)
+# reticulate::import("sys")$executable
+# libcbm <- reticulate::import("libcbm")
+
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
 # Run
-simCoreAlone <- do.call(SpaDES.core::simInitAndSpades, out)
+simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 
 # Read all years from disk
 savedOutputs <- outputs(simCoreAlone)[, "file"]
