@@ -133,9 +133,8 @@ out <- SpaDES.project::setupProject(
   disturbanceRasters = {
     rasts <- terra::rast(file.path(paths$inputPath, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
-    rasts <- postProcessTerra(rasts, cropTo = out$masterRaster, projectTo = out$masterRaster,
-                              maskTo = out$masterRaster, method = "near")
-    rasts
+    rasts <- postProcessTerra(rasts, cropTo = masterRaster, projectTo = masterRaster,
+                              maskTo = masterRaster, method = "near")
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
 
