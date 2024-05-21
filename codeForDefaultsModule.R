@@ -53,3 +53,12 @@ matrices6 <- dbGetQuery(archiveIndex, "SELECT * FROM disturbance_type_tr")
 ### names and that is important because the user may provide the disturbance
 ### names or they may come from another product and need to be matched with the
 ### CBM DMDIDs
+
+### will need the species names - they are in spinup_input$parameters$species
+### but this is a panda, need to figure out how to search those in R. We need to
+### be able to do a species match
+species <- dbGetQuery(archiveIndex, "SELECT * FROM species")
+species_tr <- dbGetQuery(archiveIndex, "SELECT * FROM species_tr")
+
+### what is this? probably for Juha's uncertainty analyses...
+random_return_interval <- dbGetQuery(archiveIndex, "SELECT * FROM random_return_interval")
