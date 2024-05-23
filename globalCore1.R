@@ -153,16 +153,27 @@ install_libcbm(method = "virutalenv")
 # In addition: Warning message:
 #   In any(cfg$anaconda, cfg$conda) :
 #   coercing argument of type 'character' to logical
+###This is another error I get while running the line above:
+# Error in basename(condaenv) : a character vector argument expected
+# In addition: Warning message:
+#   In any(cfg$anaconda, cfg$conda) :
+#   coercing argument of type 'character' to logical
+
 ##TODO do we need to install libcbm? (this is a python package) doesn't having
 ##libcbmr suffice? don't we have to do it like this?
-# library(reticulate)
-# reticulate::import("sys")$executable
-# libcbm <- reticulate::import("libcbm")
+library(reticulate)
+reticulate::import("sys")$executable
+#[1] "C:\\Users\\cboisven\\AppData\\Local\\R-MINI~1\\envs\\R-RETI~1\\python.exe"
+libcbm <- reticulate::import("libcbm")
 
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
 # Run
 simPython <- do.call(SpaDES.core::simInitAndSpades, out)
+
+##TODO we can remove this once we are happy with the results. The results of
+##simPython should be identifical to simCoreAlone
+simCoreAlone <- readRDS("simCoreAlone.rds")
 
 # Read all years from disk
 savedOutputs <- outputs(simCoreAlone)[, "file"]
