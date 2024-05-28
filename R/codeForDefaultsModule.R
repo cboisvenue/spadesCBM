@@ -62,3 +62,6 @@ species_tr <- dbGetQuery(archiveIndex, "SELECT * FROM species_tr")
 
 ### what is this? probably for Juha's uncertainty analyses...
 random_return_interval <- dbGetQuery(archiveIndex, "SELECT * FROM random_return_interval")
+
+### looking for the fire return intervals
+spinupSQL <- dbGetQuery(archiveIndex, "SELECT * FROM spinup_parameter")
