@@ -8,6 +8,9 @@
 
 dbPath <- "C:/Celine/github/spadesCBM/defaultDB/cbm_defaults_v1.2.8340.362.db"
 
+### default sql queries used in the NIR are here:
+###https://github.com/cat-cfs/libcbm_py/blob/main/libcbm/resources/cbm_defaults_queries/disturbance_type_ref.sql
+
 library(RSQLite)
 devtools::load_all("../CBMutils")
 library(CBMutils)
