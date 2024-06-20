@@ -19,19 +19,24 @@
 
 ##TODO this will change when upgrades on Require, SpaDES.project, and other
 ##packages is stablized
-getOrUpdatePkg <- function(p, minVer) {
-  if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
-    repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
-    install.packages(p, repos = repo)
-  }
-}
-getOrUpdatePkg("Require", "0.3.1.9015")
-getOrUpdatePkg("SpaDES.project", "0.0.8.9028")
+# getOrUpdatePkg <- function(p, minVer) {
+#   if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
+#     repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
+#     install.packages(p, repos = repo)
+#   }
+# }
+# getOrUpdatePkg("Require", "0.3.1.9085")
+# getOrUpdatePkg("SpaDES.project", "0.1.0.9003")
 
-
+repos <- c("predictiveecology.r-universe.dev", getOption("repos"))
+install.packages(c("Require", "SpaDES.project"), repos = repos)
 
 # start in 1998 because there are known disturbances in the study area
 times <- list(start = 1998, end = 2000)
+
+##TODO the out will not run without me loading reproducible...I thought it would
+##do it through the SpaDES.project::setupProject fnct. This is a workaround
+library(reproducible)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
@@ -40,9 +45,10 @@ out <- SpaDES.project::setupProject(
                inputPath = "inputsForScott"), #this will be replaced with updates CBM_dataPrep_SK and CBM_defaults
 
   options = list(
-    repos = c(PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
-              SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
-              CRAN = "https://cloud.r-project.org"),
+    repos = c(repos = repos),
+      # PE = "https://predictiveecology.r-universe.dev/", ## latest PredictievEcology packages
+      #         SF = "https://r-spatial.r-universe.dev/",         ## latest sf and other spatial packages
+      #         CRAN = "https://cloud.r-project.org"),
     reproducible.destinationPath = "inputs", ## TODO: SpaDES.project#24
     ## These are for speed
     reproducible.useMemoise = TRUE,
@@ -117,6 +123,7 @@ out <- SpaDES.project::setupProject(
     spatial_unit_id = c(28),
     disturbance_matrix_id = c(371, 409, 26, 91, 91)),
   mySpuDmids = userDist[dmPerSpu, on = "rasterID"],
+
   masterRaster = {
     extent = reproducible::.unwrap(structure(list(xmin = -687696, xmax = -681036,
                                                   ymin = 711955, ymax = 716183), class = "PackedSpatExtent"))
@@ -148,7 +155,7 @@ out <- SpaDES.project::setupProject(
 
 ## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
 devtools::load_all("../libcbmr")
-install_libcbm(method = "virutalenv")
+#install_libcbm(method = "virutalenv")
 # Error in basename(condaenv) : a character vector argument expected
 # In addition: Warning message:
 #   In any(cfg$anaconda, cfg$conda) :
@@ -167,7 +174,9 @@ reticulate::import("sys")$executable
 libcbm <- reticulate::import("libcbm")
 
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
-
+##TODO smae as for reproducible...SpaDES.core is not installed??
+install.packages("SpaDES.core", repos = repos)
+library("SpaDES.core")
 # Run
 simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 
