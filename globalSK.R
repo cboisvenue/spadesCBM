@@ -41,6 +41,7 @@
 # #                              getOption("repos")))
 # # }
 
+## might still want this function
 getOrUpdatePkg <- function(p, minVer, repo) {
   if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
     if (missing(repo)) repo = c("predictiveecology.r-universe.dev", getOption("repos"))
@@ -50,9 +51,13 @@ getOrUpdatePkg <- function(p, minVer, repo) {
 
 # getOrUpdatePkg("Require", "0.3.1.14")
 
-getOrUpdatePkg("SpaDES.project", "0.0.8.9026")
+getOrUpdatePkg("SpaDES.project")
 
-library(SpaDES.project)
+repos <- c("predictiveecology.r-universe.dev", getOption("repos"))
+install.packages(c("reproducible", "SpaDES.core"), repos = repos)
+#library(SpaDES.core)
+
+#library(SpaDES.project)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
