@@ -36,7 +36,7 @@ times <- list(start = 1998, end = 2000)
 
 ##TODO the out will not run without me loading reproducible...I thought it would
 ##do it through the SpaDES.project::setupProject fnct. This is a workaround
-library(reproducible)
+ library(reproducible)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
@@ -140,7 +140,7 @@ out <- SpaDES.project::setupProject(
   disturbanceRasters = {
     rasts <- terra::rast(file.path(paths$inputPath, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
-    rasts <- postProcessTerra(rasts, cropTo = masterRaster, projectTo = masterRaster,
+    rasts <- postProcess2(rasts, cropTo = masterRaster, projectTo = masterRaster,
                               maskTo = masterRaster, method = "near")
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
@@ -169,14 +169,16 @@ devtools::load_all("../libcbmr")
 ##TODO do we need to install libcbm? (this is a python package) doesn't having
 ##libcbmr suffice? don't we have to do it like this?
 library(reticulate)
+###CELINE NOTES: the following line takes a long time...do we need it?? or is it
+###a check to make sure things are as they should be?
 reticulate::import("sys")$executable
 #[1] "C:\\Users\\cboisven\\AppData\\Local\\R-MINI~1\\envs\\R-RETI~1\\python.exe"
 libcbm <- reticulate::import("libcbm")
 
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 ##TODO smae as for reproducible...SpaDES.core is not installed??
-install.packages("SpaDES.core", repos = repos)
-library("SpaDES.core")
+# install.packages("SpaDES.core", repos = repos)
+# library("SpaDES.core")
 # Run
 simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 
