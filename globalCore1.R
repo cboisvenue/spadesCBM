@@ -28,8 +28,9 @@
 # getOrUpdatePkg("Require", "0.3.1.9085")
 # getOrUpdatePkg("SpaDES.project", "0.1.0.9003")
 
-repos <- c("predictiveecology.r-universe.dev", getOption("repos"))
+repos <- unique(c("predictiveecology.r-universe.dev", getOption("repos")))
 install.packages(c("Require", "SpaDES.project"), repos = repos)
+
 
 # start in 1998 because there are known disturbances in the study area
 times <- list(start = 1998, end = 2000)
@@ -139,7 +140,7 @@ out <- SpaDES.project::setupProject(
   disturbanceRasters = {
     rasts <- terra::rast(file.path(paths$inputPath, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
-    rasts <- postProcessTo(rasts, cropTo = masterRaster, projectTo = masterRaster,
+    rasts <- reproducible::postProcessTo(rasts, cropTo = masterRaster, projectTo = masterRaster,
                               maskTo = masterRaster, method = "near")
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
@@ -150,57 +151,24 @@ out <- SpaDES.project::setupProject(
                                                         times$start +
                                                           c(1:(times$end - times$start))
                                       )))),
-  updateRprofile = TRUE,
-  reticulate::use_virtualenv(virtualenv = "r-reticulate"),
-  reticulate::py_install("numpy==1.26.4", envname = "r-reticulate"),
-  reticulate::py_install("pandas==2.2.2", envname = "r-reticulate"),
-  reticulate::py_install("libcbm", envname = "r-reticulate")
+  updateRprofile = TRUE# ,
+  # packages = NULL
+  ##not sure if this should be in here...runs like this on my desktop but not on
+  ##my laptop...?
+  # sideEffects = {
+  #   reticulate::use_virtualenv(virtualenv = "./r-reticulate")
+  #   reticulate::py_install("libcbm", envname = "./r-reticulate")
+  # }
+  ##these two package updates are only necessary if you have loaded version 2.0
+  ##of numpy
+  # reticulate::py_install("numpy==1.26.4", envname = "r-reticulate"),
+  # reticulate::py_install("pandas==2.2.2", envname = "r-reticulate"),
+  # reticulate::py_install("libcbm", envname = "r-reticulate")
 )
-
-## if you don't have CBMutils, you can get it here "PredictiveEcology/CBMutils"
-#devtools::load_all("../libcbmr")
-#install_libcbm(method = "virutalenv")
-# Error in basename(condaenv) : a character vector argument expected
-# In addition: Warning message:
-#   In any(cfg$anaconda, cfg$conda) :
-#   coercing argument of type 'character' to logical
-###This is another error I get while running the line above:
-# Error in basename(condaenv) : a character vector argument expected
-# In addition: Warning message:
-#   In any(cfg$anaconda, cfg$conda) :
-#   coercing argument of type 'character' to logical
-
-##TODO do we need to install libcbm? (this is a python package) doesn't having
-##libcbmr suffice? don't we have to do it like this?
-# library(reticulate)
-# reticulate::use_virtualenv(virtualenv = "r-reticulate")
-###CELINE NOTES: the following line takes a long time...do we need it?? or is it
-###a check to make sure things are as they should be?
-#reticulate::import("sys")$executable
-#[1] "C:\\Users\\cboisven\\AppData\\Local\\R-MINI~1\\envs\\R-RETI~1\\python.exe"
-###CELINE NOTES: this next line was to revert to an older version of numpy
-###Python package. The June 16th update to version 2.0 created some issues.
-###Scott had the same error, error pasted here.
-# source("C:/Users/smorken/dev/code/spades/libcbmr/tests/spatial_integration_test/run_spatial_test.R") Show Traceback Rerun with DebugError in py_call_impl(callable, call_args$unnamed, call_args$named) :
-#   ValueError: If using all scalar values, you must pass an indexRun `reticulate::py_last_error()` for details.
-# reticulate::py_install("numpy<2.0", envname = "r-reticulate", ignore_installed=TRUE)
-#libcbm <- reticulate::import("libcbm")
-
-### other possible ways if the above stopped working, ran this instead:
-
-#print(reticulate::py_get_attr(libcbm, "__version__"))
-#install the latest numpy < 2.0
-#
-# reticulate::use_virtualenv(virtualenv = "r-reticulate")
-# reticulate::py_install("numpy==1.26.4", envname = "r-reticulate")
-# reticulate::py_install("pandas==2.2.2", envname = "r-reticulate")
-#
-# #put this last: because when you install libcbm, it will automatically install all of its dependencies, potentially overwriting your custom-selected pacakge versions
-# reticulate::py_install("libcbm", envname = "r-reticulate")
-##check things with
-# py_config() ## this is confusing!!
-
-
+install.packages("reticulate")
+library(reticulate)
+#reticulate::use_virtualenv(virtualenv = "r-reticulate")
+reticulate::py_install("libcbm", envname = "r-reticulate")
 
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
