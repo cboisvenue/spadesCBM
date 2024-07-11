@@ -1,23 +1,102 @@
 ## this is a place to save all the Python related info
-#install_libcbm(method = "virutalenv")
-# Error in basename(condaenv) : a character vector argument expected
-# In addition: Warning message:
-#   In any(cfg$anaconda, cfg$conda) :
-#   coercing argument of type 'character' to logical
-###This is another error I get while running the line above:
-# Error in basename(condaenv) : a character vector argument expected
-# In addition: Warning message:
-#   In any(cfg$anaconda, cfg$conda) :
-#   coercing argument of type 'character' to logical
 
-##TODO do we need to install libcbm? (this is a python package) doesn't having
-##libcbmr suffice? don't we have to do it like this?
-# library(reticulate)
-# reticulate::use_virtualenv(virtualenv = "r-reticulate")
-###CELINE NOTES: the following line takes a long time...do we need it?? or is it
-###a check to make sure things are as they should be?
-#reticulate::import("sys")$executable
-#[1] "C:\\Users\\cboisven\\AppData\\Local\\R-MINI~1\\envs\\R-RETI~1\\python.exe"
+
+### If you do not have Python do this:
+library(reticulate)
+version <- "3.11.9" # see https://www.python.org/ftp/python/ for the available version strings
+install_python(version)
+virtualenv_create("r-reticulate", version = version)
+use_virtualenv("r-reticulate")
+# the above lines slightly modified from here:
+# https://rstudio.github.io/reticulate/reference/install_python.html
+
+### If you need to get rid of all your python installation try this:
+#If you are not using python other things than for cbm_exn, I'd also consider cleanup of other installations as well
+#there might be more environments/installs in here:
+C:/Users/cboisven/AppData/Local/r-reticulate
+#or here:
+C:/Users/cboisven/AppData/Local/programs/python
+# and you should remove this:
+C:\Users\cboisven\Documents\.virtualenvs\r-reticulate
+
+## if you have been working with Require you should do this also:
+Require::clearRequirePackageCache()
+
+##After installing Python it is always good to check where it is thinking your
+##Python .exe is.
+reticulate::import("sys")$executable
+# Note that this should be the same after a restart. If you reinstal reticulate,
+# you have to make sure the virtual environment correct and finds your Python
+# .exe
+
+
+
+### Installing libcbm with numpy<2.0
+### There is currently a problem with running libcbm with the Python package
+### numpy 2.0. It is recommended to load the libcbm from the comand line like
+### this:
+
+#So after you create the environment named: "r-reticulate"
+#Here is how I would install the libcbm requirements at a command prompt:
+
+ # get the path to your python install with
+the_path <- reticulate::import("sys")$executable
+
+#Then at a command prompt use the above path which should end in python.exe like this:
+
+  <the_path>\python.exe -m pip install -r requirements.txt
+# put the full path to where the requirements.txt file is. In Celine's case, it
+# is here:
+#C:\Celine\Syncdocs\RES_Work\Work\LandRCBM\libCBMtransition\PythonToR\requirements.txt
+# File content:
+# numpy<2.0
+# pandas>=1.1.5
+# scipy
+# numexpr>=2.8.7
+# numba
+# pyyaml
+# mock
+# openpyxl
+
+### Other potentially useful info from Scott Morken:
+##Lines of code from Scott Morken to remove all packages and reload them. Run
+##this from command line
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall libcbm
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall numpy
+C:\Users\cboisven\DOCUME~1\VIRTUA~1insta\R-RETI~1\Scripts\python.exe -m pip uninstall pandas
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall scipy
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall numexpr
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall numba
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip cache purge
+
+# Then, back in R run this (ensuring libcbm is very last)
+
+library("reticulate")
+reticulate::use_virtualenv(virtualenv = "r-reticulate")
+reticulate::py_install("numpy==1.26.4", envname = "r-reticulate")
+reticulate::py_install("pandas==2.2.2", envname = "r-reticulate")
+reticulate::py_install("libcbm", envname = "r-reticulate") ## this one always last
+
+#other lines
+# can you run this and share the output?
+C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip freeze
+# et-xmlfile==1.1.0
+# libcbm==2.6.6
+# llvmlite==0.43.0
+# mock==5.1.0
+# numba==0.60.0
+# numexpr==2.10.1
+# numpy==1.26.4
+# openpyxl==3.1.5
+# pandas==2.2.2
+# python-dateutil==2.9.0.post0
+# pytz==2024.1
+# PyYAML==6.0.1
+# scipy==1.13.1
+# six==1.16.0
+# tzdata==2024.1
+
+
 ###CELINE NOTES: this next line was to revert to an older version of numpy
 ###Python package. The June 16th update to version 2.0 created some issues.
 ###Scott had the same error, error pasted here.
@@ -31,34 +110,31 @@
 #print(reticulate::py_get_attr(libcbm, "__version__"))
 #install the latest numpy < 2.0
 #
-# reticulate::use_virtualenv(virtualenv = "r-reticulate")
-# reticulate::py_install("numpy==1.26.4", envname = "r-reticulate")
-# reticulate::py_install("pandas==2.2.2", envname = "r-reticulate")
-#
 # #put this last: because when you install libcbm, it will automatically install all of its dependencies, potentially overwriting your custom-selected pacakge versions
 # reticulate::py_install("libcbm", envname = "r-reticulate")
 ##check things with
 # py_config() ## this is confusing!!
 
-##Lines of code from Scott Morken to remove all packages and reload them. Run
-##this from command line
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall libcbm
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall numpy
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall pandas
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall scipy
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall numexpr
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip uninstall numba
-C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip cache purge
 
-# Then, back in R run this (ensuring libcbm is very last)
 
-library("reticulate")
-reticulate::use_virtualenv(virtualenv = "r-reticulate")
-reticulate::py_install("numpy==1.26.4", envname = "r-reticulate")
-reticulate::py_install("pandas==2.2.2", envname = "r-reticulate")
-reticulate::py_install("libcbm", envname = "r-reticulate")
 
 #other lines
 # can you run this and share the output?
   C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip freeze
+  # et-xmlfile==1.1.0
+  # libcbm==2.6.6
+  # llvmlite==0.43.0
+  # mock==5.1.0
+  # numba==0.60.0
+  # numexpr==2.10.1
+  # numpy==1.26.4
+  # openpyxl==3.1.5
+  # pandas==2.2.2
+  # python-dateutil==2.9.0.post0
+  # pytz==2024.1
+  # PyYAML==6.0.1
+  # scipy==1.13.1
+  # six==1.16.0
+  # tzdata==2024.1
+
 
