@@ -28,6 +28,16 @@
 # getOrUpdatePkg("Require", "0.3.1.9085")
 # getOrUpdatePkg("SpaDES.project", "0.1.0.9003")
 
+
+######## Trials at setting up th ePython environment in reticulate without
+######## confusing where it looks for libcbm package
+#install.packages("reticulate")
+library(reticulate)
+reticulate::use_virtualenv(virtualenv = "r-reticulate")
+reticulate::py_install("libcbm", envname = "r-reticulate")
+
+
+
 repos <- unique(c("predictiveecology.r-universe.dev", getOption("repos")))
 install.packages(c("Require", "SpaDES.project"), repos = repos)
 
@@ -55,7 +65,6 @@ out <- SpaDES.project::setupProject(
   modules =  "PredictiveEcology/CBM_core@python", ##TODO not linked yet!
   times = times,
   require = c("PredictiveEcology/SpaDES.core@development",
-              "reticulate",
               "PredictiveEcology/libcbmr"),
 
   ####M begin manually passed inputs ####
@@ -165,10 +174,7 @@ out <- SpaDES.project::setupProject(
   # reticulate::py_install("pandas==2.2.2", envname = "r-reticulate"),
   # reticulate::py_install("libcbm", envname = "r-reticulate")
 )
-install.packages("reticulate")
-library(reticulate)
-#reticulate::use_virtualenv(virtualenv = "r-reticulate")
-reticulate::py_install("libcbm", envname = "r-reticulate")
+
 
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
