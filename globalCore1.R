@@ -35,7 +35,8 @@
 library(reticulate)
 reticulate::use_virtualenv(virtualenv = "r-reticulate")
 reticulate::py_install("libcbm", envname = "r-reticulate")
-
+#reticulate::import("sys")$executable
+## the start of this path has to match where the libcbm is loaded
 
 
 repos <- unique(c("predictiveecology.r-universe.dev", getOption("repos")))
@@ -178,12 +179,15 @@ out <- SpaDES.project::setupProject(
 
 out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
 
-# Run
-simPython <- do.call(SpaDES.core::simInitAndSpades, out)
-
 ##TODO we can remove this once we are happy with the results. The results of
 ##simPython should be identifical to simCoreAlone
 simCoreAlone <- readRDS("simCoreAlone.rds")
+
+# Run
+simPython <- do.call(SpaDES.core::simInitAndSpades, out)
+
+
+
 
 # Read all years from disk
 savedOutputs <- outputs(simCoreAlone)[, "file"]
