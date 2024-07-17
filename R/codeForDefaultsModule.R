@@ -113,7 +113,7 @@ dbPath <- "C:/Celine/github/spadesCBM/defaultDB/cbm_defaults_v1.2.8340.362.db"
 #
 
 library(RSQLite)
-devtools::load_all("../CBMutils")
+#devtools::load_all("../CBMutils")
 library(CBMutils)
 
 archiveIndex <- dbConnect(dbDriver("SQLite"), dbPath)
