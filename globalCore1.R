@@ -69,8 +69,10 @@ out <- SpaDES.project::setupProject(
               "PredictiveEcology/libcbmr"),
 
   ####M begin manually passed inputs ####
+
+  ## these functions will not be useful once the
   functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
-  processes = readRDS(file.path(paths$inputPath, "processes.rds")),
+
   # these two files are specific to the study area used here
   gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
   spatialDT = readRDS(file.path(paths$inputPath, "spatialDT.rds")),

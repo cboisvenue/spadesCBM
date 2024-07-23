@@ -194,3 +194,7 @@ random_return_interval <- dbGetQuery(archiveIndex, "SELECT * FROM random_return_
 
 ### looking for the fire return intervals
 spinupSQL <- dbGetQuery(archiveIndex, "SELECT * FROM spinup_parameter")
+
+### looking at the pool definition
+pool1 <- dbGetQuery(archiveIndex, "SELECT * FROM pool")
+pool2 <- dbGetQuery(archiveIndex, "SELECT * FROM pool_tr")
