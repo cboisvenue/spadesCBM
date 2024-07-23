@@ -69,8 +69,6 @@ out <- SpaDES.project::setupProject(
               "PredictiveEcology/libcbmr"),
 
   ####M begin manually passed inputs ####
-
-  ## these functions will not be useful once the
   functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
 
   # these two files are specific to the study area used here
