@@ -72,7 +72,7 @@ out <- SpaDES.project::setupProject(
   functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
 
   # these two files are specific to the study area used here
-  gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
+  #gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
   spatialDT = readRDS(file.path(paths$inputPath, "spatialDT.rds")),
   # provide values for CBM_core --> these are all in `expectsInput` metadata
   pooldef = c("Input", "SoftwoodMerch", "SoftwoodFoliage", "SoftwoodOther",
