@@ -66,36 +66,35 @@ out <- SpaDES.project::setupProject(
   modules =  "PredictiveEcology/CBM_core@python", ##TODO not linked yet!
   times = times,
   require = c("PredictiveEcology/SpaDES.core@development",
-              "PredictiveEcology/libcbmr"),
+              "PredictiveEcology/libcbmr", "data.table"),
 
   ####M begin manually passed inputs ####
   functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
 
   # these two files are specific to the study area used here
   #gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
-  spatialDT = readRDS(file.path(paths$inputPath, "spatialDT.rds")),
-  # provide values for CBM_core --> these are all in `expectsInput` metadata
-  pooldef = c("Input", "SoftwoodMerch", "SoftwoodFoliage", "SoftwoodOther",
-              "SoftwoodCoarseRoots", "SoftwoodFineRoots", "HardwoodMerch",
-              "HardwoodFoliage", "HardwoodOther", "HardwoodCoarseRoots",
-              "HardwoodFineRoots", "AboveGroundVeryFastSoil",
-              "BelowGroundVeryFastSoil", "AboveGroundFastSoil",
-              "BelowGroundFastSoil", "MediumSoil", "AboveGroundSlowSoil",
-              "BelowGroundSlowSoil", "SoftwoodStemSnag",
-              "SoftwoodBranchSnag", "HardwoodStemSnag", "HardwoodBranchSnag",
-              "CO2", "CH4", "CO", "Products"),
+  spatialDT = {
+    dt <- readRDS(file.path(paths$inputPath, "spatialDT.rds"))
+    ##Transition: getting rid of the double gcids columns and naming one column
+    ##gcids
+    data.table::setnames(dt,"growth_curve_component_id", "gcids")
+    dt[, growth_curve_id := NULL]
+    dt
+  },
 
-  PoolCount = length(pooldef),
+  # provide values for CBM_core --> these are all in `expectsInput` metadata
+  pooldef = c(
+              "Input","Merch", "Foliage", "Other", "CoarseRoots", "FineRoots",
+              "AboveGroundVeryFastSoil", "BelowGroundVeryFastSoil",
+              "AboveGroundFastSoil", "BelowGroundFastSoil", "MediumSoil",
+              "AboveGroundSlowSoil", "BelowGroundSlowSoil", "StemSnag",
+              "BranchSnag", "CO2", "CH4", "CO", "NO2", "Products"),
+
+
   ages = c(100, 100, 100, 100, 101, 101, 101, 102, 102, 109, 109, 11,
            110, 12, 12, 128, 129, 13, 13, 130, 14, 79, 81, 81, 82, 88, 89,
            89, 9, 90, 90, 91, 91, 92, 92, 93, 93, 94, 99, 99, 99),
   nStands = length(ages),
-  pools = {
-    pls <- matrix(ncol = PoolCount, nrow = nStands, data = 0)
-    colnames(pls) <- pooldef
-    pls[, "Input"] <- 1
-    pls
-  },
 
   realAges = ages,
 
@@ -106,27 +105,21 @@ out <- SpaDES.project::setupProject(
 
   ecozones = rep(9, nStands),
   spatialUnits = rep(28, nStands),
-  historicDMIDs = rep(371, nStands),
-  lastPassDMIDS = historicDMIDs,
   delays = rep(0, nStands),
-  minRotations = rep(10, nStands),
-  maxRotations = rep(30, nStands),
-  returnIntervals = list(return_interval = rep(75, nStands)),
+
   userDist = data.table(distName = c("wildfire", "clearcut", "deforestation", "20% mortality", "20% mortality"),
                         rasterID = c(1L, 2L, 4L, 3L, 5L),
                         wholeStand = c(1L, 1L, 1L, 0L, 0L)),
-  sqlDir = file.path(paths$modulePath, "CBM_defaults", "data", "cbm_defaults"),
-  dbPath = file.path(sqlDir, "cbm_defaults.db"),
 
   level3DT = {
-    df <- data.table(ages, spatialUnits, gcids, gcids,
+    df <- data.table(ages, spatialUnits,
                      ecozones, pixelGroup = seq(nStands), gcids)
-    colnames(df) <- c("ages", "spatial_unit_id", "growth_curve_component_id",
-                      "growth_curve_id", "ecozones", "pixelGroup", "gcids")
+    colnames(df) <- c("ages", "spatial_unit_id",
+                      "ecozones", "pixelGroup", "gcids")
     df
   },
 
-  curveID = "growth_curve_component_id",
+  #curveID = "growth_curve_component_id",
 
   dmPerSpu = data.table(
     rasterID = c(1, 2, 4, 3, 5),
@@ -154,6 +147,9 @@ out <- SpaDES.project::setupProject(
                               maskTo = masterRaster, method = "near")
   },
   gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
+  #https://github.com/cat-cfs/libcbm_py/blob/main/libcbm/resources/cbm_defaults_queries/disturbance_type_ref.sql
+  dbPath = "C:/Celine/github/spadesCBM/defaultDB/cbm_defaults_v1.2.8340.362.db",
+
   Restart = getOption("SpaDES.project.Restart", FALSE),
 
   outputs = as.data.frame(expand.grid(objectName = c("cbmPools", "NPP"),
@@ -162,30 +158,16 @@ out <- SpaDES.project::setupProject(
                                                           c(1:(times$end - times$start))
                                       )))),
   updateRprofile = TRUE# ,
-  # packages = NULL
-  ##not sure if this should be in here...runs like this on my desktop but not on
-  ##my laptop...?
-  # sideEffects = {
-  #   reticulate::use_virtualenv(virtualenv = "./r-reticulate")
-  #   reticulate::py_install("libcbm", envname = "./r-reticulate")
-  # }
-  ##these two package updates are only necessary if you have loaded version 2.0
-  ##of numpy
-  # reticulate::py_install("numpy==1.26.4", envname = "r-reticulate"),
-  # reticulate::py_install("pandas==2.2.2", envname = "r-reticulate"),
-  # reticulate::py_install("libcbm", envname = "r-reticulate")
+
 )
 
-
-out$cbmData = readRDS(file.path(out$paths$inputPath, "cbmData.rds"))
-
-##TODO we can remove this once we are happy with the results. The results of
-##simPython should be identifical to simCoreAlone
-simCoreAlone <- readRDS("simCoreAlone.rds")
 
 # Run
 simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 
+##TODO we can remove this once we are happy with the results. The results of
+##simPython should be identifical to simCoreAlone
+simCoreAlone <- readRDS("simCoreAlone.rds")
 
 
 

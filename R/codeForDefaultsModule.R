@@ -152,6 +152,9 @@ matrices4 <- dbGetQuery(archiveIndex, "SELECT * FROM disturbance_matrix_value")
 matrices5 <- dbGetQuery(archiveIndex, "SELECT * FROM disturbance_type")
 matrices6 <- dbGetQuery(archiveIndex, "SELECT * FROM disturbance_type_tr")
 
+## need this:##NEW SECRET KNOWLEDGE: disturbance_type_ref_en_CA.csv. Scott will eventually
+##put this table somewhere where we can access it via URL.
+
 ### matrices2, matrices3, and matrices4 are needed for us.
 ### libcbmr::cbm_exn_get_default_parameters() does not currently give us the
 ### names and that is important because the user may provide the disturbance

@@ -137,4 +137,16 @@ C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip freeze
   # six==1.16.0
   # tzdata==2024.1
 
+  # packages = NULL
+  ##not sure if this should be in the out...runs like this on my desktop but not on
+  ##my laptop...?
+  # sideEffects = {
+  #   reticulate::use_virtualenv(virtualenv = "./r-reticulate")
+  #   reticulate::py_install("libcbm", envname = "./r-reticulate")
+  # }
+  ##these two package updates are only necessary if you have loaded version 2.0
+  ##of numpy
+  # reticulate::py_install("numpy==1.26.4", envname = "r-reticulate"),
+  # reticulate::py_install("pandas==2.2.2", envname = "r-reticulate"),
+  # reticulate::py_install("libcbm", envname = "r-reticulate")
 
