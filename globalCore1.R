@@ -65,14 +65,20 @@ out <- SpaDES.project::setupProject(
   ),
   modules =  "PredictiveEcology/CBM_core@python", ##TODO not linked yet!
   times = times,
-  require = c("PredictiveEcology/SpaDES.core@development",
+  require = c("PredictiveEcology/SpaDES.core@development (HEAD)",
               "PredictiveEcology/libcbmr", "data.table"),
+  # params = list(
+  #   CBM_core = list(
+  #     .useCache = c(".inputObjects", "init")
+  #     )),
 
-  ####M begin manually passed inputs ####
-  functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
-
+  ####M begin manually passed inputs ##########################################
   # these two files are specific to the study area used here
   #gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
+
+  functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
+  gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
+
   spatialDT = {
     dt <- readRDS(file.path(paths$inputPath, "spatialDT.rds"))
     ##Transition: getting rid of the double gcids columns and naming one column
@@ -146,8 +152,8 @@ out <- SpaDES.project::setupProject(
     rasts <- reproducible::postProcessTo(rasts, cropTo = masterRaster, projectTo = masterRaster,
                               maskTo = masterRaster, method = "near")
   },
-  gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
-  #https://github.com/cat-cfs/libcbm_py/blob/main/libcbm/resources/cbm_defaults_queries/disturbance_type_ref.sql
+
+  #https://github.com/cat-cfs/libcbm_py/tree/master/libcbm/resources/cbm_defaults_db
   dbPath = "C:/Celine/github/spadesCBM/defaultDB/cbm_defaults_v1.2.8340.362.db",
 
   Restart = getOption("SpaDES.project.Restart", FALSE),
@@ -167,16 +173,16 @@ simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 
 ##TODO we can remove this once we are happy with the results. The results of
 ##simPython should be identifical to simCoreAlone
-simCoreAlone <- readRDS("simCoreAlone.rds")
+#simCoreAlone <- readRDS("simCoreAlone.rds")
 
 
 
-# Read all years from disk
-savedOutputs <- outputs(simCoreAlone)[, "file"]
-
-NPPfiles <- grep("NPP", value = TRUE, savedOutputs)
-NPP <- rbindlist(lapply(NPPfiles, readRDS))
-
-cbmPoolsFiles <- grep("cbmPools", value = TRUE, savedOutputs)
-allPools <- rbindlist(lapply(cbmPoolsFiles, readRDS))
+# # Read all years from disk
+# savedOutputs <- outputs(simCoreAlone)[, "file"]
+#
+# NPPfiles <- grep("NPP", value = TRUE, savedOutputs)
+# NPP <- rbindlist(lapply(NPPfiles, readRDS))
+#
+# cbmPoolsFiles <- grep("cbmPools", value = TRUE, savedOutputs)
+# allPools <- rbindlist(lapply(cbmPoolsFiles, readRDS))
 
