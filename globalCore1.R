@@ -63,10 +63,10 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  c("PredictiveEcology/CBM_core@python",
-               "PredictiveEcology/CBM_vol2biomass@libcbm"),##TODO not linked yet!
+  modules =  c("PredictiveEcology/CBM_vol2biomass@libcbm",
+               "PredictiveEcology/CBM_core@python"),##TODO not linked yet!
   times = times,
-  require = c("PredictiveEcology/SpaDES.core@development (HEAD)",
+  require = c("SpaDES.core",
               "PredictiveEcology/libcbmr", "data.table"),
   # params = list(
   #   CBM_core = list(
