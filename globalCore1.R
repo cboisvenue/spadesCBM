@@ -63,7 +63,8 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  "PredictiveEcology/CBM_core@python", ##TODO not linked yet!
+  modules =  c("PredictiveEcology/CBM_core@python",
+               "PredictiveEcology/CBM_vol2biomass@libcbm"),##TODO not linked yet!
   times = times,
   require = c("PredictiveEcology/SpaDES.core@development (HEAD)",
               "PredictiveEcology/libcbmr", "data.table"),
@@ -167,6 +168,7 @@ out <- SpaDES.project::setupProject(
 
 )
 
+out$loadOrder <- unlist(out$modules)
 
 # Run
 simPython <- do.call(SpaDES.core::simInitAndSpades, out)
