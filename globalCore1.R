@@ -50,7 +50,8 @@ out <- SpaDES.project::setupProject(
   name = "spadesCBM",
   ##TODO need to figure out how to connect a new modules and new repo
   paths = list(modulePath = "modules",
-               inputPath = "inputsForScott"), #this will be replaced with updates CBM_dataPrep_SK and CBM_defaults
+               inputScott = "inputsForScott",
+               inputPath = "inputs"), #this will be replaced with updates CBM_dataPrep_SK and CBM_defaults
 
   options = list(
     repos = c(repos = repos),
@@ -63,10 +64,10 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  c("PredictiveEcology/CBM_core@python",
-               "PredictiveEcology/CBM_vol2biomass@libcbm"),##TODO not linked yet!
+  modules =  c("PredictiveEcology/CBM_vol2biomass@libcbm",
+               "PredictiveEcology/CBM_core@python"),##TODO not linked yet!
   times = times,
-  require = c("PredictiveEcology/SpaDES.core@development (HEAD)",
+  require = c("SpaDES.core",
               "PredictiveEcology/libcbmr", "data.table"),
   # params = list(
   #   CBM_core = list(
@@ -74,14 +75,11 @@ out <- SpaDES.project::setupProject(
   #     )),
 
   ####M begin manually passed inputs ##########################################
-  # these two files are specific to the study area used here
-  #gcHash = readRDS(file.path(paths$inputPath, "gcHash.rds")),
-
-  functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
-  gc_df = make_gc_df(readRDS(file.path(paths$inputPath, "gcHash.rds"))),
+  # these two files are specific to the study area used here. They will be
+  # created in CBM_defaults (pooldef) and CBM_dataPrep_'studyArea'.
 
   spatialDT = {
-    dt <- readRDS(file.path(paths$inputPath, "spatialDT.rds"))
+    dt <- readRDS(file.path(paths$inputScott, "spatialDT.rds"))
     ##Transition: getting rid of the double gcids columns and naming one column
     ##gcids
     data.table::setnames(dt,"growth_curve_component_id", "gcids")
@@ -126,8 +124,6 @@ out <- SpaDES.project::setupProject(
     df
   },
 
-  #curveID = "growth_curve_component_id",
-
   dmPerSpu = data.table(
     rasterID = c(1, 2, 4, 3, 5),
     spatial_unit_id = c(28),
@@ -140,7 +136,7 @@ out <- SpaDES.project::setupProject(
     masterRaster <- terra::rast(extent, res = 30)
     terra::crs(masterRaster) <- "PROJCRS[\"Lambert_Conformal_Conic_2SP\",\n    BASEGEOGCRS[\"GCS_GRS_1980_IUGG_1980\",\n        DATUM[\"D_unknown\",\n            ELLIPSOID[\"GRS80\",6378137,298.257222101,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",49,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-95,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",49,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",77,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
     masterRaster[] <- rep(1, terra::ncell(masterRaster))
-    mr <- reproducible::prepInputs(targetFile = file.path(paths$inputPath, "ldSp_TestArea.tif"),
+    mr <- reproducible::prepInputs(targetFile = file.path(paths$inputScott, "ldSp_TestArea.tif"),
                                    destinationPath = ".",
                                    to = masterRaster,
                                    method = "near")
@@ -148,14 +144,14 @@ out <- SpaDES.project::setupProject(
     mr
   },
   disturbanceRasters = {
-    rasts <- terra::rast(file.path(paths$inputPath, paste0("SaskDist_", times$start:times$end, ".grd")))
+    rasts <- terra::rast(file.path(paths$inputScott, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
     rasts <- reproducible::postProcessTo(rasts, cropTo = masterRaster, projectTo = masterRaster,
                               maskTo = masterRaster, method = "near")
   },
 
   #https://github.com/cat-cfs/libcbm_py/tree/master/libcbm/resources/cbm_defaults_db
-  dbPath = "C:/Celine/github/spadesCBM/defaultDB/cbm_defaults_v1.2.8340.362.db",
+  dbPath = file.path(paths$projectPath, "defaultDB/cbm_defaults_v1.2.8340.362.db"),
 
   Restart = getOption("SpaDES.project.Restart", FALSE),
 

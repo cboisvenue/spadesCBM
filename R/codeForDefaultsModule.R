@@ -197,3 +197,7 @@ random_return_interval <- dbGetQuery(archiveIndex, "SELECT * FROM random_return_
 
 ### looking for the fire return intervals
 spinupSQL <- dbGetQuery(archiveIndex, "SELECT * FROM spinup_parameter")
+
+### looking at forest types to see if that can be used for sw_hw
+forestType1 <- dbGetQuery(archiveIndex, "SELECT * FROM forest_type")
+forestType2 <- dbGetQuery(archiveIndex, "SELECT * FROM forest_type_tr")
