@@ -1,5 +1,7 @@
 ## this is a place to save all the Python related info
 
+##function to load Python and the correct version of packages for libcbm
+
 
 ### If you do not have Python do this:
 library(reticulate)
@@ -10,6 +12,46 @@ use_virtualenv("r-reticulate")
 # the above lines slightly modified from here:
 # https://rstudio.github.io/reticulate/reference/install_python.html
 
+##After installing Python it is always good to check where it is thinking your
+##Python .exe is.
+reticulate::import("sys")$executable
+# Note that this should be the same after a restart. If you reinstal reticulate,
+# you have to make sure the virtual environment is correct and finds your Python
+# .exe
+
+##### getting the libcbm package####################
+
+### Installing libcbm with numpy<2.0 There is currently a problem with running
+### libcbm with the Python package numpy 2.0.
+reticulate::py_install("numpy<2", envname = "r-reticulate")
+reticulate::py_install("pandas>=1.1.5", envname = "r-reticulate")
+reticulate::py_install("scipy", envname = "r-reticulate")
+reticulate::py_install("numexpr>=2.8.7", envname = "r-reticulate")
+reticulate::py_install("numba", envname = "r-reticulate")
+reticulate::py_install("pyyaml", envname = "r-reticulate")
+reticulate::py_install("mock", envname = "r-reticulate")
+reticulate::py_install("openpyxl", envname = "r-reticulate")
+
+### Alternatively, you can load the libcbm from the command line like this:
+
+#After you create the environment named: "r-reticulate"
+#Here is how I would install the libcbm requirements at a command prompt:
+
+# get the path to your python install with
+the_path <- reticulate::import("sys")$executable
+
+#Then at a command prompt use the above path which should end in python.exe like this:
+
+<the_path>\python.exe -m pip install -r requirements.txt
+# put the full path to where the requirements.txt file is. In Celine's case, it
+# is here:
+#C:\Celine\Syncdocs\RES_Work\Work\LandRCBM\libCBMtransition\PythonToR\requirements.txt
+
+### Once the above package versions are loaded, load libcbm (always do this
+### last)
+reticulate::py_install("libcbm", envname = "r-reticulate")
+
+###############################################################################
 ### If you need to get rid of all your python installation try this:
 #If you are not using python other things than for cbm_exn, I'd also consider cleanup of other installations as well
 #there might be more environments/installs in here:
@@ -22,18 +64,11 @@ C:\Users\cboisven\Documents\.virtualenvs\r-reticulate
 ## if you have been working with Require you should do this also:
 Require::clearRequirePackageCache()
 
-##After installing Python it is always good to check where it is thinking your
-##Python .exe is.
-reticulate::import("sys")$executable
-# Note that this should be the same after a restart. If you reinstal reticulate,
-# you have to make sure the virtual environment correct and finds your Python
-# .exe
-
 
 
 ### Installing libcbm with numpy<2.0
 ### There is currently a problem with running libcbm with the Python package
-### numpy 2.0. It is recommended to load the libcbm from the comand line like
+### numpy 2.0. It is recommended to load the libcbm from the command line like
 ### this:
 
 #So after you create the environment named: "r-reticulate"
