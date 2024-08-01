@@ -75,11 +75,8 @@ out <- SpaDES.project::setupProject(
   #     )),
 
   ####M begin manually passed inputs ##########################################
-  # these two files are specific to the study area used here
-  #gcHash = readRDS(file.path(paths$inputScott, "gcHash.rds")),
-
-  functions = "PredictiveEcology/spadesCBM@libCBMtransition/R/temporaryFuns.R",
-  gc_df = make_gc_df(readRDS(file.path(paths$inputScott, "gcHash.rds"))),
+  # these two files are specific to the study area used here. They will be
+  # created in CBM_defaults (pooldef) and CBM_dataPrep_'studyArea'.
 
   spatialDT = {
     dt <- readRDS(file.path(paths$inputScott, "spatialDT.rds"))
@@ -126,8 +123,6 @@ out <- SpaDES.project::setupProject(
                       "ecozones", "pixelGroup", "gcids")
     df
   },
-
-  #curveID = "growth_curve_component_id",
 
   dmPerSpu = data.table(
     rasterID = c(1, 2, 4, 3, 5),
