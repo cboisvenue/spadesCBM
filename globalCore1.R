@@ -64,8 +64,9 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  c("PredictiveEcology/CBM_vol2biomass@libcbm",
-               "PredictiveEcology/CBM_core@python"),##TODO not linked yet!
+  modules =  c("PredictiveEcology/CBM_defaults@TransitionTesting",
+               "PredictiveEcology/CBM_vol2biomass@CamilleTesting",
+               "PredictiveEcology/CBM_core@CamilleTesting"),##TODO not linked yet!
   times = times,
   require = c("SpaDES.core",
               "PredictiveEcology/libcbmr", "data.table"),
@@ -88,12 +89,12 @@ out <- SpaDES.project::setupProject(
   },
 
   # provide values for CBM_core --> these are all in `expectsInput` metadata
-  pooldef = c(
-              "Input","Merch", "Foliage", "Other", "CoarseRoots", "FineRoots",
-              "AboveGroundVeryFastSoil", "BelowGroundVeryFastSoil",
-              "AboveGroundFastSoil", "BelowGroundFastSoil", "MediumSoil",
-              "AboveGroundSlowSoil", "BelowGroundSlowSoil", "StemSnag",
-              "BranchSnag", "CO2", "CH4", "CO", "NO2", "Products"),
+  # pooldef = c(
+  #             "Input","Merch", "Foliage", "Other", "CoarseRoots", "FineRoots",
+  #             "AboveGroundVeryFastSoil", "BelowGroundVeryFastSoil",
+  #             "AboveGroundFastSoil", "BelowGroundFastSoil", "MediumSoil",
+  #             "AboveGroundSlowSoil", "BelowGroundSlowSoil", "StemSnag",
+  #             "BranchSnag", "CO2", "CH4", "CO", "NO2", "Products"),
 
 
   ages = c(100, 100, 100, 100, 101, 101, 101, 102, 102, 109, 109, 11,
@@ -151,7 +152,7 @@ out <- SpaDES.project::setupProject(
   },
 
   #https://github.com/cat-cfs/libcbm_py/tree/master/libcbm/resources/cbm_defaults_db
-  dbPath = file.path(paths$projectPath, "defaultDB/cbm_defaults_v1.2.8340.362.db"),
+  # dbPath = file.path(paths$projectPath, "defaultDB/cbm_defaults_v1.2.8340.362.db"),
 
   Restart = getOption("SpaDES.project.Restart", FALSE),
 
@@ -172,7 +173,7 @@ simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 ##TODO we can remove this once we are happy with the results. The results of
 ##simPython should be identifical to simCoreAlone
 #simCoreAlone <- readRDS("simCoreAlone.rds")
-
+#simPython4 <- readRDS("simPython4.rds")
 
 
 # # Read all years from disk
