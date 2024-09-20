@@ -88,15 +88,6 @@ out <- SpaDES.project::setupProject(
     dt
   },
 
-  # provide values for CBM_core --> these are all in `expectsInput` metadata
-  # pooldef = c(
-  #             "Input","Merch", "Foliage", "Other", "CoarseRoots", "FineRoots",
-  #             "AboveGroundVeryFastSoil", "BelowGroundVeryFastSoil",
-  #             "AboveGroundFastSoil", "BelowGroundFastSoil", "MediumSoil",
-  #             "AboveGroundSlowSoil", "BelowGroundSlowSoil", "StemSnag",
-  #             "BranchSnag", "CO2", "CH4", "CO", "NO2", "Products"),
-
-
   ages = c(100, 100, 100, 100, 101, 101, 101, 102, 102, 109, 109, 11,
            110, 12, 12, 128, 129, 13, 13, 130, 14, 79, 81, 81, 82, 88, 89,
            89, 9, 90, 90, 91, 91, 92, 92, 93, 93, 94, 99, 99, 99),
@@ -150,9 +141,6 @@ out <- SpaDES.project::setupProject(
     rasts <- reproducible::postProcessTo(rasts, cropTo = masterRaster, projectTo = masterRaster,
                               maskTo = masterRaster, method = "near")
   },
-
-  #https://github.com/cat-cfs/libcbm_py/tree/master/libcbm/resources/cbm_defaults_db
-  # dbPath = file.path(paths$projectPath, "defaultDB/cbm_defaults_v1.2.8340.362.db"),
 
   Restart = getOption("SpaDES.project.Restart", FALSE),
 
