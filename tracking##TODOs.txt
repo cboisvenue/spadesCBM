@@ -2,33 +2,47 @@
 libcbm transition
 (No order in these tasks)
 
-- SPU. 
+- SPU.
 Currently in CBM_dataPrep_SK.r, SPUs for Canada are read from a shape file (spUnit_Locator.shp) that I think was created by Ian Eddy. We need to make this more generalized.
-- Discuss with Ben storing this "base" spatial layers on the cloud somewhere so we can all know we are using the same layers. The current PSPU data is here: \\vic-fas2\cat\NFCMARS_admin\Data\SpatialFramework\PSPUS.zip 
+- Discuss with Ben storing this "base" spatial layers on the cloud somewhere so we can all know we are using the same layers. The current PSPU data is here: \\vic-fas2\cat\NFCMARS_admin\Data\SpatialFramework\PSPUS.zip
 - Scott put that same shapefile on a googleDrive here is a link to PSPUS.zip
 https://drive.google.com/file/d/1Z_pMwhylqMkKZfOArATaAz9pUVNXtBAd/view?usp=sharing
 - I need to compare those two files. LandR::.compareCRS?
 
-- Default parameters. 
-Get the CBM_default to read the same database as Scott's work. The parameters are mostly the same as our defaults, this batch of parameters is extracted from the most recent public release of the CBM-CFS3 toolbox, since around 2016 there are have been a few updates to the archive index and it's possible temperatures, new disturbances, and possibly DM revisions will be the differences from the version you have. Things like volume to biomass parameters have also changed but that's not relevant to cbm_exn. The db file source I have been working with is here:
-https://github.com/cat-cfs/libcbm_py/tree/master/libcbm/resources/cbm_defaults_db
-I also have scripts to generate that same database schema from any CBM3 archive index. I imagine this is a similar schema to the one you have, but I honestly cannot remember that. (can share if interested)
-For the parameters from here: https://github.com/cat-cfs/libcbm_py/tree/cbm_exn/libcbm/model/cbm_exn/parameters
-These are different from the old parameters because:
-1 the disturbance matrix values have been adjusted to only have the single biomass and snag pools (SW Merch, HW Merch is now just "Merch")
-2 decay parameters drop hw and sw specific snag parameters (they were identical)
-3 turnover parameters carry a sw/hw column, meaning each row is specific to a spuid,sw_hw combination
-4 flux.json - carries fluxes without hw/sw pools
-
 - the masterRaster is not quite 30m. Need to figure out where the original raster came from and fix it.
-
-- the default sql db is not copied in the CBM_vol2biomass.R module. It will need to be if this is to be run independently.
 
 - there were some code changes in the first pass of building spadesCBM. THey are listed here G:\RES_Work\Work\SpaDES\spadesCBM. Need to check if these are fixed in new default data
 
-- some NaNs are created in the sim$ecozone raster. Need to figure out why. This is solved (by Eliot)
-
-- Need to create a user-friendly parameter to control what years the cbmPools and/or NPP tables are saved. Current default is that sim$cbmPools is one that sim year's pools, but each year $cbmPools and NPP are saved in sim$outputPath (using the out$outputs feature).
-
-- CBMutils needs a lot of cleaning. For instance it should not use quickPlot as it has too many dependencies. quickPlot is still being maintained by Eliot but the plotting in CBMutils is not working. 
+- CBMutils needs a lot of cleaning. For instance it should not use quickPlot as it has too many dependencies. quickPlot is still being maintained by Eliot but the plotting in CBMutils is not working.
 - CBMutils::checkTransactions needs to be tested as the arguments were changed to not use the whole sim as an argument
+
+- This needs to be in the R_side documentation and there needs more info on the Python sides. "those state-variable coding behaviours are defined in this single module for both spinup and step: https://github.com/cat-cfs/libcbm_py/blob/main/libcbm/model/cbm_exn/cbm_exn_land_state.py"
+- the area column in the cbm_vars$state dataframe. The area column will have no effect on the C dynamics of this script, since the internal working values are tonnesC/ha.  It may be useful to keep the column anyways for results processing since multiplying the tonnesC/ha, tonnesC/yr/ha values by the area is the CBM3 method for extracting the mass, mass/year values.
+- the column names that are referenced by the python scripts are the ones that need to be present, and spelled the same as the reference, but in most cases extra columns will just be ignored.
+- Python documentation:  cbm_exn is here https://github.com/cat-cfs/libcbm_py/blob/main/libcbm/model/cbm_exn/parameters/parameter_extraction.py
+- In python I map the "forest_type" column of this file based on the species_id to arrive at the sw_hw field.  forest_type=1 maps to sw_hw=0 and any other value of forest_type maps to sw_hw=1
+like 1
+species.csv - https://041gc-my.sharepoint.com/personal/scott_morken_nrcan-rncan_gc_ca/Documents/Microsoft Teams Chat Files/species.csv
+it's consistent with how CBM-CFS3 does it..by this i mean the other forest types that are not strictly softwood get mapped to hardwood (including mixedwood, or not-applicable)
+- The way to always get the latest path though is like this through a function
+# call.  This will return the path to a local copy of the database that's stored
+# within the installed libcbm package
+#
+#
+# libcbm_resources <- reticulate::import("libcbm.resources")
+# cbm_defaults_path <- libcbm_resources$get_cbm_defaults_path()
+# [14:41] Morken, Scott
+# yes this makes sense, I think maybe even the best thing would be to make a
+# permanent github repo that is the "authoritative" copy of this database and
+# have both your work and libcbm point at that.  For now it should be safe to
+# just point at the current URL (I have no imminent plans to change this, and if
+# I did want to change it I could let you know?)   For the hypothetical case of
+# a change, like if I had to make a change in a few months, If you had to change
+# the URL in your script at some point in the future would it really break
+# things?  If  I do make a change like that I'll make a more permanent
+# solution..
+
+
+- libcbm has issues with the numpy2.0 Python package. It needs to be using an earlier version (this was turee in the summer of 2024 - needs to be rechecked with Scott). these are all of the libcbm requirements so it may require a few more tweaks
+https://github.com/cat-cfs/libcbm_py/blob/main/requirements.txt
+

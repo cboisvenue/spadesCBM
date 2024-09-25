@@ -185,3 +185,9 @@ C:\Users\cboisven\DOCUME~1\VIRTUA~1\R-RETI~1\Scripts\python.exe -m pip freeze
   # reticulate::py_install("pandas==2.2.2", envname = "r-reticulate"),
   # reticulate::py_install("libcbm", envname = "r-reticulate")
 
+  ##some usefull functions
+  # the reticulate::py_to_r function that will convert any pandas dataframes to
+  # R dataframes which should be a bit more user friendly to deal with for R
+  # users
+  # https://rstudio.github.io/reticulate/reference/r-py-conversion.html
+
