@@ -20,6 +20,7 @@ https://drive.google.com/file/d/1Z_pMwhylqMkKZfOArATaAz9pUVNXtBAd/view?usp=shari
 - the area column in the cbm_vars$state dataframe. The area column will have no effect on the C dynamics of this script, since the internal working values are tonnesC/ha.  It may be useful to keep the column anyways for results processing since multiplying the tonnesC/ha, tonnesC/yr/ha values by the area is the CBM3 method for extracting the mass, mass/year values.
 - the column names that are referenced by the python scripts are the ones that need to be present, and spelled the same as the reference, but in most cases extra columns will just be ignored.
 - Python documentation:  cbm_exn is here https://github.com/cat-cfs/libcbm_py/blob/main/libcbm/model/cbm_exn/parameters/parameter_extraction.py
+https://cat-cfs.github.io/libcbm_py/cbm_exn_custom_ops.html
 - In python I map the "forest_type" column of this file based on the species_id to arrive at the sw_hw field.  forest_type=1 maps to sw_hw=0 and any other value of forest_type maps to sw_hw=1
 like 1
 species.csv - https://041gc-my.sharepoint.com/personal/scott_morken_nrcan-rncan_gc_ca/Documents/Microsoft Teams Chat Files/species.csv
