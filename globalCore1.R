@@ -65,6 +65,7 @@ out <- SpaDES.project::setupProject(
     spades.moduleCodeChecks = FALSE
   ),
   modules =  c("PredictiveEcology/CBM_defaults@TransitionTesting",
+               "PredictiveEcology/CBM_dataPrep_SK@CamilleTesting",
                "PredictiveEcology/CBM_vol2biomass@libcbm",
                "PredictiveEcology/CBM_core@python"),##TODO not linked yet!
   times = times,
