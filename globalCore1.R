@@ -89,40 +89,24 @@ out <- SpaDES.project::setupProject(
     dt
   },
 
-  ages = c(100, 100, 100, 100, 101, 101, 101, 102, 102, 109, 109, 11,
-           110, 12, 12, 128, 129, 13, 13, 130, 14, 79, 81, 81, 82, 88, 89,
-           89, 9, 90, 90, 91, 91, 92, 92, 93, 93, 94, 99, 99, 99),
-  nStands = length(ages),
 
-  realAges = ages,
-
-  gcids = structure(c(1L, 2L, 3L, 5L, 1L, 2L, 5L, 1L, 2L, 1L, 2L, 3L, 2L,
-                      1L, 3L, 2L, 2L, 1L, 3L, 2L, 1L, 4L, 1L, 2L, 2L, 1L, 1L, 2L, 3L,
-                      1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 2L, 5L),
-                    levels = c("49", "50", "52", "58", "61"), class = "factor"),
-
-  ecozones = rep(9, nStands),
-  spatialUnits = rep(28, nStands),
-  delays = rep(0, nStands),
+  delays = rep(0, length(unique(spatialDT$pixelGroup))),
 
   userDist = data.table(distName = c("wildfire", "clearcut", "deforestation", "20% mortality", "20% mortality"),
                         rasterID = c(1L, 2L, 4L, 3L, 5L),
                         wholeStand = c(1L, 1L, 1L, 0L, 0L)),
 
-  level3DT = {
-    df <- data.table(ages, spatialUnits,
-                     ecozones, pixelGroup = seq(nStands), gcids)
-    colnames(df) <- c("ages", "spatial_unit_id",
-                      "ecozones", "pixelGroup", "gcids")
-    df
-  },
-
+  ##TODO should the disturbance_matrix_id be replaced by disturbance_type_id?
+  ##This is work that need to be completed in all modules: follow disturbance
+  ##matrix identification.
   dmPerSpu = data.table(
     rasterID = c(1, 2, 4, 3, 5),
     spatial_unit_id = c(28),
     disturbance_matrix_id = c(371, 409, 26, 91, 91)),
   mySpuDmids = userDist[dmPerSpu, on = "rasterID"],
 
+##Need to keep this master raster. It defines the smaller study area. We will
+##not need it when we run all of the managed forests of SK.
   masterRaster = {
     extent = reproducible::.unwrap(structure(list(xmin = -687696, xmax = -681036,
                                                   ymin = 711955, ymax = 716183), class = "PackedSpatExtent"))
