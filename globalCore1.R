@@ -17,19 +17,8 @@
 #options("download.file.method" = "wininet")
 #options(repos = "https://cloud.r-project.org")
 
-##TODO this will change when upgrades on Require, SpaDES.project, and other
-##packages is stablized
-# getOrUpdatePkg <- function(p, minVer) {
-#   if (!isFALSE(try(packageVersion(p) < minVer, silent = TRUE) )) {
-#     repo <- c("predictiveecology.r-universe.dev", getOption("repos"))
-#     install.packages(p, repos = repo)
-#   }
-# }
-# getOrUpdatePkg("Require", "0.3.1.9085")
-# getOrUpdatePkg("SpaDES.project", "0.1.0.9003")
 
-
-######## Trials at setting up th ePython environment in reticulate without
+######## Trials at setting up the Python environment in reticulate without
 ######## confusing where it looks for libcbm package
 #install.packages("reticulate")
 library(reticulate)
@@ -105,8 +94,9 @@ out <- SpaDES.project::setupProject(
     disturbance_matrix_id = c(371, 409, 26, 91, 91)),
   mySpuDmids = userDist[dmPerSpu, on = "rasterID"],
 
-##Need to keep this master raster. It defines the smaller study area. We will
-##not need it when we run all of the managed forests of SK.
+##Need to keep this master raster here. It defines the smaller study area. We
+##will not need it when we run all of the managed forests of SK as the study
+##area will be defined by a masterRaster that we get via a URL.
   masterRaster = {
     extent = reproducible::.unwrap(structure(list(xmin = -687696, xmax = -681036,
                                                   ymin = 711955, ymax = 716183), class = "PackedSpatExtent"))
@@ -120,6 +110,9 @@ out <- SpaDES.project::setupProject(
     mr[mr[] == 0] <- NA
     mr
   },
+##Need to keep the disturbance rasters here. We will not need it when we run all
+##of the managed forests of SK as the disturbance rasters will be defined by
+##rasters that we get via a URL.
   disturbanceRasters = {
     rasts <- terra::rast(file.path(paths$inputScott, paste0("SaskDist_", times$start:times$end, ".grd")))
     names(rasts) <- times$start:times$end
