@@ -1,7 +1,9 @@
 ## PFC work-around
-## this is a work-around for working from PFC...R cannot connect to URL
+## this is a work-around for working from PFC...somtimes R cannot connect to URL
 ##This current set up sets options to wininet on any NRCan computer at PFC Not
 ##sure if this is needed anymore. See notes
+##options(download.file.method="curl", download.file.extra="--ssl-revoke-best-effort")
+##OLD WAY - will enventually delete
 ##G:\RES_Work\Work\LandRCBM\libCBMtransition\SSLissuePFC.docx
 # if (.Platform$OS.type == "windows") {
 #   ## based on <https://stackoverflow.com/a/14357701/1380598>
@@ -65,9 +67,7 @@ out <- SpaDES.project::setupProject(
   #     .useCache = c(".inputObjects", "init")
   #     )),
 
-  ####M begin manually passed inputs ##########################################
-  # these two files are specific to the study area used here. They will be
-  # created in CBM_defaults (pooldef) and CBM_dataPrep_'studyArea'.
+  #### begin manually passed inputs ##########################################
 
   spatialDT = {
     dt <- readRDS(file.path(paths$inputScott, "spatialDT.rds"))
