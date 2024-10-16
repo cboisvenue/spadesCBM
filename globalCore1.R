@@ -85,15 +85,6 @@ out <- SpaDES.project::setupProject(
                         rasterID = c(1L, 2L, 4L, 3L, 5L),
                         wholeStand = c(1L, 1L, 1L, 0L, 0L)),
 
-  ##TODO should the disturbance_matrix_id be replaced by disturbance_type_id?
-  ##This is work that need to be completed in all modules: follow disturbance
-  ##matrix identification.
-  dmPerSpu = data.table(
-    rasterID = c(1, 2, 4, 3, 5),
-    spatial_unit_id = c(28),
-    disturbance_matrix_id = c(371, 409, 26, 91, 91)),
-  mySpuDmids = userDist[dmPerSpu, on = "rasterID"],
-
 ##Need to keep this master raster here. It defines the smaller study area. We
 ##will not need it when we run all of the managed forests of SK as the study
 ##area will be defined by a masterRaster that we get via a URL.
