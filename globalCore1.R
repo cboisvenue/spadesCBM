@@ -39,7 +39,8 @@ times <- list(start = 1998, end = 2000)
 
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
-  ##TODO need to figure out how to connect a new modules and new repo
+  ##TODO need to figure out how to connect a new modules and new repo. Test is
+  ##we can get rid of inputsForScott.
   paths = list(modulePath = "modules",
                inputScott = "inputsForScott",
                inputPath = "inputs"), #this will be replaced with updates CBM_dataPrep_SK and CBM_defaults
@@ -55,8 +56,8 @@ out <- SpaDES.project::setupProject(
     # Require.offlineMode = TRUE,
     spades.moduleCodeChecks = FALSE
   ),
-  modules =  c("PredictiveEcology/CBM_defaults@TransitionTesting",
-               "PredictiveEcology/CBM_dataPrep_SK@CamilleTesting",
+  modules =  c("PredictiveEcology/CBM_defaults@python",
+               "PredictiveEcology/CBM_dataPrep_SK@python",
                "PredictiveEcology/CBM_vol2biomass@libcbm",
                "PredictiveEcology/CBM_core@python"),##TODO not linked yet!
   times = times,
@@ -127,12 +128,7 @@ out$loadOrder <- unlist(out$modules)
 # Run
 simPython <- do.call(SpaDES.core::simInitAndSpades, out)
 
-##TODO we can remove this once we are happy with the results. The results of
-##simPython should be identifical to simCoreAlone
-#simCoreAlone <- readRDS("simCoreAlone.rds")
-#simPython4 <- readRDS("simPython4.rds")
-
-
+## easy way to check results:
 # # Read all years from disk
 # savedOutputs <- outputs(simCoreAlone)[, "file"]
 #
