@@ -29,19 +29,28 @@ reticulate::py_install("libcbm", envname = "r-reticulate")
 #reticulate::import("sys")$executable
 ## the start of this path has to match where the libcbm is loaded
 
+# thiswd <- readline("Please specify where you would like the SpaDES project and modules loaded")
+# setwd(thiswd)
+projectPath <- "~/spadesCBM"
+dir.create(projectPath, recursive = TRUE, showWarnings = FALSE)
+setwd(projectPath)
 
 repos <- unique(c("predictiveecology.r-universe.dev", getOption("repos")))
-install.packages(c("Require", "SpaDES.project"), repos = repos)
+if (!require("SpaDES.project")) install.packages("SpaDES.project", repos = repos)
 
 
 # start in 1998 because there are known disturbances in the study area
 times <- list(start = 1998, end = 2000)
 
+
+
 out <- SpaDES.project::setupProject(
   name = "spadesCBM",
+  Restart = TRUE,
   ##TODO need to figure out how to connect a new modules and new repo. Test is
   ##we can get rid of inputsForScott.
-  paths = list(modulePath = "modules",
+  paths = list(projectPath = projectPath,
+               modulePath = "modules",
                inputScott = "inputsForScott",
                inputPath = "inputs"), #this will be replaced with updates CBM_dataPrep_SK and CBM_defaults
 
@@ -59,7 +68,7 @@ out <- SpaDES.project::setupProject(
   modules =  c("PredictiveEcology/CBM_defaults@python",
                "PredictiveEcology/CBM_dataPrep_SK@python",
                "PredictiveEcology/CBM_vol2biomass@libcbm",
-               "PredictiveEcology/CBM_core@python"),##TODO not linked yet!
+               "PredictiveEcology/CBM_core@python"),
   times = times,
   require = c("SpaDES.core",
               "PredictiveEcology/libcbmr", "data.table"),
@@ -112,14 +121,14 @@ out <- SpaDES.project::setupProject(
                               maskTo = masterRaster, method = "near")
   },
 
-  Restart = getOption("SpaDES.project.Restart", FALSE),
+
 
   outputs = as.data.frame(expand.grid(objectName = c("cbmPools", "NPP"),
                                       saveTime = sort(c(times$start,
                                                         times$start +
                                                           c(1:(times$end - times$start))
                                       )))),
-  updateRprofile = TRUE# ,
+  updateRprofile = TRUE
 
 )
 
